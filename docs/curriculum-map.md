@@ -10,6 +10,7 @@ A game about building a business from a single street stall. The player walks a 
 - In-world language: mentors are characters, the glossary is the Notebook, case files are Market Stories, and the end-of-day summary is the Takings report.
 - Concepts are universal. Settings (country, currency, payment methods) are swappable data packs.
 - Where rules vary by country (tax, registration, loans), say so in-game and never present them as legal or financial advice.
+- Camera: top-down 2D, built with Phaser, running in the browser on laptop and phone.
 
 ## Accuracy standard
 - No external reviewer, so every concept must trace to a published source (book, academic paper, or official publication).
