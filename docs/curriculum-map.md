@@ -1,50 +1,47 @@
-# Curriculum Map
+# Progression Map (internal design document)
 
-## Purpose
-A free, learn-by-doing entrepreneurship course delivered as a game. Players run a virtual business, feel a problem, learn the concept that solves it, then apply it.
+## Vision
+A game about building a business from a single street stall. The player walks a living market, makes fast decisions, and lives with the consequences.
 
-## Principles
+## Design rules
+- It is a game first. Everything is learned by moving, buying, serving, and deciding. No lectures, quizzes, or text-only screens.
+- Text is short, in-world, and skippable.
+- Controls: keyboard (WASD or arrows, E to interact) and touch (on-screen joystick, tap to interact).
+- In-world language: mentors are characters, the glossary is the Notebook, case files are Market Stories, and the end-of-day summary is the Takings report.
 - Concepts are universal. Settings (country, currency, payment methods) are swappable data packs.
-- Teach principles. Where rules vary by country (tax, registration, loans), label them "varies by country" and never present them as legal or financial advice.
-- Every lesson and case file lists its sources. Nothing goes in unverified.
-- Mentors are fictional characters who embody real, documented lessons. Real businesses appear only as factual Case Files.
+- Where rules vary by country (tax, registration, loans), say so in-game and never present them as legal or financial advice.
 
 ## Accuracy standard
-- No external reviewer, so every lesson must trace to a published source (book, academic paper, or official publication).
-- Case Files must be checked against at least two reliable sources before use, and stay marked "to verify" until then.
+- No external reviewer, so every concept must trace to a published source (book, academic paper, or official publication).
+- Market Stories are checked against at least two reliable sources before use and stay marked "to verify" until then.
 - If we can't verify something, it doesn't go in.
-- Each lesson shows its sources in-game so players can check for themselves.
+- Sources are viewable in the Notebook.
 
-## Level loop (same for every level)
-1. FEEL IT: play into the problem
-2. NAME IT: a mentor explains the concept, and the term goes into the glossary
-3. APPLY IT: a later decision tests whether the concept was learned
-4. DEBRIEF: the end-of-level summary shows what you did versus what the concept recommends
+## Day loop
+1. Morning: walk to the market, buy stock with limited cash
+2. Trading: set up the stall and serve customers in real time
+3. Evening: count the takings and decide what to do next
+4. Next day begins
 
-## Level 1: Customers and Validation
-Business: food or snack stall
+## Each stage follows the same arc
+1. Play into the problem (the player makes a natural mistake)
+2. A mentor character reacts and the Notebook records the idea
+3. A later situation rewards the player for having understood it
+4. Takings report shows what happened and why
 
-Core question: Who are you selling to, and what do they actually want?
+## Stage 1: First Stall
+Concept underneath (internal only): customer validation, assumptions vs evidence, small tests before big spending.
 
-Player should be able to afterward:
-- Describe a target customer and the problem they have
-- Tell a guess (assumption) apart from evidence
-- Run a small, cheap test before committing money
+Gameplay: The player has a small amount of cash and a free choice of what to sell. Customers walk by with thought bubbles showing what they want. Overbuy a food nobody wants and it spoils. Buy small, watch what customers ask for, and adjust.
 
-Glossary terms: customer segment, problem, value proposition, assumption, validation, MVP (minimum viable product), customer feedback
+The player should come away able to: spot what customers actually want, test cheaply before committing money, and tell a hunch from evidence.
 
-Feel it: The player picks a menu and location based on a hunch, buys a big stock, and sells poorly.
-Name it: A mentor introduces assumptions, validation, and the small test.
-Apply it: The player restarts, runs a test day with a small batch, talks to customers, and adjusts.
-Debrief: Money wasted on the guess versus money spent on the test.
+Notebook entries unlocked: customer, problem, assumption, validation, MVP, customer feedback
 
-Sources to verify and attach:
-- The Lean Startup (Eric Ries): validated learning, MVP
-- The Mom Test (Rob Fitzpatrick): how to ask customers useful questions
-- Business Model Generation (Osterwalder and Pigneur): customer segments, value proposition
-- Case File candidate: Dropbox's early demo video as a low-cost validation test (verify against primary sources)
+Sources to verify: The Lean Startup (Eric Ries), The Mom Test (Rob Fitzpatrick), Business Model Generation (Osterwalder and Pigneur)
+Market Story candidate: Dropbox's early demo video as a low-cost test (to verify)
 
-## Levels 2 to 8 (to be drafted)
+## Stages 2 to 8 (to be drafted)
 2. Costs and pricing
 3. Cash flow
 4. Marketing and reputation
@@ -55,3 +52,4 @@ Sources to verify and attach:
 
 ## Open questions
 - Which settings come after Ghana?
+- Art direction and where assets come from
