@@ -1,0 +1,10 @@
+{
+  "name": "Ghana",
+  "currencySymbol": "GH₵",
+  "startingCash": 100,
+  "items": [
+    { "id": "bread", "name": "Bread", "buyPrice": 6, "color": "#d4a24c" },
+    { "id": "water", "name": "Water", "buyPrice": 2, "color": "#4aa3df" },
+    { "id": "plantain", "name": "Plantain", "buyPrice": 4, "color": "#7fb069" }
+  ]
+}
