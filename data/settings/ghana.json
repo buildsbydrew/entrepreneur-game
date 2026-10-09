@@ -13,8 +13,8 @@
     "patienceMs": 20000
   },
   "items": [
-    { "id": "bread", "name": "Bread", "buyPrice": 6, "sellPrice": 9, "demand": 3, "color": "#d4a24c" },
-    { "id": "water", "name": "Water", "buyPrice": 2, "sellPrice": 3, "demand": 5, "color": "#4aa3df" },
-    { "id": "plantain", "name": "Plantain", "buyPrice": 4, "sellPrice": 6, "demand": 2, "color": "#7fb069" }
+    { "id": "bread", "name": "Bread", "buyPrice": 6, "sellPrice": 9, "demand": 3, "shelfLifeDays": 2, "color": "#d4a24c" },
+    { "id": "water", "name": "Water", "buyPrice": 2, "sellPrice": 3, "demand": 5, "shelfLifeDays": null, "color": "#4aa3df" },
+    { "id": "plantain", "name": "Plantain", "buyPrice": 4, "sellPrice": 6, "demand": 2, "shelfLifeDays": 1, "color": "#7fb069" }
   ]
 }

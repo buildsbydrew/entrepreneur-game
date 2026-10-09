@@ -1,9 +1,14 @@
-import { state, initState, startNextDay, buy, sell, recordLostCustomer } from '../state.js';
+import {
+  state, initState, startNextDay, buy, sell, recordLostCustomer,
+  endOfDayAging, expiringTonight, stockValue
+} from '../state.js';
 import Customer from '../entities/Customer.js';
 
 const WORLD_W = 2400;
 const WORLD_H = 1400;
 const INTERACT_RANGE = 110;
+const REPORT_W = 480;
+const REPORT_H = 470;
 
 export default class MarketScene extends Phaser.Scene {
   constructor() {
@@ -94,7 +99,7 @@ export default class MarketScene extends Phaser.Scene {
     const spacing = 160;
 
     this.add.rectangle(startX + spacing, y, 560, 160, 0x6b5a45);
-    this.add.text(startX + spacing, y - 110, 'SUPPLIER', {
+    this.add.text(startX + spacing, y - 125, 'SUPPLIER', {
       fontFamily: 'sans-serif',
       fontSize: '22px',
       fontStyle: 'bold',
@@ -109,7 +114,8 @@ export default class MarketScene extends Phaser.Scene {
       this.physics.add.existing(crate, true);
       this.solids.push(crate);
 
-      this.add.text(x, y - 42, `${item.name}\n${this.setting.currencySymbol}${item.buyPrice}`, {
+      const symbol = this.setting.currencySymbol;
+      this.add.text(x, y - 42, `${item.name}\n${symbol}${item.buyPrice}\n${this.shelfLabel(item)}`, {
         fontFamily: 'sans-serif',
         fontSize: '15px',
         color: '#ffffff',
@@ -119,10 +125,16 @@ export default class MarketScene extends Phaser.Scene {
       this.interactables.push({
         x,
         y,
-        label: () => `Buy ${item.name} (${this.setting.currencySymbol}${item.buyPrice})`,
+        label: () => `Buy ${item.name} (${symbol}${item.buyPrice})`,
         use: () => this.buyItem(item)
       });
     });
+  }
+
+  // How long an item lasts, as shown on its crate
+  shelfLabel(item) {
+    if (!item.shelfLifeDays) return 'Keeps';
+    return item.shelfLifeDays === 1 ? 'Lasts 1 day' : `Lasts ${item.shelfLifeDays} days`;
   }
 
   createPlayer() {
@@ -321,6 +333,9 @@ export default class MarketScene extends Phaser.Scene {
     });
     this.setStallOpen(false);
 
+    // Overnight, stock gets older and some of it goes bad
+    endOfDayAging(this.setting);
+
     // Out of business means no stock and not enough cash for even the cheapest item
     const cheapest = Math.min(...this.setting.items.map(item => item.buyPrice));
     const hasStock = Object.values(state.stock).some(count => count > 0);
@@ -337,13 +352,23 @@ export default class MarketScene extends Phaser.Scene {
       .map(item => `${item.name} ${state.stock[item.id]}`)
       .join('   ');
 
+    const spoiledParts = this.setting.items
+      .filter(item => today.spoiled[item.id] > 0)
+      .map(item => `${item.name} ${today.spoiled[item.id]}`);
+
+    const spoiledLine = spoiledParts.length > 0
+      ? `Spoiled:  ${spoiledParts.join('   ')}  (-${symbol}${today.spoiledCost})`
+      : 'Spoiled:  nothing';
+
     const lines = [
       `Customers served:  ${today.served}`,
       `Customers lost:  ${today.lost}`,
       `Sales:  ${symbol}${today.revenue}`,
       `Spent on stock:  ${symbol}${today.spent}`,
+      spoiledLine,
       `Cash:  ${symbol}${today.startCash}  →  ${symbol}${state.cash}`,
-      `Stock left:  ${stockLeft}`
+      `Stock left:  ${stockLeft}`,
+      `Stock value (at cost):  ${symbol}${stockValue(this.setting)}`
     ];
 
     let title = `TAKINGS: DAY ${state.day}`;
@@ -355,27 +380,24 @@ export default class MarketScene extends Phaser.Scene {
       hint = 'Press Enter to start over';
     }
 
-    const panelW = 480;
-    const panelH = 380;
-
     const dim = this.add.rectangle(0, 0, 6000, 6000, 0x000000, 0.65);
-    const panel = this.add.rectangle(0, 0, panelW, panelH, 0x1f2a30).setStrokeStyle(3, 0xf39c12);
+    const panel = this.add.rectangle(0, 0, REPORT_W, REPORT_H, 0x1f2a30).setStrokeStyle(3, 0xf39c12);
 
-    const titleText = this.add.text(0, -panelH / 2 + 38, title, {
+    const titleText = this.add.text(0, -REPORT_H / 2 + 38, title, {
       fontFamily: 'sans-serif',
       fontSize: '26px',
       fontStyle: 'bold',
       color: '#f39c12'
     }).setOrigin(0.5);
 
-    const bodyText = this.add.text(0, -8, lines.join('\n'), {
+    const bodyText = this.add.text(0, 0, lines.join('\n'), {
       fontFamily: 'sans-serif',
       fontSize: '18px',
       color: '#ffffff',
       lineSpacing: 10
     }).setOrigin(0.5);
 
-    const hintText = this.add.text(0, panelH / 2 - 34, hint, {
+    const hintText = this.add.text(0, REPORT_H / 2 - 34, hint, {
       fontFamily: 'sans-serif',
       fontSize: '16px',
       color: '#c8d1d6'
@@ -394,7 +416,7 @@ export default class MarketScene extends Phaser.Scene {
 
     const w = this.scale.width;
     const h = this.scale.height;
-    const fit = Math.min(1, w / 520, h / 420);
+    const fit = Math.min(1, w / (REPORT_W + 40), h / (REPORT_H + 40));
 
     this.report.setPosition(w / 2, h / 2).setScale(fit);
   }
@@ -572,8 +594,13 @@ export default class MarketScene extends Phaser.Scene {
     const symbol = this.setting.currencySymbol;
     this.cashText.setText(`Cash: ${symbol}${state.cash}`);
 
+    // Items that will go bad tonight get a warning next to them
     const stock = this.setting.items
-      .map(item => `${item.name} ${state.stock[item.id]}`)
+      .map(item => {
+        const expiring = expiringTonight(item);
+        const warning = expiring > 0 ? ` (${expiring} spoil tonight)` : '';
+        return `${item.name} ${state.stock[item.id]}${warning}`;
+      })
       .join('   ');
     this.stockText.setText(`Stock: ${stock}`);
 
