@@ -3,20 +3,32 @@ import {
   endOfDayAging, expiringTonight, stockValue
 } from '../state.js';
 import Customer from '../entities/Customer.js';
+import { CUSTOMER_KEYS } from '../art/textures.js';
 
 const WORLD_W = 2400;
 const WORLD_H = 1400;
 const INTERACT_RANGE = 110;
 const REPORT_W = 480;
 const REPORT_H = 470;
+const PERSON_W = 72;
+const PERSON_H = 108;
+const STALL_SCALE = 1.1;
+
+// Things in the world sort by their position on the ground (their y value),
+// so anything lower on screen draws in front. Interface layers sit above all of it.
+const DEPTH = {
+  ground: -1000,
+  mat: -500,
+  marks: -400,
+  prompt: 3000,
+  floatText: 3500,
+  hud: 5000,
+  report: 6000
+};
 
 export default class MarketScene extends Phaser.Scene {
   constructor() {
     super('MarketScene');
-  }
-
-  preload() {
-    this.load.json('setting', 'data/settings/ghana.json');
   }
 
   create() {
@@ -33,12 +45,12 @@ export default class MarketScene extends Phaser.Scene {
     this.lastClock = '';
     this.dayTimeLeft = this.setting.day.lengthMs;
 
-    // Ground grid (placeholder, real ground art comes later)
-    this.add.grid(WORLD_W / 2, WORLD_H / 2, WORLD_W, WORLD_H, 64, 64, 0x3a7d44, 1, 0x347239, 1);
+    this.add.tileSprite(0, 0, WORLD_W, WORLD_H, 'dirt').setOrigin(0).setDepth(DEPTH.ground);
 
     this.createStall();
     this.createCustomerArea();
     this.createSupplier();
+    this.createProps();
     this.createPlayer();
     this.setupCamera();
     this.setupControls();
@@ -51,18 +63,28 @@ export default class MarketScene extends Phaser.Scene {
   createStall() {
     this.stallOpen = false;
 
-    this.stall = this.add.rectangle(WORLD_W / 2 + 250, WORLD_H / 2 - 120, 180, 110, 0x8d5524);
+    const x = WORLD_W / 2 + 250;
+    const y = WORLD_H / 2 - 120;
+    const baseY = y + 55; // where the stall meets the ground
+
+    // An invisible block the player bumps into. The art is drawn on top of it.
+    this.stall = this.add.rectangle(x, y, 200, 110, 0x8d5524).setVisible(false);
     this.physics.add.existing(this.stall, true);
     this.solids.push(this.stall);
 
-    this.stallSign = this.add.text(this.stall.x, this.stall.y - 80, 'CLOSED', {
+    this.stallArt = this.add.image(x, baseY - 176 * STALL_SCALE, 'stall-closed')
+      .setOrigin(0.5, 0)
+      .setDepth(baseY);
+    this.fitStallArt();
+
+    this.stallSign = this.add.text(x, this.stallArt.y - 4, 'CLOSED', {
       fontFamily: 'sans-serif',
       fontSize: '20px',
       fontStyle: 'bold',
       color: '#ffffff',
       backgroundColor: '#c0392b',
       padding: { x: 10, y: 4 }
-    }).setOrigin(0.5);
+    }).setOrigin(0.5, 1).setDepth(baseY + 1);
 
     this.interactables.push({
       x: this.stall.x,
@@ -70,6 +92,10 @@ export default class MarketScene extends Phaser.Scene {
       label: () => this.stallLabel(),
       use: () => this.useStall()
     });
+  }
+
+  fitStallArt() {
+    this.stallArt.setDisplaySize(220 * STALL_SCALE, 190 * STALL_SCALE);
   }
 
   // Spots in front of the stall where customers wait, plus the spawn timer
@@ -86,7 +112,7 @@ export default class MarketScene extends Phaser.Scene {
 
     // Faint marks on the ground so players can see where customers stand
     this.slots.forEach(slot => {
-      this.add.ellipse(slot.x, slot.y + 14, 50, 16, 0x000000, 0.15);
+      this.add.ellipse(slot.x, slot.y + 20, 56, 16, 0x000000, 0.12).setDepth(DEPTH.marks);
     });
 
     // Customers announce when they give up waiting
@@ -97,30 +123,39 @@ export default class MarketScene extends Phaser.Scene {
     const startX = 700;
     const y = 480;
     const spacing = 160;
+    const symbol = this.setting.currencySymbol;
 
-    this.add.rectangle(startX + spacing, y, 560, 160, 0x6b5a45);
+    this.add.rectangle(startX + spacing, y, 560, 160, 0x6b5a45)
+      .setStrokeStyle(3, 0x3b2a20)
+      .setDepth(DEPTH.mat);
+
     this.add.text(startX + spacing, y - 125, 'SUPPLIER', {
       fontFamily: 'sans-serif',
       fontSize: '22px',
       fontStyle: 'bold',
-      color: '#ffffff'
-    }).setOrigin(0.5);
+      color: '#3b2a20'
+    }).setOrigin(0.5).setDepth(DEPTH.mat + 1);
 
     this.setting.items.forEach((item, i) => {
       const x = startX + i * spacing;
-      const color = Phaser.Display.Color.HexStringToColor(item.color).color;
 
-      const crate = this.add.rectangle(x, y, 90, 70, color);
-      this.physics.add.existing(crate, true);
-      this.solids.push(crate);
+      // Invisible block for bumping into, with the crate and goods drawn on top
+      const hitbox = this.add.rectangle(x, y, 90, 70, 0x000000).setVisible(false);
+      this.physics.add.existing(hitbox, true);
+      this.solids.push(hitbox);
 
-      const symbol = this.setting.currencySymbol;
-      this.add.text(x, y - 42, `${item.name}\n${symbol}${item.buyPrice}\n${this.shelfLabel(item)}`, {
+      this.add.image(x, y, 'crate').setDisplaySize(90, 70).setDepth(y + 35);
+      this.add.image(x, y - 35, `icon-${item.id}`).setDisplaySize(44, 44).setDepth(y + 36);
+
+      this.add.text(x, y - 60, `${item.name}\n${symbol}${item.buyPrice}\n${this.shelfLabel(item)}`, {
         fontFamily: 'sans-serif',
         fontSize: '15px',
-        color: '#ffffff',
-        align: 'center'
-      }).setOrigin(0.5, 1);
+        fontStyle: 'bold',
+        color: '#fff4dc',
+        align: 'center',
+        stroke: '#3b2a20',
+        strokeThickness: 4
+      }).setOrigin(0.5, 1).setDepth(y + 37);
 
       this.interactables.push({
         x,
@@ -137,14 +172,36 @@ export default class MarketScene extends Phaser.Scene {
     return item.shelfLifeDays === 1 ? 'Lasts 1 day' : `Lasts ${item.shelfLifeDays} days`;
   }
 
+  // Decoration only, to make the market feel lived in
+  createProps() {
+    [[900, 820], [1750, 900], [520, 260]].forEach(([x, y]) => {
+      this.add.image(x, y, 'umbrella')
+        .setOrigin(0.5, 1)
+        .setDisplaySize(100, 125)
+        .setDepth(y);
+    });
+  }
+
   createPlayer() {
     this.physics.world.setBounds(0, 0, WORLD_W, WORLD_H);
 
-    this.player = this.add.rectangle(WORLD_W / 2, WORLD_H / 2, 32, 32, 0xf39c12).setDepth(5);
+    // The invisible block is what moves and collides. The drawing follows it.
+    this.player = this.add.rectangle(WORLD_W / 2, WORLD_H / 2, 32, 32, 0xf39c12).setVisible(false);
     this.physics.add.existing(this.player);
     this.player.body.setCollideWorldBounds(true);
 
+    this.playerSprite = this.add.image(0, 0, 'player')
+      .setOrigin(0.5, 1)
+      .setDisplaySize(PERSON_W, PERSON_H);
+    this.syncPlayerSprite();
+
     this.solids.forEach(solid => this.physics.add.collider(this.player, solid));
+  }
+
+  // Puts the drawing so its feet sit at the bottom of the invisible block
+  syncPlayerSprite() {
+    const feetY = this.player.y + 16;
+    this.playerSprite.setPosition(this.player.x, feetY).setDepth(feetY);
   }
 
   setupCamera() {
@@ -167,7 +224,7 @@ export default class MarketScene extends Phaser.Scene {
       color: '#ffffff',
       backgroundColor: '#000000aa',
       padding: { x: 8, y: 4 }
-    }).setOrigin(0.5).setVisible(false).setDepth(50);
+    }).setOrigin(0.5).setVisible(false).setDepth(DEPTH.prompt);
   }
 
   createHud() {
@@ -182,12 +239,12 @@ export default class MarketScene extends Phaser.Scene {
     this.add.text(16, 16, 'WASD or arrows to move, E to interact', {
       fontFamily: 'sans-serif',
       fontSize: '14px',
-      color: '#ffffff'
-    }).setScrollFactor(0).setDepth(100);
+      color: '#3b2a20'
+    }).setScrollFactor(0).setDepth(DEPTH.hud);
 
-    this.cashText = this.add.text(16, 44, '', boxStyle).setScrollFactor(0).setDepth(100);
-    this.stockText = this.add.text(16, 86, '', boxStyle).setScrollFactor(0).setDepth(100);
-    this.statsText = this.add.text(16, 128, '', boxStyle).setScrollFactor(0).setDepth(100);
+    this.cashText = this.add.text(16, 44, '', boxStyle).setScrollFactor(0).setDepth(DEPTH.hud);
+    this.stockText = this.add.text(16, 86, '', boxStyle).setScrollFactor(0).setDepth(DEPTH.hud);
+    this.statsText = this.add.text(16, 128, '', boxStyle).setScrollFactor(0).setDepth(DEPTH.hud);
 
     // Day and clock sit in the top-right corner
     this.clockText = this.add.text(0, 16, '', {
@@ -197,7 +254,7 @@ export default class MarketScene extends Phaser.Scene {
       color: '#ffffff',
       backgroundColor: '#000000aa',
       padding: { x: 12, y: 6 }
-    }).setOrigin(1, 0).setScrollFactor(0).setDepth(100);
+    }).setOrigin(1, 0).setScrollFactor(0).setDepth(DEPTH.hud);
 
     this.updateHud();
     this.updateClock();
@@ -208,6 +265,7 @@ export default class MarketScene extends Phaser.Scene {
   update(time, delta) {
     this.clockText.setPosition(this.scale.width - 16, 16);
     this.layoutReport();
+    this.syncPlayerSprite();
 
     // While the report is showing, the market is frozen and we only wait for Enter
     if (this.dayOver) {
@@ -244,7 +302,7 @@ export default class MarketScene extends Phaser.Scene {
     }
 
     this.prompt.setText(`E: ${target.label()}`);
-    this.prompt.setPosition(this.player.x, this.player.y - 40);
+    this.prompt.setPosition(this.player.x, this.player.y - 112);
     this.prompt.setVisible(true);
 
     if (pressedE) target.use();
@@ -405,7 +463,7 @@ export default class MarketScene extends Phaser.Scene {
 
     this.report = this.add.container(0, 0, [dim, panel, titleText, bodyText, hintText])
       .setScrollFactor(0)
-      .setDepth(200);
+      .setDepth(DEPTH.report);
 
     this.layoutReport();
   }
@@ -463,11 +521,19 @@ export default class MarketScene extends Phaser.Scene {
       item,
       slot,
       this.stall.x + 700,
-      this.setting.customers.patienceMs
+      this.setting.customers.patienceMs,
+      this.pickCustomerLook()
     );
 
     slot.customer = customer;
     this.customers.push(customer);
+  }
+
+  // Picks a look that nobody at the stall is already wearing
+  pickCustomerLook() {
+    const used = new Set(this.customers.map(customer => customer.textureKey));
+    const free = CUSTOMER_KEYS.filter(key => !used.has(key));
+    return Phaser.Utils.Array.GetRandom(free.length > 0 ? free : CUSTOMER_KEYS);
   }
 
   resetSpawnTimer() {
@@ -494,7 +560,7 @@ export default class MarketScene extends Phaser.Scene {
 
   onCustomerLost(customer) {
     recordLostCustomer();
-    this.floatText('Customer left', '#ff6b6b', customer.body.x, customer.body.y - 70);
+    this.floatText('Customer left', '#ff6b6b', customer.body.x, customer.body.y - 175);
     this.updateHud();
   }
 
@@ -520,12 +586,12 @@ export default class MarketScene extends Phaser.Scene {
     this.stallOpen = isOpen;
 
     if (isOpen) {
-      this.stall.setFillStyle(0xe67e22);
+      this.stallArt.setTexture('stall-open');
       this.stallSign.setText('OPEN');
       this.stallSign.setBackgroundColor('#27ae60');
       this.spawnTimer = 1500; // first customer arrives soon after opening
     } else {
-      this.stall.setFillStyle(0x8d5524);
+      this.stallArt.setTexture('stall-closed');
       this.stallSign.setText('CLOSED');
       this.stallSign.setBackgroundColor('#c0392b');
 
@@ -534,6 +600,8 @@ export default class MarketScene extends Phaser.Scene {
         .filter(customer => customer.state === 'walking')
         .forEach(customer => customer.leave('neutral'));
     }
+
+    this.fitStallArt();
   }
 
   // Serves the customer who has waited longest, among those we have stock for
@@ -572,14 +640,16 @@ export default class MarketScene extends Phaser.Scene {
 
   // ---------- Feedback ----------
 
-  // Small message that rises and fades out. Defaults to above the player.
-  floatText(message, color, x = this.player.x, y = this.player.y - 70) {
+  // Small message that rises and fades out. Defaults to above the player's head.
+  floatText(message, color, x = this.player.x, y = this.player.y - 140) {
     const text = this.add.text(x, y, message, {
       fontFamily: 'sans-serif',
       fontSize: '20px',
       fontStyle: 'bold',
-      color
-    }).setOrigin(0.5).setDepth(60);
+      color,
+      stroke: '#3b2a20',
+      strokeThickness: 4
+    }).setOrigin(0.5).setDepth(DEPTH.floatText);
 
     this.tweens.add({
       targets: text,

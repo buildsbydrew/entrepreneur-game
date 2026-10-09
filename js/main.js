@@ -1,3 +1,4 @@
+import BootScene from './scenes/BootScene.js';
 import MarketScene from './scenes/MarketScene.js';
 
 const config = {
@@ -5,7 +6,7 @@ const config = {
   parent: 'game',
   width: '100%',
   height: '100%',
-  backgroundColor: '#3a7d44',
+  backgroundColor: '#d8b98a',
   scale: {
     mode: Phaser.Scale.RESIZE,
     autoCenter: Phaser.Scale.CENTER_BOTH
@@ -14,7 +15,7 @@ const config = {
     default: 'arcade',
     arcade: { debug: false }
   },
-  scene: [MarketScene]
+  scene: [BootScene, MarketScene]
 };
 
 new Phaser.Game(config);
