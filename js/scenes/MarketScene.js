@@ -1,4 +1,4 @@
-import { state, initState, buy, sell, recordLostCustomer } from '../state.js';
+import { state, initState, startNextDay, buy, sell, recordLostCustomer } from '../state.js';
 import Customer from '../entities/Customer.js';
 
 const WORLD_W = 2400;
@@ -21,6 +21,12 @@ export default class MarketScene extends Phaser.Scene {
     this.interactables = []; // things the player can press E on
     this.solids = [];        // things the player can't walk through
     this.speed = 180;
+
+    this.dayOver = false;
+    this.outOfBusiness = false;
+    this.report = null;
+    this.lastClock = '';
+    this.dayTimeLeft = this.setting.day.lengthMs;
 
     // Ground grid (placeholder, real ground art comes later)
     this.add.grid(WORLD_W / 2, WORLD_H / 2, WORLD_W, WORLD_H, 64, 64, 0x3a7d44, 1, 0x347239, 1);
@@ -138,6 +144,8 @@ export default class MarketScene extends Phaser.Scene {
     this.cursors = this.input.keyboard.createCursorKeys();
     this.keys = this.input.keyboard.addKeys('W,A,S,D');
     this.keyE = this.input.keyboard.addKey('E');
+    this.keyEnter = this.input.keyboard.addKey('ENTER');
+    this.keySpace = this.input.keyboard.addKey('SPACE');
   }
 
   createPrompt() {
@@ -168,15 +176,37 @@ export default class MarketScene extends Phaser.Scene {
     this.cashText = this.add.text(16, 44, '', boxStyle).setScrollFactor(0).setDepth(100);
     this.stockText = this.add.text(16, 86, '', boxStyle).setScrollFactor(0).setDepth(100);
     this.statsText = this.add.text(16, 128, '', boxStyle).setScrollFactor(0).setDepth(100);
+
+    // Day and clock sit in the top-right corner
+    this.clockText = this.add.text(0, 16, '', {
+      fontFamily: 'sans-serif',
+      fontSize: '22px',
+      fontStyle: 'bold',
+      color: '#ffffff',
+      backgroundColor: '#000000aa',
+      padding: { x: 12, y: 6 }
+    }).setOrigin(1, 0).setScrollFactor(0).setDepth(100);
+
     this.updateHud();
+    this.updateClock();
   }
 
   // ---------- Each frame ----------
 
   update(time, delta) {
+    this.clockText.setPosition(this.scale.width - 16, 16);
+    this.layoutReport();
+
+    // While the report is showing, the market is frozen and we only wait for Enter
+    if (this.dayOver) {
+      this.handleReportInput();
+      return;
+    }
+
     this.handleMovement();
     this.handleInteraction();
     this.handleCustomers(delta);
+    this.handleClock(delta);
   }
 
   handleMovement() {
@@ -235,6 +265,168 @@ export default class MarketScene extends Phaser.Scene {
 
     this.customers.forEach(customer => customer.update(delta));
     this.customers = this.customers.filter(customer => !customer.gone);
+  }
+
+  // ---------- The day ----------
+
+  handleClock(delta) {
+    this.dayTimeLeft -= delta;
+
+    if (this.dayTimeLeft <= 0) {
+      this.dayTimeLeft = 0;
+      this.updateClock();
+      this.endDay();
+      return;
+    }
+
+    this.updateClock();
+  }
+
+  // Turns the time left into a clock reading like "2:35 PM"
+  formatClock() {
+    const { lengthMs, startHour, endHour } = this.setting.day;
+    const progress = 1 - this.dayTimeLeft / lengthMs;
+    const totalMinutes = Math.floor((startHour + progress * (endHour - startHour)) * 60);
+
+    const hours24 = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    const suffix = hours24 >= 12 ? 'PM' : 'AM';
+    const hours12 = ((hours24 + 11) % 12) + 1;
+
+    return `${hours12}:${String(minutes).padStart(2, '0')} ${suffix}`;
+  }
+
+  updateClock() {
+    const text = `Day ${state.day}   ${this.formatClock()}`;
+    if (text === this.lastClock) return;
+
+    this.lastClock = text;
+    this.clockText.setText(text);
+
+    // Turns red during the last stretch of the day
+    const almostClosing = this.dayTimeLeft < this.setting.day.lengthMs * 0.15;
+    this.clockText.setColor(almostClosing ? '#ff6b6b' : '#ffffff');
+  }
+
+  endDay() {
+    this.dayOver = true;
+    this.player.body.setVelocity(0, 0);
+    this.prompt.setVisible(false);
+
+    // Everyone still at the stall goes home
+    this.customers.forEach(customer => customer.destroy());
+    this.customers = [];
+    this.slots.forEach(slot => {
+      slot.customer = null;
+    });
+    this.setStallOpen(false);
+
+    // Out of business means no stock and not enough cash for even the cheapest item
+    const cheapest = Math.min(...this.setting.items.map(item => item.buyPrice));
+    const hasStock = Object.values(state.stock).some(count => count > 0);
+    this.outOfBusiness = state.cash < cheapest && !hasStock;
+
+    this.showReport();
+  }
+
+  showReport() {
+    const symbol = this.setting.currencySymbol;
+    const today = state.today;
+
+    const stockLeft = this.setting.items
+      .map(item => `${item.name} ${state.stock[item.id]}`)
+      .join('   ');
+
+    const lines = [
+      `Customers served:  ${today.served}`,
+      `Customers lost:  ${today.lost}`,
+      `Sales:  ${symbol}${today.revenue}`,
+      `Spent on stock:  ${symbol}${today.spent}`,
+      `Cash:  ${symbol}${today.startCash}  →  ${symbol}${state.cash}`,
+      `Stock left:  ${stockLeft}`
+    ];
+
+    let title = `TAKINGS: DAY ${state.day}`;
+    let hint = `Press Enter to start Day ${state.day + 1}`;
+
+    if (this.outOfBusiness) {
+      title = 'OUT OF BUSINESS';
+      lines.push('', "You can't afford any more stock.");
+      hint = 'Press Enter to start over';
+    }
+
+    const panelW = 480;
+    const panelH = 380;
+
+    const dim = this.add.rectangle(0, 0, 6000, 6000, 0x000000, 0.65);
+    const panel = this.add.rectangle(0, 0, panelW, panelH, 0x1f2a30).setStrokeStyle(3, 0xf39c12);
+
+    const titleText = this.add.text(0, -panelH / 2 + 38, title, {
+      fontFamily: 'sans-serif',
+      fontSize: '26px',
+      fontStyle: 'bold',
+      color: '#f39c12'
+    }).setOrigin(0.5);
+
+    const bodyText = this.add.text(0, -8, lines.join('\n'), {
+      fontFamily: 'sans-serif',
+      fontSize: '18px',
+      color: '#ffffff',
+      lineSpacing: 10
+    }).setOrigin(0.5);
+
+    const hintText = this.add.text(0, panelH / 2 - 34, hint, {
+      fontFamily: 'sans-serif',
+      fontSize: '16px',
+      color: '#c8d1d6'
+    }).setOrigin(0.5);
+
+    this.report = this.add.container(0, 0, [dim, panel, titleText, bodyText, hintText])
+      .setScrollFactor(0)
+      .setDepth(200);
+
+    this.layoutReport();
+  }
+
+  // Keeps the report centered and sized to fit, even on small screens
+  layoutReport() {
+    if (!this.report) return;
+
+    const w = this.scale.width;
+    const h = this.scale.height;
+    const fit = Math.min(1, w / 520, h / 420);
+
+    this.report.setPosition(w / 2, h / 2).setScale(fit);
+  }
+
+  handleReportInput() {
+    const pressedEnter = Phaser.Input.Keyboard.JustDown(this.keyEnter);
+    const pressedSpace = Phaser.Input.Keyboard.JustDown(this.keySpace);
+
+    if (pressedEnter || pressedSpace) {
+      this.beginNewDay();
+    }
+  }
+
+  beginNewDay() {
+    if (this.outOfBusiness) {
+      initState(this.setting);
+    } else {
+      startNextDay();
+    }
+
+    this.report.destroy();
+    this.report = null;
+    this.outOfBusiness = false;
+    this.dayOver = false;
+    this.dayTimeLeft = this.setting.day.lengthMs;
+    this.lastClock = '';
+
+    // Back to the starting spot for the morning
+    this.player.body.reset(WORLD_W / 2, WORLD_H / 2);
+
+    this.updateHud();
+    this.updateClock();
   }
 
   // ---------- Customers ----------
@@ -385,6 +577,6 @@ export default class MarketScene extends Phaser.Scene {
       .join('   ');
     this.stockText.setText(`Stock: ${stock}`);
 
-    this.statsText.setText(`Served: ${state.stats.served}   Lost: ${state.stats.lost}`);
+    this.statsText.setText(`Served: ${state.today.served}   Lost: ${state.today.lost}`);
   }
 }

@@ -2,6 +2,11 @@
   "name": "Ghana",
   "currencySymbol": "GH₵",
   "startingCash": 100,
+  "day": {
+    "lengthMs": 120000,
+    "startHour": 7,
+    "endHour": 18
+  },
   "customers": {
     "spawnMinMs": 4000,
     "spawnMaxMs": 9000,
