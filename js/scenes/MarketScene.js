@@ -1,4 +1,5 @@
-import { state, initState, buy } from '../state.js';
+import { state, initState, buy, sell, recordLostCustomer } from '../state.js';
+import Customer from '../entities/Customer.js';
 
 const WORLD_W = 2400;
 const WORLD_H = 1400;
@@ -25,6 +26,7 @@ export default class MarketScene extends Phaser.Scene {
     this.add.grid(WORLD_W / 2, WORLD_H / 2, WORLD_W, WORLD_H, 64, 64, 0x3a7d44, 1, 0x347239, 1);
 
     this.createStall();
+    this.createCustomerArea();
     this.createSupplier();
     this.createPlayer();
     this.setupCamera();
@@ -54,9 +56,30 @@ export default class MarketScene extends Phaser.Scene {
     this.interactables.push({
       x: this.stall.x,
       y: this.stall.y,
-      label: () => (this.stallOpen ? 'Close stall' : 'Open stall'),
-      use: () => this.toggleStall()
+      label: () => this.stallLabel(),
+      use: () => this.useStall()
     });
+  }
+
+  // Spots in front of the stall where customers wait, plus the spawn timer
+  createCustomerArea() {
+    this.customers = [];
+    this.spawnTimer = 0;
+
+    const slotY = this.stall.y + 110;
+    this.slots = [-80, 0, 80].map(offset => ({
+      x: this.stall.x + offset,
+      y: slotY,
+      customer: null
+    }));
+
+    // Faint marks on the ground so players can see where customers stand
+    this.slots.forEach(slot => {
+      this.add.ellipse(slot.x, slot.y + 14, 50, 16, 0x000000, 0.15);
+    });
+
+    // Customers announce when they give up waiting
+    this.events.on('customer-lost', this.onCustomerLost, this);
   }
 
   createSupplier() {
@@ -64,7 +87,6 @@ export default class MarketScene extends Phaser.Scene {
     const y = 480;
     const spacing = 160;
 
-    // Mat on the ground behind the crates
     this.add.rectangle(startX + spacing, y, 560, 160, 0x6b5a45);
     this.add.text(startX + spacing, y - 110, 'SUPPLIER', {
       fontFamily: 'sans-serif',
@@ -100,7 +122,7 @@ export default class MarketScene extends Phaser.Scene {
   createPlayer() {
     this.physics.world.setBounds(0, 0, WORLD_W, WORLD_H);
 
-    this.player = this.add.rectangle(WORLD_W / 2, WORLD_H / 2, 32, 32, 0xf39c12);
+    this.player = this.add.rectangle(WORLD_W / 2, WORLD_H / 2, 32, 32, 0xf39c12).setDepth(5);
     this.physics.add.existing(this.player);
     this.player.body.setCollideWorldBounds(true);
 
@@ -145,14 +167,16 @@ export default class MarketScene extends Phaser.Scene {
 
     this.cashText = this.add.text(16, 44, '', boxStyle).setScrollFactor(0).setDepth(100);
     this.stockText = this.add.text(16, 86, '', boxStyle).setScrollFactor(0).setDepth(100);
+    this.statsText = this.add.text(16, 128, '', boxStyle).setScrollFactor(0).setDepth(100);
     this.updateHud();
   }
 
   // ---------- Each frame ----------
 
-  update() {
+  update(time, delta) {
     this.handleMovement();
     this.handleInteraction();
+    this.handleCustomers(delta);
   }
 
   handleMovement() {
@@ -169,7 +193,6 @@ export default class MarketScene extends Phaser.Scene {
   }
 
   handleInteraction() {
-    // Check the key every frame so a press far from anything doesn't get "saved up"
     const pressedE = Phaser.Input.Keyboard.JustDown(this.keyE);
     const target = this.findNearestInteractable();
 
@@ -200,7 +223,126 @@ export default class MarketScene extends Phaser.Scene {
     return nearest;
   }
 
-  // ---------- Actions ----------
+  handleCustomers(delta) {
+    // New customers only show up while the stall is open
+    if (this.stallOpen) {
+      this.spawnTimer -= delta;
+      if (this.spawnTimer <= 0) {
+        this.spawnCustomer();
+        this.resetSpawnTimer();
+      }
+    }
+
+    this.customers.forEach(customer => customer.update(delta));
+    this.customers = this.customers.filter(customer => !customer.gone);
+  }
+
+  // ---------- Customers ----------
+
+  spawnCustomer() {
+    const slot = this.slots.find(s => !s.customer);
+    if (!slot) return; // every spot is taken, so this shopper walks on by
+
+    const item = this.pickWantedItem();
+    const customer = new Customer(
+      this,
+      item,
+      slot,
+      this.stall.x + 700,
+      this.setting.customers.patienceMs
+    );
+
+    slot.customer = customer;
+    this.customers.push(customer);
+  }
+
+  resetSpawnTimer() {
+    const { spawnMinMs, spawnMaxMs } = this.setting.customers;
+    this.spawnTimer = Phaser.Math.Between(spawnMinMs, spawnMaxMs);
+  }
+
+  // Picks an item at random, but popular items come up more often
+  pickWantedItem() {
+    const items = this.setting.items;
+    const total = items.reduce((sum, item) => sum + item.demand, 0);
+    let roll = Math.random() * total;
+
+    for (const item of items) {
+      roll -= item.demand;
+      if (roll <= 0) return item;
+    }
+    return items[items.length - 1];
+  }
+
+  waitingCustomers() {
+    return this.customers.filter(customer => customer.state === 'waiting');
+  }
+
+  onCustomerLost(customer) {
+    recordLostCustomer();
+    this.floatText('Customer left', '#ff6b6b', customer.body.x, customer.body.y - 70);
+    this.updateHud();
+  }
+
+  // ---------- The stall ----------
+
+  // One key does three jobs depending on what's happening at the stall
+  stallLabel() {
+    if (!this.stallOpen) return 'Open stall';
+    return this.waitingCustomers().length > 0 ? 'Serve customer' : 'Close stall';
+  }
+
+  useStall() {
+    if (!this.stallOpen) {
+      this.setStallOpen(true);
+    } else if (this.waitingCustomers().length > 0) {
+      this.serveCustomer();
+    } else {
+      this.setStallOpen(false);
+    }
+  }
+
+  setStallOpen(isOpen) {
+    this.stallOpen = isOpen;
+
+    if (isOpen) {
+      this.stall.setFillStyle(0xe67e22);
+      this.stallSign.setText('OPEN');
+      this.stallSign.setBackgroundColor('#27ae60');
+      this.spawnTimer = 1500; // first customer arrives soon after opening
+    } else {
+      this.stall.setFillStyle(0x8d5524);
+      this.stallSign.setText('CLOSED');
+      this.stallSign.setBackgroundColor('#c0392b');
+
+      // Anyone still walking up turns around
+      this.customers
+        .filter(customer => customer.state === 'walking')
+        .forEach(customer => customer.leave('neutral'));
+    }
+  }
+
+  // Serves the customer who has waited longest, among those we have stock for
+  serveCustomer() {
+    const symbol = this.setting.currencySymbol;
+
+    const customer = this.waitingCustomers()
+      .filter(c => state.stock[c.item.id] > 0)
+      .sort((a, b) => a.patience - b.patience)[0];
+
+    if (!customer) {
+      this.floatText('Out of stock', '#ff6b6b');
+      this.cameras.main.shake(120, 0.004);
+      return;
+    }
+
+    sell(customer.item);
+    customer.leave('happy');
+    this.floatText(`+${symbol}${customer.item.sellPrice}`, '#7CFC98');
+    this.updateHud();
+  }
+
+  // ---------- Supplier ----------
 
   buyItem(item) {
     const symbol = this.setting.currencySymbol;
@@ -214,23 +356,11 @@ export default class MarketScene extends Phaser.Scene {
     }
   }
 
-  toggleStall() {
-    this.stallOpen = !this.stallOpen;
+  // ---------- Feedback ----------
 
-    if (this.stallOpen) {
-      this.stall.setFillStyle(0xe67e22);
-      this.stallSign.setText('OPEN');
-      this.stallSign.setBackgroundColor('#27ae60');
-    } else {
-      this.stall.setFillStyle(0x8d5524);
-      this.stallSign.setText('CLOSED');
-      this.stallSign.setBackgroundColor('#c0392b');
-    }
-  }
-
-  // Small message that rises above the player and fades out
-  floatText(message, color) {
-    const text = this.add.text(this.player.x, this.player.y - 70, message, {
+  // Small message that rises and fades out. Defaults to above the player.
+  floatText(message, color, x = this.player.x, y = this.player.y - 70) {
+    const text = this.add.text(x, y, message, {
       fontFamily: 'sans-serif',
       fontSize: '20px',
       fontStyle: 'bold',
@@ -254,5 +384,7 @@ export default class MarketScene extends Phaser.Scene {
       .map(item => `${item.name} ${state.stock[item.id]}`)
       .join('   ');
     this.stockText.setText(`Stock: ${stock}`);
+
+    this.statsText.setText(`Served: ${state.stats.served}   Lost: ${state.stats.lost}`);
   }
 }

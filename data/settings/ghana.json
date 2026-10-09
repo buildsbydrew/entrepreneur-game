@@ -2,9 +2,14 @@
   "name": "Ghana",
   "currencySymbol": "GH₵",
   "startingCash": 100,
+  "customers": {
+    "spawnMinMs": 4000,
+    "spawnMaxMs": 9000,
+    "patienceMs": 20000
+  },
   "items": [
-    { "id": "bread", "name": "Bread", "buyPrice": 6, "color": "#d4a24c" },
-    { "id": "water", "name": "Water", "buyPrice": 2, "color": "#4aa3df" },
-    { "id": "plantain", "name": "Plantain", "buyPrice": 4, "color": "#7fb069" }
+    { "id": "bread", "name": "Bread", "buyPrice": 6, "sellPrice": 9, "demand": 3, "color": "#d4a24c" },
+    { "id": "water", "name": "Water", "buyPrice": 2, "sellPrice": 3, "demand": 5, "color": "#4aa3df" },
+    { "id": "plantain", "name": "Plantain", "buyPrice": 4, "sellPrice": 6, "demand": 2, "color": "#7fb069" }
   ]
 }
