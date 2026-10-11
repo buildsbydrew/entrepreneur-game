@@ -333,3 +333,26 @@ export function showNotebook({ entries, unlocked, evidence, onClose }) {
   closeButton.onclick = close;
   closeButton.focus();
 }
+
+// ---------- Level complete ----------
+
+export function showLevelComplete({ levelId, levelName, missions, nextName, onDone }) {
+  ui().innerHTML = `
+    <div class="screen dim">
+      <div class="panel levelup" role="dialog" aria-label="Level complete">
+        <p class="stars">&#9733; &#9733; &#9733;</p>
+        <h1>Level ${esc(levelId)} complete!</h1>
+        <p class="lvl-name">${esc(levelName)}</p>
+        <ul>${missions.map(text => `<li>&#10003; ${esc(text)}</li>`).join('')}</ul>
+        <p class="hint">${nextName ? `Next: ${esc(nextName)} (coming soon)` : 'More levels are coming soon.'}</p>
+        <button class="btn" id="lv-next">Keep playing</button>
+      </div>
+    </div>`;
+
+  const button = document.getElementById('lv-next');
+  button.onclick = () => {
+    clearUi();
+    onDone();
+  };
+  button.focus();
+}

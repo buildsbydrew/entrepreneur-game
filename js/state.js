@@ -7,6 +7,9 @@ export const state = {
   batches: {},  // the same stock split by age: batches[id][age] = how many
   today: null,
   notebook: { unlocked: [], evidence: {} }, // ideas the player has found
+  level: 1,          // the level being played
+  missionsDone: [],  // ids of finished missions
+  levelsDone: [],    // ids of finished levels
   beatsSeen: []                              // conversations that have already happened
 };
 
@@ -36,6 +39,9 @@ export function initState(setting) {
   });
   state.notebook = { unlocked: [], evidence: {} };
   state.beatsSeen = [];
+  state.level = 1;
+  state.missionsDone = [];
+  state.levelsDone = [];
   state.today = freshDay();
 }
 
@@ -124,4 +130,8 @@ export function expiringTonight(item) {
 // What the stock on hand cost to buy
 export function stockValue(setting) {
   return setting.items.reduce((sum, item) => sum + state.stock[item.id] * item.buyPrice, 0);
+}
+
+export function completeLevel(id) {
+  if (!state.levelsDone.includes(id)) state.levelsDone.push(id);
 }

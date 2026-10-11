@@ -1,5 +1,5 @@
 import {
-  state, initState, startNextDay, buy, sell, recordAsked, recordLostCustomer, unlockEntry, markBeatSeen,
+  state, initState, startNextDay, buy, sell, recordAsked, recordLostCustomer, unlockEntry, markBeatSeen, completeLevel,
   endOfDayAging, expiringTonight, stockValue
 } from '../state.js';
 import Customer from '../entities/Customer.js';
@@ -7,8 +7,9 @@ import PersonSprite from '../entities/PersonSprite.js';
 import { stepToward } from '../entities/movement.js';
 import { CUSTOMER_KEYS } from '../art/textures.js';
 import { profile } from '../profile.js';
-import { showPauseButton, hidePauseButton, showDialogue, showNotebook } from '../ui/screens.js';
+import { showPauseButton, hidePauseButton, showDialogue, showNotebook, showLevelComplete } from '../ui/screens.js';
 import { buildContext, renderLines, findDueBeat } from '../mentor.js';
+import { checkMission, updateMissions, levelProgress, describeMission } from '../missions.js';
 
 const WORLD_W = 2400;
 const WORLD_H = 1400;
@@ -43,6 +44,7 @@ export default class MarketScene extends Phaser.Scene {
     this.setting = this.cache.json.get('setting');
     this.mentorData = this.cache.json.get('mentors');
     this.notebookData = this.cache.json.get('notebook');
+    this.levelsData = this.cache.json.get('levels');
     initState(this.setting);
 
     this.interactables = []; // things the player can press E on
@@ -53,6 +55,8 @@ export default class MarketScene extends Phaser.Scene {
     this.outOfBusiness = false;
     this.modalOpen = false;   // true while a conversation or the Notebook is showing
     this.cutscene = false;    // true while the mentor walks over to talk
+    this.levelUpPending = false; // every mission of the level is done
+    this.bannerCount = 0;     // messages currently showing across the top
     this.pendingBeat = null;  // a conversation waiting for the end of the day
     this.report = null;
     this.lastClock = '';
@@ -70,6 +74,7 @@ export default class MarketScene extends Phaser.Scene {
     this.setupControls();
     this.createPrompt();
     this.createHud();
+    this.createMissionPanel();
     this.setupPause();
     this.startWelcome();
   }
@@ -194,6 +199,9 @@ export default class MarketScene extends Phaser.Scene {
     this.mentorTask = null;
 
     this.mentorSprite = new PersonSprite(this, 'mentor', this.mentorHome.x, this.mentorHome.y);
+    this.mentorBlock = this.add.rectangle(this.mentorHome.x, this.mentorHome.y - 10, 34, 20, 0x000000).setVisible(false);
+    this.movers.add(this.mentorBlock);
+    this.mentorBlock.body.setImmovable(true);
     this.mentorLabel = this.add.text(this.mentorHome.x, this.mentorHome.y - 112, mentor.name, {
       fontFamily: 'sans-serif',
       fontSize: '14px',
@@ -231,6 +239,7 @@ export default class MarketScene extends Phaser.Scene {
     const step = stepToward(sprite.image, task, MENTOR_SPEED, delta);
     sprite.place(step.x, step.y);
     this.mentorLabel.setPosition(step.x, step.y - 112).setDepth(step.y + 1);
+    this.mentorBlock.setPosition(step.x, step.y - 10);
 
     if (step.arrived) {
       this.mentorTask = null;
@@ -266,8 +275,14 @@ export default class MarketScene extends Phaser.Scene {
     const beat = this.pendingBeat;
     this.pendingBeat = null;
 
+    // The last step before the next morning is the level-complete screen, if a level was just finished
+    const carryOn = () => {
+      if (this.outOfBusiness) this.beginNewDay();
+      else this.maybeShowLevelComplete(() => this.beginNewDay());
+    };
+
     if (!beat || this.outOfBusiness) {
-      this.beginNewDay();
+      carryOn();
       return;
     }
 
@@ -290,9 +305,10 @@ export default class MarketScene extends Phaser.Scene {
           banner = `Notebook updated: ${entry.term}. Press N to read it.`;
         }
 
+        this.refreshMissions();
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-        this.beginNewDay();
         this.walkMentorTo(this.mentorHome, 'down');
+        carryOn();
         if (banner) this.showBanner(banner);
       });
     });
@@ -344,9 +360,12 @@ export default class MarketScene extends Phaser.Scene {
     [this.keyE, this.keyEnter, this.keySpace].forEach(key => Phaser.Input.Keyboard.JustDown(key));
   }
 
-  // A short message across the top of the screen that fades away
+  // A short message across the top of the screen that fades away. Several can show at once.
   showBanner(message) {
-    const text = this.add.text(this.scale.width / 2, 24, message, {
+    const slot = this.bannerCount;
+    this.bannerCount += 1;
+
+    const text = this.add.text(this.scale.width / 2, 24 + slot * 46, message, {
       fontFamily: 'sans-serif',
       fontSize: '18px',
       fontStyle: 'bold',
@@ -360,7 +379,94 @@ export default class MarketScene extends Phaser.Scene {
       alpha: 0,
       delay: 3800,
       duration: 700,
-      onComplete: () => text.destroy()
+      onComplete: () => {
+        text.destroy();
+        this.bannerCount -= 1;
+      }
+    });
+  }
+
+  // ---------- Levels and missions ----------
+
+  createMissionPanel() {
+    this.missionText = this.add.text(16, 178, '', {
+      fontFamily: 'sans-serif',
+      fontSize: '15px',
+      color: '#ffffff',
+      backgroundColor: '#000000aa',
+      padding: { x: 10, y: 8 },
+      lineSpacing: 6,
+      wordWrap: { width: 300 }
+    }).setScrollFactor(0).setDepth(DEPTH.hud);
+
+    this.refreshMissions();
+  }
+
+  currentLevel() {
+    const levels = this.levelsData.levels;
+    return levels.find(level => level.id === state.level) ?? levels[0];
+  }
+
+  // Checks the goals against what has happened, announces any that were just finished,
+  // and notes when a whole level is done. Pass true once the day has ended.
+  refreshMissions(dayEnded = false) {
+    const level = this.currentLevel();
+
+    if (!state.levelsDone.includes(level.id)) {
+      updateMissions(level, state, this.setting, { dayEnded })
+        .forEach(mission => this.showBanner(`Mission complete: ${describeMission(mission, this.setting)}`));
+
+      if (levelProgress(level, state).complete) this.levelUpPending = true;
+    }
+
+    this.drawMissionPanel();
+  }
+
+  drawMissionPanel() {
+    const level = this.currentLevel();
+    const lines = [`LEVEL ${level.id}: ${level.name.toUpperCase()}`];
+
+    if (state.levelsDone.includes(level.id)) {
+      lines.push('\u2713 Level complete!');
+      const next = this.levelsData.levels.find(l => l.id === level.id + 1);
+      if (next) lines.push(`Next: ${next.name} (coming soon)`);
+    } else {
+      level.missions.forEach(mission => {
+        const done = state.missionsDone.includes(mission.id);
+        const progress = checkMission(mission, state).progress;
+        const note = !done && progress ? ` (${progress})` : '';
+        lines.push(`${done ? '\u2713' : '\u25CB'} ${describeMission(mission, this.setting)}${note}`);
+      });
+    }
+
+    this.missionText.setText(lines.join('\n'));
+  }
+
+  // Shows the level-complete screen if the last goal was just finished, then carries on
+  maybeShowLevelComplete(then) {
+    if (!this.levelUpPending) {
+      then();
+      return;
+    }
+
+    this.levelUpPending = false;
+    const level = this.currentLevel();
+    completeLevel(level.id);
+
+    const next = this.levelsData.levels.find(l => l.id === level.id + 1);
+    this.openModal();
+    if (this.report) this.report.setVisible(false);
+
+    showLevelComplete({
+      levelId: level.id,
+      levelName: level.name,
+      missions: level.missions.map(mission => describeMission(mission, this.setting)),
+      nextName: next ? next.name : null,
+      onDone: () => {
+        this.closeModal();
+        this.drawMissionPanel();
+        then();
+      }
     });
   }
 
@@ -377,6 +483,9 @@ export default class MarketScene extends Phaser.Scene {
   createCustomerArea() {
     this.customers = [];
     this.spawnTimer = 0;
+
+    // Invisible blocks that follow people around, so the player can't walk through them
+    this.movers = this.physics.add.group({ allowGravity: false, immovable: true });
 
     const slotY = this.stall.y + 110;
     this.slots = [-80, 0, 80].map(offset => ({
@@ -455,13 +564,17 @@ export default class MarketScene extends Phaser.Scene {
     return item.shelfLifeDays === 1 ? 'Lasts 1 day' : `Lasts ${item.shelfLifeDays} days`;
   }
 
-  // Decoration only, to make the market feel lived in
+  // Umbrellas to make the market feel lived in. Only the pole is solid, because the canopy is high above.
   createProps() {
     [[700, 780], [1750, 900], [520, 260]].forEach(([x, y]) => {
       this.add.image(x, y, 'umbrella')
         .setOrigin(0.5, 1)
         .setDisplaySize(100, 125)
         .setDepth(y);
+
+      const pole = this.add.rectangle(x, y - 8, 22, 16, 0x000000).setVisible(false);
+      this.physics.add.existing(pole, true);
+      this.solids.push(pole);
     });
   }
 
@@ -481,6 +594,7 @@ export default class MarketScene extends Phaser.Scene {
     this.syncPlayerSprite();
 
     this.solids.forEach(solid => this.physics.add.collider(this.player, solid));
+    this.physics.add.collider(this.player, this.movers);
   }
 
   // Puts the drawing so its feet sit at the bottom of the invisible block
@@ -716,6 +830,9 @@ export default class MarketScene extends Phaser.Scene {
       ? null
       : findDueBeat(this.mentorData.beats, 'dayEnd', state, this.beatContext);
 
+    // Some goals can only be judged once the whole day is over
+    this.refreshMissions(true);
+
     this.showReport();
   }
 
@@ -825,6 +942,7 @@ export default class MarketScene extends Phaser.Scene {
   beginNewDay() {
     if (this.outOfBusiness) {
       initState(this.setting);
+      this.levelUpPending = false;
     } else {
       startNextDay();
     }
@@ -839,6 +957,7 @@ export default class MarketScene extends Phaser.Scene {
     // Back to the starting spot for the morning
     this.player.body.reset(WORLD_W / 2, WORLD_H / 2);
 
+    this.drawMissionPanel();
     this.updateHud();
     this.updateClock();
   }
@@ -896,6 +1015,7 @@ export default class MarketScene extends Phaser.Scene {
     recordLostCustomer(customer.item, state.stock[customer.item.id] === 0);
     this.floatText('Customer left', '#ff6b6b', customer.body.x, customer.body.y - 175);
     this.updateHud();
+    this.refreshMissions();
   }
 
   // ---------- The stall ----------
@@ -952,6 +1072,7 @@ export default class MarketScene extends Phaser.Scene {
     customer.leave('happy');
     this.floatText(`+${symbol}${customer.item.sellPrice}`, '#7CFC98');
     this.updateHud();
+    this.refreshMissions();
   }
 
   // ---------- Supplier ----------

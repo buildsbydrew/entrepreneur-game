@@ -27,6 +27,11 @@ export default class Customer {
     this.person = new PersonSprite(scene, textureKey, startX, slot.y + 20, 'up');
     this.body = this.person.image;
 
+    // An invisible block at their feet, so the player can't walk through them
+    this.block = scene.add.rectangle(startX, slot.y + 10, 34, 20, 0x000000).setVisible(false);
+    scene.movers.add(this.block);
+    this.block.body.setImmovable(true);
+
     // Thought bubble showing what they want
     this.bubble = scene.add.image(0, 0, 'bubble')
       .setOrigin(0.5, 1)
@@ -57,7 +62,10 @@ export default class Customer {
     else if (this.state === 'waiting') this.wait(delta);
     else if (this.state === 'leaving') this.walkAway(delta);
 
-    if (!this.gone) this.syncUi();
+    if (!this.gone) {
+      this.block.setPosition(this.body.x, this.body.y - 10);
+      this.syncUi();
+    }
   }
 
   // Slows down as they near their spot, so they settle in instead of stopping dead
@@ -145,6 +153,7 @@ export default class Customer {
 
   destroy() {
     this.person.destroy();
+    this.block.destroy();
     [this.bubble, this.icon, this.barBack, this.barFill, this.speech].forEach(part => part.destroy());
     this.gone = true;
   }

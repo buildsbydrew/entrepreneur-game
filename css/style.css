@@ -299,3 +299,11 @@ button {
   font-weight: 900;
   box-shadow: 0 3px 0 var(--ink);
 }
+
+/* ---------- Level complete ---------- */
+
+.levelup { width: min(440px, 100%); text-align: center; }
+.stars { margin: 0; font-size: 2rem; color: var(--orange); letter-spacing: 6px; }
+.lvl-name { margin: 0 0 10px; font-weight: 800; opacity: 0.8; }
+.levelup ul { list-style: none; padding: 0; margin: 8px auto 12px; text-align: left; display: inline-block; }
+.levelup li { margin-bottom: 4px; }

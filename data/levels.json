@@ -1,0 +1,15 @@
+{
+  "levels": [
+    {
+      "id": 1,
+      "name": "First Stall",
+      "missions": [
+        { "id": "serve8", "type": "servedInDay", "target": 8, "text": "Serve {target} customers in one day" },
+        { "id": "sales40", "type": "salesInDay", "target": 40, "text": "Sell {amount} of goods in one day" },
+        { "id": "nostockout", "type": "noStockoutDay", "minAsked": 5, "text": "Get through a day with nobody leaving because you ran out" },
+        { "id": "mentor", "type": "beatSeen", "beat": "first-evidence", "text": "Hear what Maame Gyasiwaa has to say" }
+      ]
+    },
+    { "id": 2, "name": "Pricing", "comingSoon": true, "missions": [] }
+  ]
+}

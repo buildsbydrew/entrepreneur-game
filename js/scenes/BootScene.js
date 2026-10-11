@@ -10,6 +10,7 @@ export default class BootScene extends Phaser.Scene {
     this.load.json('setting', 'data/settings/ghana.json');
     this.load.json('mentors', 'data/mentors.json');
     this.load.json('notebook', 'data/notebook.json');
+    this.load.json('levels', 'data/levels.json');
   }
 
   create() {
