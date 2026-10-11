@@ -1,6 +1,6 @@
 // Draws every piece of art once, at startup, and hands it to Phaser as a texture.
-import { itemSvg, stallOpenSvg, stallClosedSvg, crateSvg, umbrellaSvg, bubbleSvg, dirtSvg } from './shapes.js';
-import { makePersonSvg, PLAYER_LOOK, CUSTOMER_LOOKS } from './people.js';
+import { itemSvg, stallOpenSvg, stallClosedSvg, crateSvg, umbrellaSvg, bubbleSvg, tagSvg, dirtSvg } from './shapes.js';
+import { makePersonSvg, WALK_FRAMES, PLAYER_LOOK, CUSTOMER_LOOKS } from './people.js';
 
 export const CUSTOMER_KEYS = CUSTOMER_LOOKS.map((look, i) => `customer-${i}`);
 
@@ -18,19 +18,29 @@ function addSvgTexture(scene, key, svg) {
   });
 }
 
+// One standing frame plus the walking frames, named key-idle, key-walk0 and so on
+function personJobs(key, look) {
+  const jobs = [[`${key}-idle`, makePersonSvg(look, 'idle')]];
+  for (let i = 0; i < WALK_FRAMES; i++) {
+    jobs.push([`${key}-walk${i}`, makePersonSvg(look, `walk${i}`)]);
+  }
+  return jobs;
+}
+
 export function buildTextures(scene, setting) {
   const jobs = [
     ['dirt', dirtSvg()],
     ['crate', crateSvg()],
     ['umbrella', umbrellaSvg()],
     ['bubble', bubbleSvg()],
+    ['price-tag', tagSvg()],
     ['stall-open', stallOpenSvg(setting.items)],
     ['stall-closed', stallClosedSvg()],
-    ['player', makePersonSvg(PLAYER_LOOK)]
+    ...personJobs('player', PLAYER_LOOK)
   ];
 
   setting.items.forEach(item => jobs.push([`icon-${item.id}`, itemSvg(item)]));
-  CUSTOMER_LOOKS.forEach((look, i) => jobs.push([CUSTOMER_KEYS[i], makePersonSvg(look)]));
+  CUSTOMER_LOOKS.forEach((look, i) => jobs.push(...personJobs(CUSTOMER_KEYS[i], look)));
 
   return Promise.all(jobs.map(([key, svg]) => addSvgTexture(scene, key, svg)));
 }

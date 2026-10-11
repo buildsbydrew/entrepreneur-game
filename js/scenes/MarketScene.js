@@ -3,6 +3,7 @@ import {
   endOfDayAging, expiringTonight, stockValue
 } from '../state.js';
 import Customer from '../entities/Customer.js';
+import PersonSprite from '../entities/PersonSprite.js';
 import { CUSTOMER_KEYS } from '../art/textures.js';
 
 const WORLD_W = 2400;
@@ -13,6 +14,8 @@ const REPORT_H = 470;
 const PERSON_W = 72;
 const PERSON_H = 108;
 const STALL_SCALE = 1.1;
+const ACCEL = 1500; // how quickly the player picks up speed
+const DRAG = 1300;  // how quickly the player slows down when you let go
 
 // Things in the world sort by their position on the ground (their y value),
 // so anything lower on screen draws in front. Interface layers sit above all of it.
@@ -129,7 +132,7 @@ export default class MarketScene extends Phaser.Scene {
       .setStrokeStyle(3, 0x3b2a20)
       .setDepth(DEPTH.mat);
 
-    this.add.text(startX + spacing, y - 125, 'SUPPLIER', {
+    this.add.text(startX + spacing, y - 92, 'SUPPLIER', {
       fontFamily: 'sans-serif',
       fontSize: '22px',
       fontStyle: 'bold',
@@ -147,15 +150,22 @@ export default class MarketScene extends Phaser.Scene {
       this.add.image(x, y, 'crate').setDisplaySize(90, 70).setDepth(y + 35);
       this.add.image(x, y - 35, `icon-${item.id}`).setDisplaySize(44, 44).setDepth(y + 36);
 
-      this.add.text(x, y - 60, `${item.name}\n${symbol}${item.buyPrice}\n${this.shelfLabel(item)}`, {
+      // The goods show what each crate is, so only the price and shelf life need words
+      this.add.image(x, y + 10, 'price-tag').setDisplaySize(60, 26).setDepth(y + 37);
+      this.add.text(x, y + 10, `${symbol}${item.buyPrice}`, {
         fontFamily: 'sans-serif',
         fontSize: '15px',
         fontStyle: 'bold',
+        color: '#3b2a20'
+      }).setOrigin(0.5).setDepth(y + 38);
+      this.add.text(x, y + 44, this.shelfLabel(item), {
+        fontFamily: 'sans-serif',
+        fontSize: '13px',
+        fontStyle: 'bold',
         color: '#fff4dc',
-        align: 'center',
         stroke: '#3b2a20',
-        strokeThickness: 4
-      }).setOrigin(0.5, 1).setDepth(y + 37);
+        strokeThickness: 3
+      }).setOrigin(0.5, 0).setDepth(y + 37);
 
       this.interactables.push({
         x,
@@ -190,9 +200,11 @@ export default class MarketScene extends Phaser.Scene {
     this.physics.add.existing(this.player);
     this.player.body.setCollideWorldBounds(true);
 
-    this.playerSprite = this.add.image(0, 0, 'player')
-      .setOrigin(0.5, 1)
-      .setDisplaySize(PERSON_W, PERSON_H);
+    // Speed builds up and fades out instead of switching on and off
+    this.player.body.setDrag(DRAG, DRAG);
+    this.player.body.setMaxSpeed(this.speed);
+
+    this.playerSprite = new PersonSprite(this, 'player', this.player.x, this.player.y + 16);
     this.syncPlayerSprite();
 
     this.solids.forEach(solid => this.physics.add.collider(this.player, solid));
@@ -201,7 +213,7 @@ export default class MarketScene extends Phaser.Scene {
   // Puts the drawing so its feet sit at the bottom of the invisible block
   syncPlayerSprite() {
     const feetY = this.player.y + 16;
-    this.playerSprite.setPosition(this.player.x, feetY).setDepth(feetY);
+    this.playerSprite.place(this.player.x, feetY);
   }
 
   setupCamera() {
@@ -269,11 +281,13 @@ export default class MarketScene extends Phaser.Scene {
 
     // While the report is showing, the market is frozen and we only wait for Enter
     if (this.dayOver) {
+      this.playerSprite.animate(delta, 0, 0);
       this.handleReportInput();
       return;
     }
 
     this.handleMovement();
+    this.animatePlayer(delta);
     this.handleInteraction();
     this.handleCustomers(delta);
     this.handleClock(delta);
@@ -288,8 +302,17 @@ export default class MarketScene extends Phaser.Scene {
     if (this.cursors.up.isDown || this.keys.W.isDown) y -= 1;
     if (this.cursors.down.isDown || this.keys.S.isDown) y += 1;
 
-    this.player.body.setVelocity(x, y);
-    this.player.body.velocity.normalize().scale(this.speed);
+    // Pushing a direction speeds the player up. Letting go lets drag slow them down.
+    const push = new Phaser.Math.Vector2(x, y).normalize().scale(ACCEL);
+    this.player.body.setAcceleration(push.x, push.y);
+  }
+
+  // Steps, leans and breathes depending on how fast the player is moving
+  animatePlayer(delta) {
+    const body = this.player.body;
+    const moving = Math.min(1, body.speed / this.speed);
+    const dirX = Math.abs(body.velocity.x) > 20 ? Math.sign(body.velocity.x) : 0;
+    this.playerSprite.animate(delta, moving, dirX);
   }
 
   handleInteraction() {
@@ -381,6 +404,7 @@ export default class MarketScene extends Phaser.Scene {
   endDay() {
     this.dayOver = true;
     this.player.body.setVelocity(0, 0);
+    this.player.body.setAcceleration(0, 0);
     this.prompt.setVisible(false);
 
     // Everyone still at the stall goes home

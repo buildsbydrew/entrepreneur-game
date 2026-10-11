@@ -1,6 +1,7 @@
+import PersonSprite from './PersonSprite.js';
+
 const WALK_SPEED = 90;
 const LEAVE_SPEED = 130;
-const PERSON_W = 72;
 const PERSON_H = 108;
 const BUBBLE_W = 52;
 const BUBBLE_H = 60;
@@ -19,14 +20,12 @@ export default class Customer {
     this.patience = patienceMs;
     this.state = 'walking'; // walking, waiting, leaving
     this.exitX = startX;
+    this.leaveTime = 0;
     this.gone = false;
 
     // The person's feet stand a little below the spot at the stall
-    const feetY = slot.y + 20;
-    this.body = scene.add.image(startX, feetY, textureKey)
-      .setOrigin(0.5, 1)
-      .setDisplaySize(PERSON_W, PERSON_H)
-      .setDepth(feetY);
+    this.person = new PersonSprite(scene, textureKey, startX, slot.y + 20);
+    this.body = this.person.image;
 
     // Thought bubble showing what they want
     this.bubble = scene.add.image(0, 0, 'bubble')
@@ -61,19 +60,26 @@ export default class Customer {
     if (!this.gone) this.syncUi();
   }
 
+  // Slows down as they near their spot, so they settle in instead of stopping dead
   walkToSlot(delta) {
     const dx = this.slot.x - this.body.x;
-    const step = (WALK_SPEED * delta) / 1000;
+    const distance = Math.abs(dx);
+    const speed = Math.min(WALK_SPEED, 30 + distance * 2.2);
+    const step = (speed * delta) / 1000;
 
-    if (Math.abs(dx) <= step) {
+    if (distance <= step || distance < 1.5) {
       this.body.x = this.slot.x;
       this.state = 'waiting';
-    } else {
-      this.body.x += Math.sign(dx) * step;
+      this.person.animate(delta, 0, 0);
+      return;
     }
+
+    this.body.x += Math.sign(dx) * step;
+    this.person.animate(delta, speed / WALK_SPEED, Math.sign(dx));
   }
 
   wait(delta) {
+    this.person.animate(delta, 0, 0);
     this.patience -= delta;
 
     if (this.patience <= 0) {
@@ -82,15 +88,20 @@ export default class Customer {
     }
   }
 
+  // Starts slowly and picks up pace
   walkAway(delta) {
+    this.leaveTime += delta;
     const dx = this.exitX - this.body.x;
-    const step = (LEAVE_SPEED * delta) / 1000;
+    const speed = Math.min(LEAVE_SPEED, 40 + this.leaveTime * 0.2);
+    const step = (speed * delta) / 1000;
 
     if (Math.abs(dx) <= step) {
       this.destroy();
-    } else {
-      this.body.x += Math.sign(dx) * step;
+      return;
     }
+
+    this.body.x += Math.sign(dx) * step;
+    this.person.animate(delta, speed / WALK_SPEED, Math.sign(dx));
   }
 
   // mood is 'happy', 'angry', or 'neutral' (leaves quietly)
@@ -132,8 +143,8 @@ export default class Customer {
   }
 
   destroy() {
-    [this.body, this.bubble, this.icon, this.barBack, this.barFill, this.speech]
-      .forEach(part => part.destroy());
+    this.person.destroy();
+    [this.bubble, this.icon, this.barBack, this.barFill, this.speech].forEach(part => part.destroy());
     this.gone = true;
   }
 }

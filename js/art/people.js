@@ -1,4 +1,5 @@
 // People are built from layers: a body, a hairstyle, and optional extras.
+// Each person can be drawn in a few poses, which is what makes them walk.
 // The same builder will power the character setup screen later.
 import { svgDoc } from './shapes.js';
 
@@ -10,24 +11,44 @@ const FACE = `<circle cx="33" cy="32" r="2.6" fill="${INK}"/><circle cx="47" cy=
 // Teens and elders are drawn a little smaller than adults
 const AGE_SCALE = { teen: 0.9, adult: 1, elder: 0.97 };
 
-function manBody(l) {
-  return `${SHADOW}<g ${LINE}>
-<rect x="26" y="78" width="12" height="30" rx="5" fill="${l.pants}"/>
-<rect x="42" y="78" width="12" height="30" rx="5" fill="${l.pants}"/>
-<rect x="11" y="48" width="12" height="30" rx="6" fill="${l.shirt}"/>
-<rect x="57" y="48" width="12" height="30" rx="6" fill="${l.shirt}"/>
-<circle cx="17" cy="80" r="6" fill="${l.skin}"/>
-<circle cx="63" cy="80" r="6" fill="${l.skin}"/>
+// A walk cycle is four frames. In each pose a leg is [lift, tilt],
+// the arms swing by `arm` degrees, and the whole body bobs up by `bob`.
+export const WALK_FRAMES = 4;
+const POSES = {
+  idle:  { l: [0, 0], r: [0, 0],  arm: 0,   bob: 0 },
+  walk0: { l: [5, 6], r: [0, -6], arm: 16,  bob: 0 },
+  walk1: { l: [0, 3], r: [0, -3], arm: 0,   bob: -2.5 },
+  walk2: { l: [0, 6], r: [5, -6], arm: -16, bob: 0 },
+  walk3: { l: [0, 3], r: [0, -3], arm: 0,   bob: -2.5 }
+};
+
+const leg = (x, y, w, h, rx, fill, [lift, tilt], pivotX) =>
+  `<rect x="${x}" y="${y - lift}" width="${w}" height="${h}" rx="${rx}" fill="${fill}" transform="rotate(${tilt} ${pivotX} ${y})"/>`;
+
+// An arm and its hand swing together from the shoulder
+const arm = (x, shoulderX, fill, skin, deg, extra = '') =>
+  `<g transform="rotate(${deg} ${shoulderX} 50)"><rect x="${x}" y="48" width="12" height="30" rx="6" fill="${fill}"/><circle cx="${shoulderX}" cy="80" r="6" fill="${skin}"/>${extra}</g>`;
+
+const CANE = `<rect x="61" y="82" width="5" height="28" rx="2.5" fill="#8d5524" stroke="${INK}" stroke-width="2.5"/>`;
+
+function manBody(l, p) {
+  const cane = l.age === 'elder' ? CANE : '';
+  return `<g ${LINE}>
+${leg(26, 78, 12, 30, 5, l.pants, p.l, 32)}
+${leg(42, 78, 12, 30, 5, l.pants, p.r, 48)}
+${arm(11, 17, l.shirt, l.skin, p.arm)}
+${arm(57, 63, l.shirt, l.skin, -p.arm, cane)}
 <rect x="20" y="46" width="40" height="40" rx="14" fill="${l.shirt}"/>
 <circle cx="40" cy="28" r="20" fill="${l.skin}"/></g>${FACE}`;
 }
 
-function womanBody(l) {
-  return `${SHADOW}<g ${LINE}>
-<rect x="29" y="92" width="9" height="18" rx="4" fill="${l.skin}"/>
-<rect x="42" y="92" width="9" height="18" rx="4" fill="${l.skin}"/>
-<rect x="11" y="48" width="12" height="30" rx="6" fill="${l.skin}"/>
-<rect x="57" y="48" width="12" height="30" rx="6" fill="${l.skin}"/>
+function womanBody(l, p) {
+  const cane = l.age === 'elder' ? CANE : '';
+  return `<g ${LINE}>
+${leg(29, 92, 9, 18, 4, l.skin, p.l, 33.5)}
+${leg(42, 92, 9, 18, 4, l.skin, p.r, 46.5)}
+${arm(11, 17, l.skin, l.skin, p.arm)}
+${arm(57, 63, l.skin, l.skin, -p.arm, cane)}
 <path d="M24 46h32c4 0 6 3 7 8l6 42c0 4-3 6-6 6H17c-3 0-6-2-6-6l6-42c1-5 3-8 7-8z" fill="${l.shirt}"/>
 <path d="M26 64h28" fill="none" stroke-width="2.5"/>
 <circle cx="40" cy="28" r="20" fill="${l.skin}"/></g>${FACE}<path d="M29 28l-3-2M51 28l3-2" stroke="${INK}" stroke-width="2" stroke-linecap="round"/>`;
@@ -42,20 +63,25 @@ const HAIR = {
 };
 
 const CAP = `<g ${LINE}><path d="M20 20C20 2 60 2 60 20z" fill="#f39c12"/><rect x="38" y="18" width="30" height="8" rx="4" fill="#d9820b"/></g>`;
-const ELDER = `<g fill="none" stroke="${INK}" stroke-width="2"><circle cx="33" cy="32" r="5.5"/><circle cx="47" cy="32" r="5.5"/><path d="M38.5 32h3"/></g><rect x="61" y="82" width="5" height="28" rx="2.5" fill="#8d5524" stroke="${INK}" stroke-width="2.5"/>`;
+const GLASSES = `<g fill="none" stroke="${INK}" stroke-width="2"><circle cx="33" cy="32" r="5.5"/><circle cx="47" cy="32" r="5.5"/><path d="M38.5 32h3"/></g>`;
 
 // look: { body: 'man'|'woman', age: 'teen'|'adult'|'elder', skin, shirt, pants,
 //         hairStyle: 'short'|'afro'|'bun'|'braids'|'wrap', hair, wrap, cap }
-export function makePersonSvg(look) {
+// pose: 'idle' or 'walk0' to 'walk3'
+export function makePersonSvg(look, pose = 'idle') {
   const l = { pants: '#34495e', hair: '#2a1a12', wrap: '#f6c026', hairStyle: 'short', age: 'adult', ...look };
-  const s = AGE_SCALE[l.age] ?? 1;
-  const body = l.body === 'woman' ? womanBody(l) : manBody(l);
+  const base = POSES[pose] ?? POSES.idle;
+  const p = { ...base, arm: base.arm * (l.age === 'elder' ? 0.4 : 1) }; // elders swing gently
+
+  const body = l.body === 'woman' ? womanBody(l, p) : manBody(l, p);
   const hair = (HAIR[l.hairStyle] ?? HAIR.short)(l.hairStyle === 'wrap' ? l.wrap : l.hair);
-  const elder = l.age === 'elder' ? ELDER : '';
+  const glasses = l.age === 'elder' ? GLASSES : '';
   const cap = l.cap ? CAP : '';
-  // Shrinking is anchored at the feet so everyone stands on the same line
-  const inner = `<g transform="translate(${40 * (1 - s)} ${120 * (1 - s)}) scale(${s})">${body}${hair}${elder}${cap}</g>`;
-  return svgDoc(80, 120, inner);
+
+  // The shadow stays put while the body bobs. Shrinking is anchored at the feet.
+  const s = AGE_SCALE[l.age] ?? 1;
+  const inner = `${SHADOW}<g transform="translate(0 ${p.bob})">${body}${hair}${glasses}${cap}</g>`;
+  return svgDoc(80, 120, `<g transform="translate(${40 * (1 - s)} ${120 * (1 - s)}) scale(${s})">${inner}</g>`);
 }
 
 export const PLAYER_LOOK = {

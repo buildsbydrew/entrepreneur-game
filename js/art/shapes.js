@@ -64,6 +64,10 @@ export const umbrellaSvg = () => svgDoc(120, 150,
 export const bubbleSvg = () => svgDoc(64, 74,
   `<g ${LINE} stroke-width="3"><path d="M25 52 32 68 39 52z" fill="#fff"/><rect x="2" y="2" width="60" height="52" rx="14" fill="#fff"/></g><path d="M27 53h10" stroke="#fff" stroke-width="4"/>`);
 
+// Small tag that hangs on a crate and carries its price
+export const tagSvg = () => svgDoc(60, 26,
+  `<rect x="2" y="2" width="56" height="22" rx="8" fill="#fff4dc" stroke="${INK}" stroke-width="3"/>`);
+
 // Repeating ground tile. Nothing touches the edges, so it tiles without seams.
 export const dirtSvg = () => svgDoc(128, 128,
   `<rect width="128" height="128" fill="#d8b98a"/><ellipse cx="32" cy="38" rx="18" ry="8" fill="#c49a64" opacity=".5"/><ellipse cx="94" cy="92" rx="22" ry="9" fill="#c49a64" opacity=".5"/><ellipse cx="98" cy="28" rx="11" ry="5" fill="#e3c99c" opacity=".7"/><ellipse cx="30" cy="104" rx="13" ry="5" fill="#e3c99c" opacity=".7"/><circle cx="62" cy="62" r="2.5" fill="#b98a55"/><circle cx="14" cy="76" r="2" fill="#b98a55"/><circle cx="112" cy="58" r="2" fill="#b98a55"/><circle cx="70" cy="14" r="1.8" fill="#b98a55"/><circle cx="52" cy="116" r="1.8" fill="#b98a55"/>`, 1);
