@@ -18,14 +18,23 @@ function addSvgTexture(scene, key, svg) {
   });
 }
 
-// One standing frame plus the walking frames, named key-idle, key-walk0 and so on
-function personJobs(key, look) {
-  const jobs = [[`${key}-idle`, makePersonSvg(look, 'idle')]];
-  for (let i = 0; i < WALK_FRAMES; i++) {
-    jobs.push([`${key}-walk${i}`, makePersonSvg(look, `walk${i}`)]);
-  }
+// Standing frames for some views and walking frames for others, named like
+// player-side-idle and player-side-walk0. Only the views a person uses get drawn.
+function personJobs(key, look, { idle, walk }) {
+  const jobs = idle.map(view => [`${key}-${view}-idle`, makePersonSvg(look, 'idle', view)]);
+
+  walk.forEach(view => {
+    for (let i = 0; i < WALK_FRAMES; i++) {
+      jobs.push([`${key}-${view}-walk${i}`, makePersonSvg(look, `walk${i}`, view)]);
+    }
+  });
+
   return jobs;
 }
+
+// The player walks every way. Customers stand facing the player and walk sideways.
+const PLAYER_VIEWS = { idle: ['down', 'up', 'side'], walk: ['down', 'up', 'side'] };
+const CUSTOMER_VIEWS = { idle: ['down'], walk: ['side'] };
 
 export function buildTextures(scene, setting) {
   const jobs = [
@@ -36,11 +45,11 @@ export function buildTextures(scene, setting) {
     ['price-tag', tagSvg()],
     ['stall-open', stallOpenSvg(setting.items)],
     ['stall-closed', stallClosedSvg()],
-    ...personJobs('player', PLAYER_LOOK)
+    ...personJobs('player', PLAYER_LOOK, PLAYER_VIEWS)
   ];
 
   setting.items.forEach(item => jobs.push([`icon-${item.id}`, itemSvg(item)]));
-  CUSTOMER_LOOKS.forEach((look, i) => jobs.push(...personJobs(CUSTOMER_KEYS[i], look)));
+  CUSTOMER_LOOKS.forEach((look, i) => jobs.push(...personJobs(CUSTOMER_KEYS[i], look, CUSTOMER_VIEWS)));
 
   return Promise.all(jobs.map(([key, svg]) => addSvgTexture(scene, key, svg)));
 }

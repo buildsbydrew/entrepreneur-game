@@ -70,16 +70,16 @@ export default class Customer {
     if (distance <= step || distance < 1.5) {
       this.body.x = this.slot.x;
       this.state = 'waiting';
-      this.person.animate(delta, 0, 0);
+      this.person.animate(delta, 0, 'down');
       return;
     }
 
     this.body.x += Math.sign(dx) * step;
-    this.person.animate(delta, speed / WALK_SPEED, Math.sign(dx));
+    this.person.animate(delta, speed / WALK_SPEED, dx > 0 ? 'right' : 'left');
   }
 
   wait(delta) {
-    this.person.animate(delta, 0, 0);
+    this.person.animate(delta, 0, 'down');
     this.patience -= delta;
 
     if (this.patience <= 0) {
@@ -101,7 +101,7 @@ export default class Customer {
     }
 
     this.body.x += Math.sign(dx) * step;
-    this.person.animate(delta, speed / WALK_SPEED, Math.sign(dx));
+    this.person.animate(delta, speed / WALK_SPEED, dx > 0 ? 'right' : 'left');
   }
 
   // mood is 'happy', 'angry', or 'neutral' (leaves quietly)

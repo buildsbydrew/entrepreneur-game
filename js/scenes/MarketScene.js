@@ -80,15 +80,6 @@ export default class MarketScene extends Phaser.Scene {
       .setDepth(baseY);
     this.fitStallArt();
 
-    this.stallSign = this.add.text(x, this.stallArt.y - 4, 'CLOSED', {
-      fontFamily: 'sans-serif',
-      fontSize: '20px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-      backgroundColor: '#c0392b',
-      padding: { x: 10, y: 4 }
-    }).setOrigin(0.5, 1).setDepth(baseY + 1);
-
     this.interactables.push({
       x: this.stall.x,
       y: this.stall.y,
@@ -281,7 +272,7 @@ export default class MarketScene extends Phaser.Scene {
 
     // While the report is showing, the market is frozen and we only wait for Enter
     if (this.dayOver) {
-      this.playerSprite.animate(delta, 0, 0);
+      this.playerSprite.animate(delta, 0, null);
       this.handleReportInput();
       return;
     }
@@ -307,12 +298,19 @@ export default class MarketScene extends Phaser.Scene {
     this.player.body.setAcceleration(push.x, push.y);
   }
 
-  // Steps, leans and breathes depending on how fast the player is moving
+  // Turns to face the way the player is heading and walks at the matching pace
   animatePlayer(delta) {
     const body = this.player.body;
     const moving = Math.min(1, body.speed / this.speed);
-    const dirX = Math.abs(body.velocity.x) > 20 ? Math.sign(body.velocity.x) : 0;
-    this.playerSprite.animate(delta, moving, dirX);
+
+    let facing = null; // standing still keeps the last direction
+    if (body.speed > 25) {
+      const { x, y } = body.velocity;
+      if (Math.abs(x) >= Math.abs(y)) facing = x > 0 ? 'right' : 'left';
+      else facing = y > 0 ? 'down' : 'up';
+    }
+
+    this.playerSprite.animate(delta, moving, facing);
   }
 
   handleInteraction() {
@@ -611,13 +609,9 @@ export default class MarketScene extends Phaser.Scene {
 
     if (isOpen) {
       this.stallArt.setTexture('stall-open');
-      this.stallSign.setText('OPEN');
-      this.stallSign.setBackgroundColor('#27ae60');
       this.spawnTimer = 1500; // first customer arrives soon after opening
     } else {
       this.stallArt.setTexture('stall-closed');
-      this.stallSign.setText('CLOSED');
-      this.stallSign.setBackgroundColor('#c0392b');
 
       // Anyone still walking up turns around
       this.customers
