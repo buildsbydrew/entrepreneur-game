@@ -70,6 +70,7 @@ export default class Customer {
     if (distance <= step || distance < 1.5) {
       this.body.x = this.slot.x;
       this.state = 'waiting';
+      this.scene.events.emit('customer-arrived', this);
       this.person.animate(delta, 0, 'up');
       return;
     }

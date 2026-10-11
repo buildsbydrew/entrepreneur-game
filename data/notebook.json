@@ -1,0 +1,29 @@
+{
+  "entries": [
+    {
+      "id": "assumption",
+      "term": "Assumption",
+      "summary": "Something you believe about your customers but have not checked. A guess can feel like knowing, right up until a customer proves it wrong.",
+      "tip": "Watch what people actually ask for, and buy for them.",
+      "evidence": [
+        "Day {day}: {totalAsked} customers came. Most asked for {mostAskedItem} ({mostAskedCount}).",
+        { "if": "hasStockout", "text": "You had none for {missedPeople}." },
+        { "if": "hasLeftover", "text": "You were left holding {leftoverCount} {leftoverItem}." }
+      ],
+      "sources": [
+        {
+          "title": "The Lean Startup",
+          "author": "Eric Ries",
+          "year": 2011,
+          "idea": "A business plan starts as a set of assumptions that are often wrong, so the first job is to test them quickly."
+        },
+        {
+          "title": "The Mom Test",
+          "author": "Rob Fitzpatrick",
+          "year": 2013,
+          "idea": "What customers have actually done tells you more than their opinions or what they say they will do."
+        }
+      ]
+    }
+  ]
+}

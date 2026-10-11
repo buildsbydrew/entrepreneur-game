@@ -8,6 +8,8 @@ export default class BootScene extends Phaser.Scene {
 
   preload() {
     this.load.json('setting', 'data/settings/ghana.json');
+    this.load.json('mentors', 'data/mentors.json');
+    this.load.json('notebook', 'data/notebook.json');
   }
 
   create() {
@@ -20,7 +22,7 @@ export default class BootScene extends Phaser.Scene {
 
     const setting = this.cache.json.get('setting');
 
-    buildTextures(this, setting)
+    buildTextures(this, setting, this.cache.json.get('mentors').mentor.look)
       .then(() => this.scene.start('MenuScene'))
       .catch(error => {
         console.error(error);

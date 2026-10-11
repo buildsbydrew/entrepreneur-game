@@ -5,7 +5,9 @@ export const state = {
   cash: 0,
   stock: {},    // total count of each item
   batches: {},  // the same stock split by age: batches[id][age] = how many
-  today: null
+  today: null,
+  notebook: { unlocked: [], evidence: {} }, // ideas the player has found
+  beatsSeen: []                              // conversations that have already happened
 };
 
 function freshDay() {
@@ -14,8 +16,11 @@ function freshDay() {
     spent: 0,
     served: 0,
     lost: 0,
-    spoiled: {},     // item id -> how many went bad today
-    spoiledCost: 0,  // what that stock cost to buy
+    spoiled: {},        // item id -> how many went bad today
+    spoiledCost: 0,     // what that stock cost to buy
+    asked: {},          // item id -> customers who came wanting it
+    soldBy: {},         // item id -> how many were sold
+    missedNoStock: {},  // item id -> customers who left because there was none
     startCash: state.cash
   };
 }
@@ -29,6 +34,8 @@ export function initState(setting) {
     state.stock[item.id] = 0;
     state.batches[item.id] = [0];
   });
+  state.notebook = { unlocked: [], evidence: {} };
+  state.beatsSeen = [];
   state.today = freshDay();
 }
 
@@ -64,11 +71,28 @@ export function sell(item) {
   state.cash += item.sellPrice;
   state.today.revenue += item.sellPrice;
   state.today.served += 1;
+  state.today.soldBy[item.id] = (state.today.soldBy[item.id] || 0) + 1;
   return true;
 }
 
-export function recordLostCustomer() {
+// noStock is true when the customer left and the shelf had none of what they wanted
+export function recordLostCustomer(item, noStock) {
   state.today.lost += 1;
+  if (noStock) state.today.missedNoStock[item.id] = (state.today.missedNoStock[item.id] || 0) + 1;
+}
+
+// A customer arrived at the stall wanting this item
+export function recordAsked(item) {
+  state.today.asked[item.id] = (state.today.asked[item.id] || 0) + 1;
+}
+
+export function unlockEntry(id, evidence) {
+  if (!state.notebook.unlocked.includes(id)) state.notebook.unlocked.push(id);
+  state.notebook.evidence[id] = evidence;
+}
+
+export function markBeatSeen(id) {
+  if (!state.beatsSeen.includes(id)) state.beatsSeen.push(id);
 }
 
 // Called once when the day ends: all stock gets a day older,

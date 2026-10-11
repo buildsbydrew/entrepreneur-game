@@ -16,17 +16,21 @@ export function clearUi() {
 
 // ---------- The small pause button shown during play ----------
 
-export function showPauseButton(onClick) {
-  const button = document.getElementById('pause-btn');
-  button.hidden = false;
-  button.onclick = () => {
-    button.blur(); // so pressing Space or Enter later doesn't press it again
-    onClick();
-  };
+// The two small buttons in the top right during play
+export function showPauseButton(onPause, onNotebook) {
+  [['pause-btn', onPause], ['notebook-btn', onNotebook]].forEach(([id, handler]) => {
+    const button = document.getElementById(id);
+    button.hidden = false;
+    button.onclick = () => {
+      button.blur(); // so pressing Space or Enter later doesn't press it again
+      handler();
+    };
+  });
 }
 
 export function hidePauseButton() {
   document.getElementById('pause-btn').hidden = true;
+  document.getElementById('notebook-btn').hidden = true;
 }
 
 // ---------- Title screen ----------
@@ -215,4 +219,117 @@ export function showPause({ onResume, onNewGame, onMenu }) {
 
   confirmOnce(document.getElementById('new'), onNewGame, 'Lose progress? Click again');
   confirmOnce(document.getElementById('menu'), onMenu, 'Lose progress? Click again');
+}
+
+// ---------- Conversation ----------
+
+const esc = text => String(text).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+// Shows lines one at a time. Enter, Space, E or a click moves on; the last one closes it.
+export function showDialogue({ name, title, look, lines, onDone }) {
+  if (lines.length === 0) {
+    onDone();
+    return;
+  }
+
+  let index = 0;
+  let lastAdvance = 0;
+
+  ui().innerHTML = `
+    <div class="dialogue-wrap">
+      <div class="screen panel dialogue" role="dialog" aria-label="Conversation">
+        <div class="portrait"><img alt="" src="${svgUri(makePersonSvg(look, 'idle', 'down'))}"></div>
+        <div class="dlg-body">
+          <p class="dlg-name">${esc(name)} <span>${esc(title)}</span></p>
+          <p class="dlg-text" id="dlg-text" aria-live="polite"></p>
+          <div class="dlg-foot">
+            <span class="dlg-hint">Enter, E or click to continue</span>
+            <button class="btn" id="dlg-next" tabindex="-1"></button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  const text = document.getElementById('dlg-text');
+  const next = document.getElementById('dlg-next');
+
+  function show() {
+    text.textContent = lines[index];
+    next.textContent = index === lines.length - 1 ? 'Done' : 'Next';
+  }
+
+  function advance() {
+    const now = performance.now();
+    if (now - lastAdvance < 150) return; // ignore an accidental double press
+    lastAdvance = now;
+
+    index += 1;
+    if (index < lines.length) {
+      show();
+      return;
+    }
+
+    document.removeEventListener('keydown', onKey);
+    clearUi();
+    onDone();
+  }
+
+  function onKey(event) {
+    if (event.repeat || !['Enter', ' ', 'e', 'E'].includes(event.key)) return;
+    event.preventDefault();
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    advance();
+  }
+
+  document.addEventListener('keydown', onKey);
+  next.onclick = advance;
+  ui().querySelector('.dialogue').onclick = event => {
+    if (event.target.id !== 'dlg-next') advance();
+  };
+  show();
+}
+
+// ---------- Notebook ----------
+
+export function showNotebook({ entries, unlocked, evidence, onClose }) {
+  const found = entries.filter(entry => unlocked.includes(entry.id));
+
+  const body = found.length === 0
+    ? '<p class="empty">Nothing here yet. Ideas land in this book as you run your stall.</p>'
+    : found.map(entry => `
+        <article class="entry">
+          <h2>${esc(entry.term)}</h2>
+          <p>${esc(entry.summary)}</p>
+          ${evidence[entry.id] ? `<p class="evidence"><b>At your stall:</b> ${esc(evidence[entry.id])}</p>` : ''}
+          <p class="tip">${esc(entry.tip)}</p>
+          <details>
+            <summary>Where this comes from</summary>
+            <ul>${entry.sources.map(s => `<li><b>${esc(s.title)}</b>, ${esc(s.author)} (${esc(s.year)}). ${esc(s.idea)}</li>`).join('')}</ul>
+          </details>
+        </article>`).join('');
+
+  ui().innerHTML = `
+    <div class="screen dim">
+      <div class="panel notebook" role="dialog" aria-label="Notebook">
+        <h1>Notebook</h1>
+        ${body}
+        <p class="hint">${found.length} of ${entries.length} ideas found. More turn up as you play.</p>
+        <button class="btn" id="nb-close">Close</button>
+      </div>
+    </div>`;
+
+  function close() {
+    document.removeEventListener('keyup', onKey);
+    clearUi();
+    onClose();
+  }
+
+  function onKey(event) {
+    if (['Escape', 'n', 'N'].includes(event.key)) close();
+  }
+
+  document.addEventListener('keyup', onKey);
+  const closeButton = document.getElementById('nb-close');
+  closeButton.onclick = close;
+  closeButton.focus();
 }

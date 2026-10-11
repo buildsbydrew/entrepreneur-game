@@ -1,0 +1,44 @@
+{
+  "mentor": {
+    "name": "Maame Gyasiwaa",
+    "title": "Market elder",
+    "look": { "body": "woman", "age": "elder", "skin": "#a8714a", "shirt": "#1fa7a0", "hairStyle": "wrap", "wrap": "#d6336c" },
+    "chat": {
+      "beforeEvidence": [
+        "Open the stall, my dear. Let the people come.",
+        "Watch what they ask for. I will see you tonight."
+      ],
+      "afterEvidence": [
+        "Did you buy for the people who came, or the people you imagined?",
+        "If you forget what we said, it is written in your Notebook."
+      ]
+    }
+  },
+  "beats": [
+    {
+      "id": "welcome",
+      "when": "start",
+      "lines": [
+        "Welcome to the market, my dear. I am Maame Gyasiwaa. I have sold from this corner for thirty years.",
+        "Buy your stock, open your stall, and let the people come. Watch what they ask for.",
+        "Tonight, when you have counted your takings, I will come and see how you did.",
+        "Your Notebook is at the top right. I will help you fill it."
+      ]
+    },
+    {
+      "id": "first-evidence",
+      "when": "dayEnd",
+      "minAsked": 3,
+      "unlocks": "assumption",
+      "lines": [
+        "Ei, my dear. I watched your stall all day.",
+        { "if": "hasStockout", "text": "{missedPeople} asked for {missedItem} and you had none. They did not wait. They walked on." },
+        { "if": "hasLeftover", "text": "And you are still holding {leftoverCount} {leftoverItem}. {leftoverAskedSentence}" },
+        { "if": "quiet", "text": "Your shelf and your customers matched today. Tell me, was that planning, or luck?" },
+        "You chose what to buy before anyone told you what they wanted. That was a guess. There is no shame in a guess.",
+        "But a guess is not knowing. Your customers tell you what they want every day, if you watch them.",
+        "Tomorrow, buy for the people who come, not the people you imagine. I have written it in your Notebook."
+      ]
+    }
+  ]
+}

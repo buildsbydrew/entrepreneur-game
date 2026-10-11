@@ -1,18 +1,19 @@
 import {
-  state, initState, startNextDay, buy, sell, recordLostCustomer,
+  state, initState, startNextDay, buy, sell, recordAsked, recordLostCustomer, unlockEntry, markBeatSeen,
   endOfDayAging, expiringTonight, stockValue
 } from '../state.js';
 import Customer from '../entities/Customer.js';
 import PersonSprite from '../entities/PersonSprite.js';
 import { CUSTOMER_KEYS } from '../art/textures.js';
 import { profile } from '../profile.js';
-import { showPauseButton, hidePauseButton } from '../ui/screens.js';
+import { showPauseButton, hidePauseButton, showDialogue, showNotebook } from '../ui/screens.js';
+import { buildContext, renderLines, findDueBeat } from '../mentor.js';
 
 const WORLD_W = 2400;
 const WORLD_H = 1400;
 const INTERACT_RANGE = 110;
 const REPORT_W = 480;
-const REPORT_H = 470;
+const REPORT_H = 530;
 const PERSON_W = 72;
 const PERSON_H = 108;
 const STALL_SCALE = 1.1;
@@ -38,6 +39,8 @@ export default class MarketScene extends Phaser.Scene {
 
   create() {
     this.setting = this.cache.json.get('setting');
+    this.mentorData = this.cache.json.get('mentors');
+    this.notebookData = this.cache.json.get('notebook');
     initState(this.setting);
 
     this.interactables = []; // things the player can press E on
@@ -46,6 +49,8 @@ export default class MarketScene extends Phaser.Scene {
 
     this.dayOver = false;
     this.outOfBusiness = false;
+    this.modalOpen = false;   // true while a conversation or the Notebook is showing
+    this.pendingBeat = null;  // a conversation waiting for the end of the day
     this.report = null;
     this.lastClock = '';
     this.dayTimeLeft = this.setting.day.lengthMs;
@@ -56,12 +61,14 @@ export default class MarketScene extends Phaser.Scene {
     this.createCustomerArea();
     this.createSupplier();
     this.createProps();
+    this.createMentor();
     this.createPlayer();
     this.setupCamera();
     this.setupControls();
     this.createPrompt();
     this.createHud();
     this.setupPause();
+    this.startWelcome();
   }
 
   // ---------- Building the world ----------
@@ -119,15 +126,17 @@ export default class MarketScene extends Phaser.Scene {
   setupPause() {
     this.resumedAt = 0;
     const requestPause = () => this.openPause();
+    const requestNotebook = () => this.openNotebook();
+    this.input.keyboard.on('keyup-N', requestNotebook);
 
     this.input.keyboard.on('keyup-ESC', requestPause);
     this.input.keyboard.on('keyup-P', requestPause);
-    showPauseButton(requestPause);
+    showPauseButton(requestPause, requestNotebook);
 
     this.hideButton = () => hidePauseButton();
     this.showButton = () => {
       this.resumedAt = performance.now();
-      showPauseButton(requestPause);
+      showPauseButton(requestPause, requestNotebook);
     };
     this.events.on('pause', this.hideButton);
     this.events.on('resume', this.showButton);
@@ -138,16 +147,164 @@ export default class MarketScene extends Phaser.Scene {
       this.events.off('pause', this.hideButton);
       this.events.off('resume', this.showButton);
       this.events.off('customer-lost', this.onCustomerLost, this);
+      this.events.off('customer-arrived', this.onCustomerArrived, this);
       this.input.keyboard.clearCaptures();
     });
   }
 
   openPause() {
     // The short wait stops the key that closed the menu from opening it again
-    if (this.scene.isPaused() || performance.now() - this.resumedAt < 300) return;
+    if (this.modalOpen || this.scene.isPaused() || performance.now() - this.resumedAt < 300) return;
 
     this.scene.launch('PauseScene');
     this.scene.pause();
+  }
+
+  // ---------- The mentor and the Notebook ----------
+
+  // Maame Gyasiwaa stands in the market a few steps from the stall
+  createMentor() {
+    const mentor = this.mentorData.mentor;
+    const x = 1255;
+    const feetY = 560;
+
+    this.mentorSprite = new PersonSprite(this, 'mentor', x, feetY);
+
+    this.add.text(x, feetY - 112, mentor.name, {
+      fontFamily: 'sans-serif',
+      fontSize: '14px',
+      fontStyle: 'bold',
+      color: '#fff4dc',
+      stroke: '#3b2a20',
+      strokeThickness: 4
+    }).setOrigin(0.5, 1).setDepth(feetY + 1);
+
+    // An invisible block so the player can't walk through her
+    const hitbox = this.add.rectangle(x, feetY - 10, 40, 20, 0x000000).setVisible(false);
+    this.physics.add.existing(hitbox, true);
+    this.solids.push(hitbox);
+
+    this.interactables.push({
+      x,
+      y: feetY - 40,
+      label: () => `Talk to ${mentor.name}`,
+      use: () => this.talkToMentor()
+    });
+  }
+
+  // Her first words, shortly after the game begins
+  startWelcome() {
+    const beat = this.mentorData.beats.find(b => b.id === 'welcome');
+    if (!beat || state.beatsSeen.includes(beat.id)) return;
+
+    this.time.delayedCall(700, () => {
+      this.playDialogue(renderLines(beat.lines), () => markBeatSeen(beat.id));
+    });
+  }
+
+  // Pressing E beside her repeats the gist of what she last told you
+  talkToMentor() {
+    const chat = this.mentorData.mentor.chat;
+    const lines = state.beatsSeen.includes('first-evidence') ? chat.afterEvidence : chat.beforeEvidence;
+    this.playDialogue(lines);
+  }
+
+  // Pressing Enter on the Takings report: the mentor speaks first if she has something to say
+  continueFromReport() {
+    const beat = this.pendingBeat;
+    this.pendingBeat = null;
+
+    if (!beat || this.outOfBusiness) {
+      this.beginNewDay();
+      return;
+    }
+
+    const ctx = this.beatContext;
+    this.playDialogue(renderLines(beat.lines, ctx), () => {
+      markBeatSeen(beat.id);
+
+      // The idea she talked about goes into the Notebook, with what happened at the stall
+      let banner = null;
+      const entry = this.notebookData.entries.find(e => e.id === beat.unlocks);
+      if (entry) {
+        unlockEntry(entry.id, renderLines(entry.evidence, ctx).join(' '));
+        banner = `Notebook updated: ${entry.term}. Press N to read it.`;
+      }
+
+      this.beginNewDay();
+      if (banner) this.showBanner(banner);
+    });
+  }
+
+  playDialogue(lines, onDone) {
+    const mentor = this.mentorData.mentor;
+
+    this.openModal();
+    if (this.report) this.report.setVisible(false);
+
+    showDialogue({
+      name: mentor.name,
+      title: mentor.title,
+      look: mentor.look,
+      lines,
+      onDone: () => {
+        this.closeModal();
+        if (onDone) onDone();
+      }
+    });
+  }
+
+  openNotebook() {
+    if (this.modalOpen || this.scene.isPaused() || performance.now() - this.resumedAt < 300) return;
+
+    this.openModal();
+    showNotebook({
+      entries: this.notebookData.entries,
+      unlocked: state.notebook.unlocked,
+      evidence: state.notebook.evidence,
+      onClose: () => this.closeModal()
+    });
+  }
+
+  // While a conversation or the Notebook is open, the market stands still
+  openModal() {
+    this.modalOpen = true;
+    this.player.body.setVelocity(0, 0);
+    this.player.body.setAcceleration(0, 0);
+    this.prompt.setVisible(false);
+  }
+
+  closeModal() {
+    this.modalOpen = false;
+    this.resumedAt = performance.now();
+
+    // Throw away key presses made during the conversation so they don't act afterwards
+    [this.keyE, this.keyEnter, this.keySpace].forEach(key => Phaser.Input.Keyboard.JustDown(key));
+  }
+
+  // A short message across the top of the screen that fades away
+  showBanner(message) {
+    const text = this.add.text(this.scale.width / 2, 24, message, {
+      fontFamily: 'sans-serif',
+      fontSize: '18px',
+      fontStyle: 'bold',
+      color: '#fff4dc',
+      backgroundColor: '#3b2a20',
+      padding: { x: 14, y: 8 }
+    }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(DEPTH.hud);
+
+    this.tweens.add({
+      targets: text,
+      alpha: 0,
+      delay: 3800,
+      duration: 700,
+      onComplete: () => text.destroy()
+    });
+  }
+
+  // A customer reached the stall and is waiting. We record what they came for.
+  onCustomerArrived(customer) {
+    recordAsked(customer.item);
   }
 
   fitStallArt() {
@@ -173,6 +330,7 @@ export default class MarketScene extends Phaser.Scene {
 
     // Customers announce when they give up waiting
     this.events.on('customer-lost', this.onCustomerLost, this);
+    this.events.on('customer-arrived', this.onCustomerArrived, this);
   }
 
   createSupplier() {
@@ -301,7 +459,7 @@ export default class MarketScene extends Phaser.Scene {
       padding: { x: 10, y: 6 }
     };
 
-    this.add.text(16, 16, 'WASD or arrows to move, E to interact, Esc to pause', {
+    this.add.text(16, 16, 'WASD or arrows to move, E to interact, N for Notebook, Esc to pause', {
       fontFamily: 'sans-serif',
       fontSize: '14px',
       color: '#3b2a20'
@@ -331,6 +489,13 @@ export default class MarketScene extends Phaser.Scene {
     this.clockText.setPosition(this.scale.width - 16, 16);
     this.layoutReport();
     this.syncPlayerSprite();
+    this.mentorSprite.animate(delta, 0, null);
+
+    // A conversation or the Notebook freezes the market until it closes
+    if (this.modalOpen) {
+      this.playerSprite.animate(delta, 0, null);
+      return;
+    }
 
     // While the report is showing, the market is frozen and we only wait for Enter
     if (this.dayOver) {
@@ -483,6 +648,12 @@ export default class MarketScene extends Phaser.Scene {
     const hasStock = Object.values(state.stock).some(count => count > 0);
     this.outOfBusiness = state.cash < cheapest && !hasStock;
 
+    // Work out what happened at the stall, and whether the mentor has something to say
+    this.beatContext = buildContext(state, this.setting);
+    this.pendingBeat = this.outOfBusiness
+      ? null
+      : findDueBeat(this.mentorData.beats, 'dayEnd', state, this.beatContext);
+
     this.showReport();
   }
 
@@ -502,6 +673,12 @@ export default class MarketScene extends Phaser.Scene {
       ? `Spoiled:  ${spoiledParts.join('   ')}  (-${symbol}${today.spoiledCost})`
       : 'Spoiled:  nothing';
 
+    const askedLine = `Asked for:  ${this.setting.items.map(item => `${item.name} ${today.asked[item.id] ?? 0}`).join('   ')}`;
+    const missedParts = this.setting.items
+      .filter(item => (today.missedNoStock[item.id] ?? 0) > 0)
+      .map(item => `${item.name} ${today.missedNoStock[item.id]}`);
+    const missedLine = missedParts.length > 0 ? `Left with no stock:  ${missedParts.join('   ')}` : null;
+
     const lines = [
       `Customers served:  ${today.served}`,
       `Customers lost:  ${today.lost}`,
@@ -510,7 +687,9 @@ export default class MarketScene extends Phaser.Scene {
       spoiledLine,
       `Cash:  ${symbol}${today.startCash}  →  ${symbol}${state.cash}`,
       `Stock left:  ${stockLeft}`,
-      `Stock value (at cost):  ${symbol}${stockValue(this.setting)}`
+      `Stock value (at cost):  ${symbol}${stockValue(this.setting)}`,
+      askedLine,
+      ...(missedLine ? [missedLine] : [])
     ];
 
     let title = `TAKINGS: DAY ${state.day}`;
@@ -520,6 +699,8 @@ export default class MarketScene extends Phaser.Scene {
       title = 'OUT OF BUSINESS';
       lines.push('', "You can't afford any more stock.");
       hint = 'Press Enter to start over';
+    } else if (this.pendingBeat) {
+      hint = `Press Enter. ${this.mentorData.mentor.name} wants a word.`;
     }
 
     const dim = this.add.rectangle(0, 0, 6000, 6000, 0x000000, 0.65);
@@ -574,7 +755,7 @@ export default class MarketScene extends Phaser.Scene {
     const pressedSpace = Phaser.Input.Keyboard.JustDown(this.keySpace);
 
     if (pressedEnter || pressedSpace) {
-      this.beginNewDay();
+      this.continueFromReport();
     }
   }
 
@@ -649,7 +830,7 @@ export default class MarketScene extends Phaser.Scene {
   }
 
   onCustomerLost(customer) {
-    recordLostCustomer();
+    recordLostCustomer(customer.item, state.stock[customer.item.id] === 0);
     this.floatText('Customer left', '#ff6b6b', customer.body.x, customer.body.y - 175);
     this.updateHud();
   }

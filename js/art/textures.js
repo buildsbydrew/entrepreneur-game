@@ -35,8 +35,9 @@ function personJobs(key, look, { idle, walk }) {
 // The player walks every way. Customers walk sideways, then stand facing the stall.
 const PLAYER_VIEWS = { idle: ['down', 'up', 'side'], walk: ['down', 'up', 'side'] };
 const CUSTOMER_VIEWS = { idle: ['up'], walk: ['side'] };
+const MENTOR_VIEWS = { idle: ['down'], walk: [] };
 
-export function buildTextures(scene, setting) {
+export function buildTextures(scene, setting, mentorLook) {
   const jobs = [
     ['dirt', dirtSvg()],
     ['crate', crateSvg()],
@@ -44,7 +45,8 @@ export function buildTextures(scene, setting) {
     ['bubble', bubbleSvg()],
     ['price-tag', tagSvg()],
     ['stall-open', stallOpenSvg(setting.items)],
-    ['stall-closed', stallClosedSvg()]
+    ['stall-closed', stallClosedSvg()],
+    ...personJobs('mentor', mentorLook, MENTOR_VIEWS)
   ];
 
   setting.items.forEach(item => jobs.push([`icon-${item.id}`, itemSvg(item)]));
