@@ -35,7 +35,8 @@ function personJobs(key, look, { idle, walk }) {
 // The player walks every way. Customers walk sideways, then stand facing the stall.
 const PLAYER_VIEWS = { idle: ['down', 'up', 'side'], walk: ['down', 'up', 'side'] };
 const CUSTOMER_VIEWS = { idle: ['up'], walk: ['side'] };
-const MENTOR_VIEWS = { idle: ['down'], walk: [] };
+const MENTOR_VIEWS = { idle: ['down', 'up', 'side'], walk: ['down', 'up', 'side'] };
+const MENTOR_GOODS = [{ id: 'yam' }, { id: 'tomato' }, { id: 'plantain' }];
 
 export function buildTextures(scene, setting, mentorLook) {
   const jobs = [
@@ -46,6 +47,7 @@ export function buildTextures(scene, setting, mentorLook) {
     ['price-tag', tagSvg()],
     ['stall-open', stallOpenSvg(setting.items)],
     ['stall-closed', stallClosedSvg()],
+    ['mentor-stall', stallOpenSvg(MENTOR_GOODS, '#d6336c', '#fff4dc')],
     ...personJobs('mentor', mentorLook, MENTOR_VIEWS)
   ];
 

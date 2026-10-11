@@ -4,6 +4,7 @@ import {
 } from '../state.js';
 import Customer from '../entities/Customer.js';
 import PersonSprite from '../entities/PersonSprite.js';
+import { stepToward } from '../entities/movement.js';
 import { CUSTOMER_KEYS } from '../art/textures.js';
 import { profile } from '../profile.js';
 import { showPauseButton, hidePauseButton, showDialogue, showNotebook } from '../ui/screens.js';
@@ -19,6 +20,7 @@ const PERSON_H = 108;
 const STALL_SCALE = 1.1;
 const ACCEL = 1500; // how quickly the player picks up speed
 const DRAG = 1300;  // how quickly the player slows down when you let go
+const MENTOR_SPEED = 95; // how fast Maame Gyasiwaa walks
 
 // Things in the world sort by their position on the ground (their y value),
 // so anything lower on screen draws in front. Interface layers sit above all of it.
@@ -50,6 +52,7 @@ export default class MarketScene extends Phaser.Scene {
     this.dayOver = false;
     this.outOfBusiness = false;
     this.modalOpen = false;   // true while a conversation or the Notebook is showing
+    this.cutscene = false;    // true while the mentor walks over to talk
     this.pendingBeat = null;  // a conversation waiting for the end of the day
     this.report = null;
     this.lastClock = '';
@@ -101,7 +104,13 @@ export default class MarketScene extends Phaser.Scene {
 
   // Wooden sign above the awning, carrying the name the player chose
   createStallSign(x, baseY) {
-    const label = this.add.text(0, 0, profile.stallName, {
+    const roofY = this.stallArt.y + 16 * STALL_SCALE;
+    this.stallSign = this.makeSign(x, roofY, profile.stallName).setDepth(baseY + 1);
+  }
+
+  // A wooden name board that hangs just above a stall's roof
+  makeSign(x, roofY, name) {
+    const label = this.add.text(0, 0, name, {
       fontFamily: 'sans-serif',
       fontSize: '20px',
       fontStyle: 'bold',
@@ -117,9 +126,7 @@ export default class MarketScene extends Phaser.Scene {
     board.lineBetween(-w / 2 + 18, h / 2, -w / 2 + 18, h / 2 + 8);
     board.lineBetween(w / 2 - 18, h / 2, w / 2 - 18, h / 2 + 8);
 
-    // Sits just above the awning's roof
-    const y = this.stallArt.y + 16 * STALL_SCALE - h / 2 - 8;
-    this.stallSign = this.add.container(x, y, [board, label]).setDepth(baseY + 1);
+    return this.add.container(x, roofY - h / 2 - 8, [board, label]);
   }
 
   // Esc or P, or the on-screen button, freezes the market and opens the pause menu
@@ -162,34 +169,76 @@ export default class MarketScene extends Phaser.Scene {
 
   // ---------- The mentor and the Notebook ----------
 
-  // Maame Gyasiwaa stands in the market a few steps from the stall
+  // Maame Gyasiwaa has her own stall across the market, and stands beside it
   createMentor() {
     const mentor = this.mentorData.mentor;
-    const x = 1255;
-    const feetY = 560;
+    const stallX = 1000;
+    const stallY = 870;
+    const baseY = stallY + 50; // where her stall meets the ground
+    const scale = 0.95;
 
-    this.mentorSprite = new PersonSprite(this, 'mentor', x, feetY);
+    // An invisible block so the player can't walk through her stall
+    const block = this.add.rectangle(stallX, stallY, 180, 100, 0x8d5524).setVisible(false);
+    this.physics.add.existing(block, true);
+    this.solids.push(block);
 
-    this.add.text(x, feetY - 112, mentor.name, {
+    const art = this.add.image(stallX, baseY - 176 * scale, 'mentor-stall')
+      .setOrigin(0.5, 0)
+      .setDisplaySize(220 * scale, 190 * scale)
+      .setDepth(baseY);
+    this.makeSign(stallX, art.y + 16 * scale, mentor.name).setDepth(baseY + 1);
+
+    // Where she waits, and where she stands to talk to the player
+    this.mentorHome = { x: 850, y: 925 };
+    this.mentorMeet = { x: 1262, y: 600 };
+    this.mentorTask = null;
+
+    this.mentorSprite = new PersonSprite(this, 'mentor', this.mentorHome.x, this.mentorHome.y);
+    this.mentorLabel = this.add.text(this.mentorHome.x, this.mentorHome.y - 112, mentor.name, {
       fontFamily: 'sans-serif',
       fontSize: '14px',
       fontStyle: 'bold',
       color: '#fff4dc',
       stroke: '#3b2a20',
       strokeThickness: 4
-    }).setOrigin(0.5, 1).setDepth(feetY + 1);
+    }).setOrigin(0.5, 1).setDepth(this.mentorHome.y + 1);
 
-    // An invisible block so the player can't walk through her
-    const hitbox = this.add.rectangle(x, feetY - 10, 40, 20, 0x000000).setVisible(false);
-    this.physics.add.existing(hitbox, true);
-    this.solids.push(hitbox);
-
+    // The player can talk to her wherever she happens to be standing
+    const body = this.mentorSprite.image;
     this.interactables.push({
-      x,
-      y: feetY - 40,
-      label: () => `Talk to ${mentor.name}`,
+      get x() { return body.x; },
+      get y() { return body.y - 40; },
+      label: () => (this.mentorTask ? `${mentor.name} is on her way` : `Talk to ${mentor.name}`),
       use: () => this.talkToMentor()
     });
+  }
+
+  // Sends her walking to a spot. onArrive runs when she gets there.
+  walkMentorTo(target, faceOnArrival, onArrive) {
+    this.mentorTask = { x: target.x, y: target.y, faceOnArrival, onArrive };
+  }
+
+  // Walks her toward her current target, or lets her stand and breathe
+  updateMentor(delta) {
+    const task = this.mentorTask;
+    const sprite = this.mentorSprite;
+
+    if (!task) {
+      sprite.animate(delta, 0, null);
+      return;
+    }
+
+    const step = stepToward(sprite.image, task, MENTOR_SPEED, delta);
+    sprite.place(step.x, step.y);
+    this.mentorLabel.setPosition(step.x, step.y - 112).setDepth(step.y + 1);
+
+    if (step.arrived) {
+      this.mentorTask = null;
+      sprite.animate(delta, 0, task.faceOnArrival);
+      if (task.onArrive) task.onArrive();
+    } else {
+      sprite.animate(delta, step.pace, step.facing);
+    }
   }
 
   // Her first words, shortly after the game begins
@@ -204,12 +253,15 @@ export default class MarketScene extends Phaser.Scene {
 
   // Pressing E beside her repeats the gist of what she last told you
   talkToMentor() {
+    if (this.mentorTask || this.cutscene) return; // she is busy walking
+
     const chat = this.mentorData.mentor.chat;
     const lines = state.beatsSeen.includes('first-evidence') ? chat.afterEvidence : chat.beforeEvidence;
     this.playDialogue(lines);
   }
 
-  // Pressing Enter on the Takings report: the mentor speaks first if she has something to say
+  // Pressing Enter on the Takings report. If she has something to say, she walks over
+  // from her stall while the camera follows her, talks, and then walks back.
   continueFromReport() {
     const beat = this.pendingBeat;
     this.pendingBeat = null;
@@ -220,19 +272,29 @@ export default class MarketScene extends Phaser.Scene {
     }
 
     const ctx = this.beatContext;
-    this.playDialogue(renderLines(beat.lines, ctx), () => {
-      markBeatSeen(beat.id);
+    this.cutscene = true;
+    this.report.setVisible(false);
+    this.cameras.main.startFollow(this.mentorSprite.image, true, 0.08, 0.08);
 
-      // The idea she talked about goes into the Notebook, with what happened at the stall
-      let banner = null;
-      const entry = this.notebookData.entries.find(e => e.id === beat.unlocks);
-      if (entry) {
-        unlockEntry(entry.id, renderLines(entry.evidence, ctx).join(' '));
-        banner = `Notebook updated: ${entry.term}. Press N to read it.`;
-      }
+    this.walkMentorTo(this.mentorMeet, 'right', () => {
+      this.cutscene = false;
 
-      this.beginNewDay();
-      if (banner) this.showBanner(banner);
+      this.playDialogue(renderLines(beat.lines, ctx), () => {
+        markBeatSeen(beat.id);
+
+        // The idea she talked about goes into the Notebook, with what happened at the stall
+        let banner = null;
+        const entry = this.notebookData.entries.find(e => e.id === beat.unlocks);
+        if (entry) {
+          unlockEntry(entry.id, renderLines(entry.evidence, ctx).join(' '));
+          banner = `Notebook updated: ${entry.term}. Press N to read it.`;
+        }
+
+        this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+        this.beginNewDay();
+        this.walkMentorTo(this.mentorHome, 'down');
+        if (banner) this.showBanner(banner);
+      });
     });
   }
 
@@ -395,7 +457,7 @@ export default class MarketScene extends Phaser.Scene {
 
   // Decoration only, to make the market feel lived in
   createProps() {
-    [[900, 820], [1750, 900], [520, 260]].forEach(([x, y]) => {
+    [[700, 780], [1750, 900], [520, 260]].forEach(([x, y]) => {
       this.add.image(x, y, 'umbrella')
         .setOrigin(0.5, 1)
         .setDisplaySize(100, 125)
@@ -489,7 +551,7 @@ export default class MarketScene extends Phaser.Scene {
     this.clockText.setPosition(this.scale.width - 16, 16);
     this.layoutReport();
     this.syncPlayerSprite();
-    this.mentorSprite.animate(delta, 0, null);
+    this.updateMentor(delta);
 
     // A conversation or the Notebook freezes the market until it closes
     if (this.modalOpen) {
@@ -751,6 +813,7 @@ export default class MarketScene extends Phaser.Scene {
   }
 
   handleReportInput() {
+    if (this.cutscene) return; // the mentor is on her way
     const pressedEnter = Phaser.Input.Keyboard.JustDown(this.keyEnter);
     const pressedSpace = Phaser.Input.Keyboard.JustDown(this.keySpace);
 
