@@ -7,15 +7,15 @@ const FRAME_MS = 100; // how long each walking frame shows at full speed
 // Wraps a person's drawing and brings it to life. It turns to face the way they
 // are heading, steps while they move, and breathes gently when they stand still.
 export default class PersonSprite {
-  constructor(scene, key, x, feetY) {
+  constructor(scene, key, x, feetY, facing = 'down') {
     this.scene = scene;
     this.key = key;
-    this.facing = 'down'; // 'down', 'up', 'left' or 'right'
+    this.facing = facing; // 'down', 'up', 'left' or 'right'
     this.shown = '';
     this.step = 0;
     this.clock = Math.random() * 3000; // so people don't breathe in sync
 
-    this.image = scene.add.image(x, feetY, `${key}-down-idle`)
+    this.image = scene.add.image(x, feetY, `${key}-${facing}-idle`)
       .setOrigin(0.5, 1) // pivots around the feet
       .setDisplaySize(PERSON_W, PERSON_H);
     this.baseScaleX = this.image.scaleX;

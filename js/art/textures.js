@@ -32,9 +32,9 @@ function personJobs(key, look, { idle, walk }) {
   return jobs;
 }
 
-// The player walks every way. Customers stand facing the player and walk sideways.
+// The player walks every way. Customers walk sideways, then stand facing the stall.
 const PLAYER_VIEWS = { idle: ['down', 'up', 'side'], walk: ['down', 'up', 'side'] };
-const CUSTOMER_VIEWS = { idle: ['down'], walk: ['side'] };
+const CUSTOMER_VIEWS = { idle: ['up'], walk: ['side'] };
 
 export function buildTextures(scene, setting) {
   const jobs = [

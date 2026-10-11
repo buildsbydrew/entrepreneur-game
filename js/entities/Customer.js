@@ -24,7 +24,7 @@ export default class Customer {
     this.gone = false;
 
     // The person's feet stand a little below the spot at the stall
-    this.person = new PersonSprite(scene, textureKey, startX, slot.y + 20);
+    this.person = new PersonSprite(scene, textureKey, startX, slot.y + 20, 'up');
     this.body = this.person.image;
 
     // Thought bubble showing what they want
@@ -70,7 +70,7 @@ export default class Customer {
     if (distance <= step || distance < 1.5) {
       this.body.x = this.slot.x;
       this.state = 'waiting';
-      this.person.animate(delta, 0, 'down');
+      this.person.animate(delta, 0, 'up');
       return;
     }
 
@@ -79,7 +79,7 @@ export default class Customer {
   }
 
   wait(delta) {
-    this.person.animate(delta, 0, 'down');
+    this.person.animate(delta, 0, 'up');
     this.patience -= delta;
 
     if (this.patience <= 0) {
