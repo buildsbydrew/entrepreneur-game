@@ -1,6 +1,6 @@
 import { buildTextures } from '../art/textures.js';
 
-// Runs first: loads the setting data, draws all the art, then starts the market.
+// Runs first: loads the setting data, draws the art, then opens the title screen.
 export default class BootScene extends Phaser.Scene {
   constructor() {
     super('BootScene');
@@ -21,7 +21,7 @@ export default class BootScene extends Phaser.Scene {
     const setting = this.cache.json.get('setting');
 
     buildTextures(this, setting)
-      .then(() => this.scene.start('MarketScene'))
+      .then(() => this.scene.start('MenuScene'))
       .catch(error => {
         console.error(error);
         label.setText('Something went wrong drawing the market. Press F12 and check the Console.');

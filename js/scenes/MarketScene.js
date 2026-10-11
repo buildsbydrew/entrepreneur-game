@@ -5,6 +5,8 @@ import {
 import Customer from '../entities/Customer.js';
 import PersonSprite from '../entities/PersonSprite.js';
 import { CUSTOMER_KEYS } from '../art/textures.js';
+import { profile } from '../profile.js';
+import { showPauseButton, hidePauseButton } from '../ui/screens.js';
 
 const WORLD_W = 2400;
 const WORLD_H = 1400;
@@ -59,6 +61,7 @@ export default class MarketScene extends Phaser.Scene {
     this.setupControls();
     this.createPrompt();
     this.createHud();
+    this.setupPause();
   }
 
   // ---------- Building the world ----------
@@ -79,6 +82,7 @@ export default class MarketScene extends Phaser.Scene {
       .setOrigin(0.5, 0)
       .setDepth(baseY);
     this.fitStallArt();
+    this.createStallSign(x, baseY);
 
     this.interactables.push({
       x: this.stall.x,
@@ -86,6 +90,64 @@ export default class MarketScene extends Phaser.Scene {
       label: () => this.stallLabel(),
       use: () => this.useStall()
     });
+  }
+
+  // Wooden sign above the awning, carrying the name the player chose
+  createStallSign(x, baseY) {
+    const label = this.add.text(0, 0, profile.stallName, {
+      fontFamily: 'sans-serif',
+      fontSize: '20px',
+      fontStyle: 'bold',
+      color: '#fff4dc'
+    }).setOrigin(0.5);
+    if (label.width > 220) label.setScale(220 / label.width); // long names shrink to fit
+
+    const w = label.displayWidth + 36;
+    const h = 36;
+    const board = this.add.graphics();
+    board.fillStyle(0x8d5524, 1).fillRoundedRect(-w / 2, -h / 2, w, h, 10);
+    board.lineStyle(3, 0x3b2a20, 1).strokeRoundedRect(-w / 2, -h / 2, w, h, 10);
+    board.lineBetween(-w / 2 + 18, h / 2, -w / 2 + 18, h / 2 + 8);
+    board.lineBetween(w / 2 - 18, h / 2, w / 2 - 18, h / 2 + 8);
+
+    // Sits just above the awning's roof
+    const y = this.stallArt.y + 16 * STALL_SCALE - h / 2 - 8;
+    this.stallSign = this.add.container(x, y, [board, label]).setDepth(baseY + 1);
+  }
+
+  // Esc or P, or the on-screen button, freezes the market and opens the pause menu
+  setupPause() {
+    this.resumedAt = 0;
+    const requestPause = () => this.openPause();
+
+    this.input.keyboard.on('keyup-ESC', requestPause);
+    this.input.keyboard.on('keyup-P', requestPause);
+    showPauseButton(requestPause);
+
+    this.hideButton = () => hidePauseButton();
+    this.showButton = () => {
+      this.resumedAt = performance.now();
+      showPauseButton(requestPause);
+    };
+    this.events.on('pause', this.hideButton);
+    this.events.on('resume', this.showButton);
+
+    // Tidy up when this scene ends, so a new game starts clean
+    this.events.once('shutdown', () => {
+      hidePauseButton();
+      this.events.off('pause', this.hideButton);
+      this.events.off('resume', this.showButton);
+      this.events.off('customer-lost', this.onCustomerLost, this);
+      this.input.keyboard.clearCaptures();
+    });
+  }
+
+  openPause() {
+    // The short wait stops the key that closed the menu from opening it again
+    if (this.scene.isPaused() || performance.now() - this.resumedAt < 300) return;
+
+    this.scene.launch('PauseScene');
+    this.scene.pause();
   }
 
   fitStallArt() {
@@ -239,7 +301,7 @@ export default class MarketScene extends Phaser.Scene {
       padding: { x: 10, y: 6 }
     };
 
-    this.add.text(16, 16, 'WASD or arrows to move, E to interact', {
+    this.add.text(16, 16, 'WASD or arrows to move, E to interact, Esc to pause', {
       fontFamily: 'sans-serif',
       fontSize: '14px',
       color: '#3b2a20'
@@ -483,7 +545,13 @@ export default class MarketScene extends Phaser.Scene {
       color: '#c8d1d6'
     }).setOrigin(0.5);
 
-    this.report = this.add.container(0, 0, [dim, panel, titleText, bodyText, hintText])
+    const subText = this.add.text(0, -REPORT_H / 2 + 68, profile.stallName, {
+      fontFamily: 'sans-serif',
+      fontSize: '16px',
+      color: '#c8d1d6'
+    }).setOrigin(0.5);
+
+    this.report = this.add.container(0, 0, [dim, panel, titleText, subText, bodyText, hintText])
       .setScrollFactor(0)
       .setDepth(DEPTH.report);
 

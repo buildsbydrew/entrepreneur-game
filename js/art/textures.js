@@ -1,6 +1,6 @@
 // Draws every piece of art once, at startup, and hands it to Phaser as a texture.
 import { itemSvg, stallOpenSvg, stallClosedSvg, crateSvg, umbrellaSvg, bubbleSvg, tagSvg, dirtSvg } from './shapes.js';
-import { makePersonSvg, WALK_FRAMES, PLAYER_LOOK, CUSTOMER_LOOKS } from './people.js';
+import { makePersonSvg, WALK_FRAMES, CUSTOMER_LOOKS } from './people.js';
 
 export const CUSTOMER_KEYS = CUSTOMER_LOOKS.map((look, i) => `customer-${i}`);
 
@@ -44,12 +44,23 @@ export function buildTextures(scene, setting) {
     ['bubble', bubbleSvg()],
     ['price-tag', tagSvg()],
     ['stall-open', stallOpenSvg(setting.items)],
-    ['stall-closed', stallClosedSvg()],
-    ...personJobs('player', PLAYER_LOOK, PLAYER_VIEWS)
+    ['stall-closed', stallClosedSvg()]
   ];
 
   setting.items.forEach(item => jobs.push([`icon-${item.id}`, itemSvg(item)]));
   CUSTOMER_LOOKS.forEach((look, i) => jobs.push(...personJobs(CUSTOMER_KEYS[i], look, CUSTOMER_VIEWS)));
+
+  return Promise.all(jobs.map(([key, svg]) => addSvgTexture(scene, key, svg)));
+}
+
+// The player's drawings are made after the setup screen, from the look they chose.
+// Any older player drawings are thrown away first.
+export function buildPlayerTextures(scene, look) {
+  const jobs = personJobs('player', look, PLAYER_VIEWS);
+
+  jobs.forEach(([key]) => {
+    if (scene.textures.exists(key)) scene.textures.remove(key);
+  });
 
   return Promise.all(jobs.map(([key, svg]) => addSvgTexture(scene, key, svg)));
 }

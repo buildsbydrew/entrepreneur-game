@@ -1,8 +1,17 @@
+:root {
+  --ink: #3b2a20;
+  --cream: #fff4dc;
+  --orange: #f39c12;
+  --dirt: #d8b98a;
+}
+
 html, body {
   margin: 0;
   height: 100%;
-  background: #1b1b1b;
+  background: var(--dirt);
   overflow: hidden;
+  font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+  color: var(--ink);
 }
 
 #game {
@@ -12,4 +21,211 @@ html, body {
 
 canvas {
   touch-action: none;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/* ---------- Menu layer, drawn over the game ---------- */
+
+#ui {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+#ui:empty {
+  display: none;
+}
+
+.screen {
+  pointer-events: auto;
+  text-align: center;
+  max-height: 100%;
+}
+
+.screen.dim {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 12, 6, 0.55);
+}
+
+.panel {
+  background: var(--cream);
+  border: 3px solid var(--ink);
+  border-radius: 18px;
+  box-shadow: 0 6px 0 var(--ink);
+  padding: 22px 26px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+h1 {
+  margin: 0 0 12px;
+  font-size: 1.7rem;
+  letter-spacing: 0.01em;
+}
+
+.title h1 {
+  font-size: clamp(2.4rem, 7vw, 4rem);
+  margin: 6px 0 2px;
+  color: var(--ink);
+  text-shadow: 0 3px 0 var(--cream);
+}
+
+.tagline {
+  margin: 0 0 20px;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.hint {
+  margin: 14px 0 0;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 10px;
+}
+
+.hero-stall { width: min(260px, 52vw); height: auto; }
+.hero-person { width: min(100px, 22vw); height: auto; }
+
+/* ---------- Buttons ---------- */
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.btn {
+  background: var(--orange);
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  padding: 11px 26px;
+  font-weight: 800;
+  font-size: 1.05rem;
+  box-shadow: 0 4px 0 var(--ink);
+}
+
+.btn.ghost { background: var(--cream); }
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+.btn:disabled { opacity: 0.6; cursor: default; }
+.btn:focus-visible, .chip:focus-visible, .sw:focus-visible, .preview:focus-visible {
+  outline: 3px solid #2f5fd0;
+  outline-offset: 2px;
+}
+
+.pause { display: flex; flex-direction: column; gap: 12px; min-width: min(280px, 80vw); }
+
+/* ---------- Character setup ---------- */
+
+.setup { width: min(720px, 100%); text-align: left; }
+.setup h1 { text-align: center; }
+
+.setup-grid {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 22px;
+  align-items: start;
+}
+
+.preview {
+  background: var(--dirt);
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  padding: 12px 10px 8px;
+  text-align: center;
+}
+
+.preview img { display: block; width: 130px; height: auto; margin: 0 auto 6px; }
+.preview small { font-weight: 700; opacity: 0.75; }
+
+.group-label {
+  display: block;
+  margin: 10px 0 6px;
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+
+#opts .group-label:first-child { margin-top: 0; }
+
+.row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.chip {
+  background: #fff;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-weight: 700;
+}
+
+.chip[aria-pressed="true"] { background: var(--orange); }
+
+.sw {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  padding: 0;
+}
+
+.sw[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--orange); }
+
+.field {
+  width: 100%;
+  box-sizing: border-box;
+  border: 3px solid var(--ink);
+  border-radius: 10px;
+  padding: 9px 12px;
+  font: inherit;
+  font-weight: 700;
+  background: #fff;
+  color: var(--ink);
+}
+
+.msg { min-height: 1.3em; margin: 12px 0 0; text-align: center; font-weight: 700; }
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+@media (max-width: 640px) {
+  .setup-grid { grid-template-columns: 1fr; }
+  .preview img { width: 100px; }
+}
+
+/* ---------- Pause button ---------- */
+
+#pause-btn {
+  position: fixed;
+  top: 70px;
+  right: 16px;
+  width: 44px;
+  height: 44px;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
+  background: var(--cream);
+  font-weight: 900;
+  letter-spacing: 2px;
+  box-shadow: 0 3px 0 var(--ink);
 }

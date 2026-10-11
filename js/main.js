@@ -1,5 +1,8 @@
 import BootScene from './scenes/BootScene.js';
+import MenuScene from './scenes/MenuScene.js';
+import SetupScene from './scenes/SetupScene.js';
 import MarketScene from './scenes/MarketScene.js';
+import PauseScene from './scenes/PauseScene.js';
 
 const config = {
   type: Phaser.AUTO,
@@ -15,7 +18,7 @@ const config = {
     default: 'arcade',
     arcade: { debug: false }
   },
-  scene: [BootScene, MarketScene]
+  scene: [BootScene, MenuScene, SetupScene, MarketScene, PauseScene]
 };
 
 new Phaser.Game(config);
