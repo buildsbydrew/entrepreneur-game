@@ -5,7 +5,9 @@ const total = (record = {}) => Object.values(record).reduce((sum, n) => sum + n,
 export function describeMission(mission, setting) {
   return mission.text
     .replace('{target}', mission.target)
-    .replace('{amount}', `${setting.currencySymbol}${mission.target}`);
+    .replace('{amount}', `${setting.currencySymbol}${mission.target}`)
+    .replace('{rate}', Math.round((mission.minRate ?? 0) * 100))
+    .replace('{min}', mission.minCustomers);
 }
 
 // Is this mission done right now, and how far along is it?
@@ -24,6 +26,20 @@ export function checkMission(mission, state, { dayEnded = false } = {}) {
       const missed = total(today.missedNoStock);
       const enoughCustomers = total(today.asked) >= mission.minAsked;
       return { done: dayEnded && enoughCustomers && missed === 0, progress: missed > 0 ? `${missed} missed today` : '' };
+    }
+
+    // Putting her advice to work: after the mentor has spoken, serve most of the customers who
+    // come. It is only judged at the end of a day, and the day she speaks can't count, because
+    // the game checks that day before she says anything. Customers still queuing at closing time
+    // are left out, since they never had the chance to be served or to leave.
+    case 'servedRateDay': {
+      const heardAdvice = state.beatsSeen.includes(mission.beat);
+      const resolved = today.served + today.lost;
+      const rate = resolved > 0 ? today.served / resolved : 0;
+      return {
+        done: dayEnded && heardAdvice && resolved >= mission.minCustomers && rate >= mission.minRate,
+        progress: heardAdvice ? `${today.served} served, ${today.lost} lost today` : 'she visits after a busy day'
+      };
     }
 
     case 'beatSeen':
