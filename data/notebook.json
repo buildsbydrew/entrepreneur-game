@@ -11,18 +11,36 @@
         { "if": "hasLeftover", "text": "You were left holding {leftoverCount} {leftoverItem}." }
       ],
       "sources": [
-        {
-          "title": "The Lean Startup",
-          "author": "Eric Ries",
-          "year": 2011,
-          "idea": "A business plan starts as a set of assumptions that are often wrong, so the first job is to test them quickly."
-        },
-        {
-          "title": "The Mom Test",
-          "author": "Rob Fitzpatrick",
-          "year": 2013,
-          "idea": "What customers have actually done tells you more than their opinions or what they say they will do."
-        }
+        { "title": "The Lean Startup", "author": "Eric Ries", "year": 2011, "idea": "A business plan starts as a set of assumptions that are often wrong, so the first job is to test them quickly." },
+        { "title": "The Mom Test", "author": "Rob Fitzpatrick", "year": 2013, "idea": "What customers have actually done tells you more than their opinions or what they say they will do." }
+      ]
+    },
+    {
+      "id": "margin",
+      "term": "Revenue, profit and margin",
+      "summary": "Revenue is all the money that comes in from sales. Profit is what is left after you pay for the goods you sold. Margin is the share of each sale that you keep.",
+      "tip": "Look at what you keep, not what you take in.",
+      "evidence": [
+        "Day {day}: you took {revenueToday} in sales, and after paying for the goods you kept {profitToday}."
+      ],
+      "sources": [
+        { "title": "Revenue vs. profit: why the differences matter for small businesses", "author": "Chase for Business", "idea": "Revenue is what comes in from sales, while profit is what remains once costs are taken out." },
+        { "title": "Margin vs. markup", "author": "Xero", "idea": "Margin describes how much of a selling price is profit, and is not the same thing as markup." },
+        { "title": "Revenue vs. profit: what businesses need to know", "author": "Start Up Loans", "idea": "Looking at sales alone can hide how little a business is actually keeping." }
+      ]
+    },
+    {
+      "id": "price-demand",
+      "term": "Price and demand",
+      "summary": "When you raise a price, fewer people buy. When you lower it, more people buy, but you keep less from each sale. How much it matters differs from one product to another.",
+      "tip": "Change one price at a time, and watch who walks away.",
+      "evidence": [
+        { "if": "hasWalkaways", "text": "Day {day}: {pricedPeople} walked away over your price for {pricedItem}." },
+        { "if": "noWalkaways", "text": "Day {day}: nobody walked away over your prices." }
+      ],
+      "sources": [
+        { "title": "Understanding Price Elasticity: How It Affects Your Business Strategy", "author": "Small Business Trends", "idea": "Price elasticity of demand measures how much the amount people buy changes when the price changes." },
+        { "title": "Price elasticity in the real world: how sensitive customers really are", "author": "Business Initiative", "idea": "Testing different prices with real customers shows how sensitive they are, which is often less than owners expect." }
       ]
     }
   ]

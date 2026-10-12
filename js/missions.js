@@ -42,6 +42,22 @@ export function checkMission(mission, state, { dayEnded = false } = {}) {
       };
     }
 
+    case 'priceChanged':
+      return { done: state.priceChanges >= 1, progress: '' };
+
+    // Profit is sales minus what the goods cost and anything that spoiled.
+    // It is judged at the end of the day, when the spoilage is known.
+    // With a beat set, it only counts after the mentor has spoken.
+    case 'profitInDay': {
+      const profit = today.revenue - today.cogs - today.spoiledCost;
+      const heardAdvice = !mission.beat || state.beatsSeen.includes(mission.beat);
+      const enoughCustomers = !mission.minCustomers || total(today.asked) >= mission.minCustomers;
+      return {
+        done: dayEnded && heardAdvice && enoughCustomers && profit >= mission.target,
+        progress: heardAdvice ? `${Math.max(0, profit)}/${mission.target} today` : 'she visits after you try some prices'
+      };
+    }
+
     case 'beatSeen':
       return { done: state.beatsSeen.includes(mission.beat), progress: '' };
 

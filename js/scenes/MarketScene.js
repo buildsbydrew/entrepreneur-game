@@ -1,5 +1,6 @@
 import {
   state, initState, startNextDay, buy, sell, recordAsked, recordLostCustomer, unlockEntry, markBeatSeen, completeLevel,
+  priceOf, setPrice, recordPricedOut, profitToday, advanceLevel,
   endOfDayAging, expiringTonight, stockValue
 } from '../state.js';
 import Customer from '../entities/Customer.js';
@@ -7,7 +8,7 @@ import PersonSprite from '../entities/PersonSprite.js';
 import { stepToward } from '../entities/movement.js';
 import { CUSTOMER_KEYS } from '../art/textures.js';
 import { profile } from '../profile.js';
-import { showPauseButton, hidePauseButton, showDialogue, showNotebook, showLevelComplete } from '../ui/screens.js';
+import { showPauseButton, hidePauseButton, showDialogue, showNotebook, showLevelComplete, showPriceBoard } from '../ui/screens.js';
 import { buildContext, renderLines, findDueBeat } from '../mentor.js';
 import { checkMission, updateMissions, levelProgress, describeMission } from '../missions.js';
 
@@ -15,7 +16,7 @@ const WORLD_W = 2400;
 const WORLD_H = 1400;
 const INTERACT_RANGE = 110;
 const REPORT_W = 480;
-const REPORT_H = 530;
+const REPORT_H = 590;
 const PERSON_W = 72;
 const PERSON_H = 108;
 const STALL_SCALE = 1.1;
@@ -69,6 +70,7 @@ export default class MarketScene extends Phaser.Scene {
     this.createSupplier();
     this.createProps();
     this.createMentor();
+    this.createPriceBoard();
     this.createPlayer();
     this.setupCamera();
     this.setupControls();
@@ -250,6 +252,71 @@ export default class MarketScene extends Phaser.Scene {
     }
   }
 
+  // ---------- Prices (Level 2) ----------
+
+  // A price board beside the stall. It stays locked until Level 2.
+  createPriceBoard() {
+    const x = 1625;
+    const feetY = 628;
+
+    this.add.image(x, feetY, 'price-board')
+      .setOrigin(0.5, 1)
+      .setDisplaySize(64, 96)
+      .setDepth(feetY);
+
+    // An invisible block at the foot of the post, so the player can't walk through it
+    const post = this.add.rectangle(x, feetY - 8, 26, 16, 0x000000).setVisible(false);
+    this.physics.add.existing(post, true);
+    this.solids.push(post);
+
+    this.interactables.push({
+      x,
+      y: feetY - 40,
+      label: () => (state.level >= 2 ? 'Set your prices' : 'Price board (opens in Level 2)'),
+      use: () => this.openPriceBoard()
+    });
+  }
+
+  openPriceBoard() {
+    if (state.level < 2) return;
+
+    this.openModal();
+    showPriceBoard({
+      items: this.setting.items,
+      symbol: this.setting.currencySymbol,
+      priceOf,
+      onSetPrice: (item, price) => {
+        setPrice(item, price);
+        this.refreshMissions();
+      },
+      onClose: () => {
+        this.closeModal();
+        this.turnAwayOverpriced();
+      }
+    });
+  }
+
+  // Customers already at the stall look at the new prices. Anyone who finds them too high leaves.
+  turnAwayOverpriced() {
+    this.waitingCustomers().forEach(customer => {
+      if (priceOf(customer.item) > customer.maxPrice) {
+        recordPricedOut(customer.item);
+        customer.leave('pricey');
+      }
+    });
+    this.updateHud();
+  }
+
+  // Conversations that come at the start of a day, such as the mentor introducing a new level
+  startDayBeat() {
+    const beat = findDueBeat(this.mentorData.beats, 'dayStart', state, buildContext(state, this.setting));
+    if (!beat) return;
+
+    this.time.delayedCall(700, () => {
+      this.playDialogue(renderLines(beat.lines), () => markBeatSeen(beat.id));
+    });
+  }
+
   // Her first words, shortly after the game begins
   startWelcome() {
     const beat = this.mentorData.beats.find(b => b.id === 'welcome');
@@ -265,7 +332,10 @@ export default class MarketScene extends Phaser.Scene {
     if (this.mentorTask || this.cutscene) return; // she is busy walking
 
     const chat = this.mentorData.mentor.chat;
-    const lines = state.beatsSeen.includes('first-evidence') ? chat.afterEvidence : chat.beforeEvidence;
+    let lines = chat.beforeEvidence;
+    if (state.beatsSeen.includes('pricing-evidence')) lines = chat.afterPricing;
+    else if (state.level >= 2) lines = chat.duringPricing;
+    else if (state.beatsSeen.includes('first-evidence')) lines = chat.afterEvidence;
     this.playDialogue(lines);
   }
 
@@ -299,10 +369,12 @@ export default class MarketScene extends Phaser.Scene {
 
         // The idea she talked about goes into the Notebook, with what happened at the stall
         let banner = null;
-        const entry = this.notebookData.entries.find(e => e.id === beat.unlocks);
-        if (entry) {
-          unlockEntry(entry.id, renderLines(entry.evidence, ctx).join(' '));
-          banner = `Notebook updated: ${entry.term}. Press N to read it.`;
+        const entries = [].concat(beat.unlocks ?? [])
+          .map(id => this.notebookData.entries.find(e => e.id === id))
+          .filter(Boolean);
+        entries.forEach(entry => unlockEntry(entry.id, renderLines(entry.evidence, ctx).join(' ')));
+        if (entries.length > 0) {
+          banner = `Notebook updated: ${entries.map(e => e.term).join(' and ')}. Press N to read it.`;
         }
 
         this.refreshMissions();
@@ -429,7 +501,7 @@ export default class MarketScene extends Phaser.Scene {
     if (state.levelsDone.includes(level.id)) {
       lines.push('\u2713 Level complete!');
       const next = this.levelsData.levels.find(l => l.id === level.id + 1);
-      if (next) lines.push(`Next: ${next.name} (coming soon)`);
+      if (next) lines.push(`Next: ${next.name}${next.comingSoon ? ' (coming soon)' : ''}`);
     } else {
       level.missions.forEach(mission => {
         const done = state.missionsDone.includes(mission.id);
@@ -454,6 +526,7 @@ export default class MarketScene extends Phaser.Scene {
     completeLevel(level.id);
 
     const next = this.levelsData.levels.find(l => l.id === level.id + 1);
+    advanceLevel(this.levelsData.levels); // the next level opens, if there is one
     this.openModal();
     if (this.report) this.report.setVisible(false);
 
@@ -461,7 +534,7 @@ export default class MarketScene extends Phaser.Scene {
       levelId: level.id,
       levelName: level.name,
       missions: level.missions.map(mission => describeMission(mission, this.setting)),
-      nextName: next ? next.name : null,
+      nextName: next ? (next.comingSoon ? `${next.name} (coming soon)` : next.name) : null,
       onDone: () => {
         this.closeModal();
         this.drawMissionPanel();
@@ -473,6 +546,12 @@ export default class MarketScene extends Phaser.Scene {
   // A customer reached the stall and is waiting. We record what they came for.
   onCustomerArrived(customer) {
     recordAsked(customer.item);
+
+    // From Level 2 on, customers look at the price and walk away if it is too high
+    if (state.level >= 2 && priceOf(customer.item) > customer.maxPrice) {
+      recordPricedOut(customer.item);
+      customer.leave('pricey');
+    }
   }
 
   fitStallArt() {
@@ -858,6 +937,14 @@ export default class MarketScene extends Phaser.Scene {
       .map(item => `${item.name} ${today.missedNoStock[item.id]}`);
     const missedLine = missedParts.length > 0 ? `Left with no stock:  ${missedParts.join('   ')}` : null;
 
+    // From Level 2 the report also shows profit and who walked away over the price
+    const pricedParts = this.setting.items
+      .filter(item => (today.pricedOut[item.id] ?? 0) > 0)
+      .map(item => `${item.name} ${today.pricedOut[item.id]}`);
+    const pricingLines = state.level >= 2
+      ? [`Profit:  ${symbol}${profitToday()}`, ...(pricedParts.length > 0 ? [`Walked away over price:  ${pricedParts.join('   ')}`] : [])]
+      : [];
+
     const lines = [
       `Customers served:  ${today.served}`,
       `Customers lost:  ${today.lost}`,
@@ -868,7 +955,8 @@ export default class MarketScene extends Phaser.Scene {
       `Stock left:  ${stockLeft}`,
       `Stock value (at cost):  ${symbol}${stockValue(this.setting)}`,
       askedLine,
-      ...(missedLine ? [missedLine] : [])
+      ...(missedLine ? [missedLine] : []),
+      ...pricingLines
     ];
 
     let title = `TAKINGS: DAY ${state.day}`;
@@ -943,6 +1031,7 @@ export default class MarketScene extends Phaser.Scene {
     if (this.outOfBusiness) {
       initState(this.setting);
       this.levelUpPending = false;
+      this.startWelcome();
     } else {
       startNextDay();
     }
@@ -958,6 +1047,7 @@ export default class MarketScene extends Phaser.Scene {
     this.player.body.reset(WORLD_W / 2, WORLD_H / 2);
 
     this.drawMissionPanel();
+    this.startDayBeat();
     this.updateHud();
     this.updateClock();
   }
@@ -1070,7 +1160,7 @@ export default class MarketScene extends Phaser.Scene {
 
     sell(customer.item);
     customer.leave('happy');
-    this.floatText(`+${symbol}${customer.item.sellPrice}`, '#7CFC98');
+    this.floatText(`+${symbol}${priceOf(customer.item)}`, '#7CFC98');
     this.updateHud();
     this.refreshMissions();
   }

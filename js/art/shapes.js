@@ -73,3 +73,7 @@ export const tagSvg = () => svgDoc(60, 26,
 // Repeating ground tile. Nothing touches the edges, so it tiles without seams.
 export const dirtSvg = () => svgDoc(128, 128,
   `<rect width="128" height="128" fill="#d8b98a"/><ellipse cx="32" cy="38" rx="18" ry="8" fill="#c49a64" opacity=".5"/><ellipse cx="94" cy="92" rx="22" ry="9" fill="#c49a64" opacity=".5"/><ellipse cx="98" cy="28" rx="11" ry="5" fill="#e3c99c" opacity=".7"/><ellipse cx="30" cy="104" rx="13" ry="5" fill="#e3c99c" opacity=".7"/><circle cx="62" cy="62" r="2.5" fill="#b98a55"/><circle cx="14" cy="76" r="2" fill="#b98a55"/><circle cx="112" cy="58" r="2" fill="#b98a55"/><circle cx="70" cy="14" r="1.8" fill="#b98a55"/><circle cx="52" cy="116" r="1.8" fill="#b98a55"/>`, 1);
+
+// A signpost with a board of prices
+export const priceBoardSvg = () => svgDoc(64, 96,
+  `<ellipse cx="32" cy="90" rx="20" ry="5" fill="#000" opacity=".18"/><g ${LINE} stroke-width="3"><rect x="28" y="50" width="8" height="40" rx="3" fill="#6e4219"/><rect x="4" y="6" width="56" height="52" rx="8" fill="#fff4dc"/><path d="M14 22h22M14 34h22M14 46h22" fill="none" stroke-width="2.5"/><path d="M44 22h8M44 34h8M44 46h8" fill="none" stroke="#d6336c" stroke-width="3"/></g>`);

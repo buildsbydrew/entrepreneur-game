@@ -307,3 +307,19 @@ button {
 .lvl-name { margin: 0 0 10px; font-weight: 800; opacity: 0.8; }
 .levelup ul { list-style: none; padding: 0; margin: 8px auto 12px; text-align: left; display: inline-block; }
 .levelup li { margin-bottom: 4px; }
+
+/* ---------- Price board ---------- */
+
+.pricing { width: min(520px, 100%); text-align: left; }
+.pricing h1 { text-align: center; margin-bottom: 4px; }
+.pricing .hint { text-align: center; margin: 0 0 12px; }
+.price-row { display: grid; grid-template-columns: 52px 1fr auto; gap: 4px 12px; align-items: center; padding: 10px 0; border-top: 2px dashed rgba(59, 42, 32, 0.35); }
+.price-icon { width: 52px; height: 52px; }
+.price-name { display: flex; flex-direction: column; }
+.price-name span { font-size: 0.85rem; opacity: 0.75; }
+.price-controls { display: flex; align-items: center; gap: 8px; }
+.price-controls .chip { width: 38px; height: 38px; padding: 0; font-size: 1.3rem; line-height: 1; }
+.price-value { min-width: 4.2ch; text-align: center; font-weight: 900; font-size: 1.15rem; }
+.price-note { grid-column: 1 / -1; margin: 0; font-size: 0.9rem; }
+.price-note.bad { color: #b03a2e; font-weight: 800; }
+.pricing .btn { display: block; margin: 14px auto 0; }

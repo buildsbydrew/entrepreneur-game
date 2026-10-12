@@ -14,6 +14,8 @@ export default class Customer {
   constructor(scene, item, slot, startX, patienceMs, textureKey) {
     this.scene = scene;
     this.item = item;
+    // The most this customer will pay: a little under to well over the standard price
+    this.maxPrice = item.sellPrice * (0.9 + 0.9 * Math.random());
     this.slot = slot;
     this.textureKey = textureKey;
     this.patienceMax = patienceMs;
@@ -124,6 +126,7 @@ export default class Customer {
 
     if (mood === 'happy') this.say('Thanks!', '#8ee59a');
     else if (mood === 'angry') this.say('Too slow!', '#ff8a80');
+    else if (mood === 'pricey') this.say('Too pricey!', '#ffd180');
   }
 
   say(message, color) {

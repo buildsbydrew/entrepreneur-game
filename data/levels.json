@@ -4,12 +4,65 @@
       "id": 1,
       "name": "First Stall",
       "missions": [
-        { "id": "serve8", "type": "servedInDay", "target": 8, "text": "Serve {target} customers in one day" },
-        { "id": "sales40", "type": "salesInDay", "target": 40, "text": "Sell {amount} of goods in one day" },
-        { "id": "nostockout", "type": "noStockoutDay", "minAsked": 5, "text": "Get through a day with nobody leaving because you ran out" },
-        { "id": "apply", "type": "servedRateDay", "beat": "first-evidence", "minCustomers": 6, "minRate": 0.85, "text": "After Maame Gyasiwaa's visit, serve {rate}% of your customers in a day (at least {min} customers)" }
+        {
+          "id": "serve8",
+          "type": "servedInDay",
+          "target": 8,
+          "text": "Serve {target} customers in one day"
+        },
+        {
+          "id": "sales40",
+          "type": "salesInDay",
+          "target": 40,
+          "text": "Sell {amount} of goods in one day"
+        },
+        {
+          "id": "nostockout",
+          "type": "noStockoutDay",
+          "minAsked": 5,
+          "text": "Get through a day with nobody leaving because you ran out"
+        },
+        {
+          "id": "apply",
+          "type": "servedRateDay",
+          "beat": "first-evidence",
+          "minCustomers": 6,
+          "minRate": 0.85,
+          "text": "After Maame Gyasiwaa's visit, serve {rate}% of your customers in a day (at least {min} customers)"
+        }
       ]
     },
-    { "id": 2, "name": "Pricing", "comingSoon": true, "missions": [] }
+    {
+      "id": 2,
+      "name": "Pricing",
+      "missions": [
+        {
+          "id": "setprice",
+          "type": "priceChanged",
+          "text": "Change a price on the price board"
+        },
+        {
+          "id": "profit1",
+          "type": "profitInDay",
+          "minCustomers": 8,
+          "target": 21,
+          "text": "Make {amount} profit in one day"
+        },
+        {
+          "id": "applyprice",
+          "type": "profitInDay",
+          "beat": "pricing-evidence",
+          "minCustomers": 8,
+          "target": 25,
+          "text": "After Maame Gyasiwaa's visit, make {amount} profit in one day"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Cash Flow",
+      "comingSoon": true,
+      "missions": []
+    }
   ]
 }

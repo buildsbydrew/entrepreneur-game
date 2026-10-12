@@ -1,7 +1,7 @@
 // The menu screens are ordinary web page elements drawn over the game. That gives
 // us real text boxes, buttons that work with a keyboard, and layouts that fit any screen.
 import { makePersonSvg } from '../art/people.js';
-import { stallOpenSvg } from '../art/shapes.js';
+import { stallOpenSvg, itemSvg } from '../art/shapes.js';
 import { GAME_TITLE } from '../config.js';
 import { DEFAULT_STALL_NAME } from '../profile.js';
 import { SKIN_TONES, HAIR_STYLES, HAIR_COLORS, WRAP_COLORS, OUTFIT_COLORS } from './options.js';
@@ -304,7 +304,7 @@ export function showNotebook({ entries, unlocked, evidence, onClose }) {
           <p class="tip">${esc(entry.tip)}</p>
           <details>
             <summary>Where this comes from</summary>
-            <ul>${entry.sources.map(s => `<li><b>${esc(s.title)}</b>, ${esc(s.author)} (${esc(s.year)}). ${esc(s.idea)}</li>`).join('')}</ul>
+            <ul>${entry.sources.map(s => `<li><b>${esc(s.title)}</b>, ${esc(s.author)}${s.year ? ` (${esc(s.year)})` : ''}. ${esc(s.idea)}</li>`).join('')}</ul>
           </details>
         </article>`).join('');
 
@@ -344,7 +344,7 @@ export function showLevelComplete({ levelId, levelName, missions, nextName, onDo
         <h1>Level ${esc(levelId)} complete!</h1>
         <p class="lvl-name">${esc(levelName)}</p>
         <ul>${missions.map(text => `<li>&#10003; ${esc(text)}</li>`).join('')}</ul>
-        <p class="hint">${nextName ? `Next: ${esc(nextName)} (coming soon)` : 'More levels are coming soon.'}</p>
+        <p class="hint">${nextName ? `Next: ${esc(nextName)}` : 'More levels are coming soon.'}</p>
         <button class="btn" id="lv-next">Keep playing</button>
       </div>
     </div>`;
@@ -355,4 +355,83 @@ export function showLevelComplete({ levelId, levelName, missions, nextName, onDo
     onDone();
   };
   button.focus();
+}
+
+// ---------- Price board ----------
+
+// One row per item: the cost, a price with - and + buttons, and what the player keeps from each sale.
+// onSetPrice(item, price) is called as the player changes a price.
+export function showPriceBoard({ items, symbol, priceOf, onSetPrice, onClose }) {
+  const rows = items.map(item => `
+    <div class="price-row" data-id="${esc(item.id)}">
+      <img class="price-icon" alt="" src="${svgUri(itemSvg(item))}">
+      <div class="price-name"><b>${esc(item.name)}</b><span>Costs you ${symbol}${item.buyPrice}</span></div>
+      <div class="price-controls">
+        <button class="chip" data-step="-1" aria-label="Lower the price of ${esc(item.name)}">&minus;</button>
+        <span class="price-value" data-value></span>
+        <button class="chip" data-step="1" aria-label="Raise the price of ${esc(item.name)}">+</button>
+      </div>
+      <p class="price-note" data-note></p>
+    </div>`).join('');
+
+  ui().innerHTML = `
+    <div class="screen dim">
+      <div class="panel pricing" role="dialog" aria-label="Price board">
+        <h1>Price board</h1>
+        <p class="hint">Set what you charge for each item.</p>
+        ${rows}
+        <button class="btn" id="pb-close">Done</button>
+      </div>
+    </div>`;
+
+  const panel = ui().querySelector('.pricing');
+
+  // Updates the price, and the note about what the player keeps, for every row
+  function refresh() {
+    items.forEach(item => {
+      const row = panel.querySelector(`[data-id="${item.id}"]`);
+      const price = priceOf(item);
+      const profit = price - item.buyPrice;
+      const note = row.querySelector('[data-note]');
+
+      row.querySelector('[data-value]').textContent = `${symbol}${price}`;
+
+      if (profit < 0) {
+        note.textContent = `You lose ${symbol}${-profit} on every sale.`;
+        note.className = 'price-note bad';
+      } else if (profit === 0) {
+        note.textContent = 'You make nothing on each sale.';
+        note.className = 'price-note bad';
+      } else {
+        note.textContent = `You keep ${symbol}${profit} from each sale (${Math.round((profit / price) * 100)}% of the price).`;
+        note.className = 'price-note';
+      }
+    });
+  }
+
+  panel.addEventListener('click', event => {
+    const button = event.target.closest('[data-step]');
+    if (!button) return;
+
+    const item = items.find(i => i.id === button.closest('[data-id]').dataset.id);
+    const next = Math.min(Math.max(priceOf(item) + Number(button.dataset.step), 1), Math.round(item.sellPrice * 2));
+    if (next !== priceOf(item)) onSetPrice(item, next);
+    refresh();
+  });
+
+  function close() {
+    document.removeEventListener('keyup', onKey);
+    clearUi();
+    onClose();
+  }
+
+  function onKey(event) {
+    if (event.key === 'Escape') close();
+  }
+
+  document.addEventListener('keyup', onKey);
+  const done = document.getElementById('pb-close');
+  done.onclick = close;
+  done.focus();
+  refresh();
 }

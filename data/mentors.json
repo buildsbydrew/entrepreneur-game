@@ -11,6 +11,14 @@
       "afterEvidence": [
         "Did you buy for the people who came, or the people you imagined?",
         "If you forget what we said, it is written in your Notebook."
+      ],
+      "duringPricing": [
+        "Go to the price board by your stall, my dear. Try a price, and watch who walks away.",
+        "I will come by when you have tried a few."
+      ],
+      "afterPricing": [
+        "Too high and they walk. Too low and you work for nothing. Where is your price today?",
+        "It is all in your Notebook."
       ]
     }
   },
@@ -39,6 +47,36 @@
         "You chose what to buy before anyone told you what they wanted. That was a guess. There is no shame in a guess.",
         "But a guess is not knowing. Your customers tell you what they want every day, if you watch them.",
         "Tomorrow, buy for the people who come, not the people you imagine. I have written it in your Notebook."
+      ]
+    },
+    {
+      "id": "pricing-intro",
+      "when": "dayStart",
+      "level": 2,
+      "lines": [
+        "Well done, my dear. You can read your customers now. Next question: what do you charge them?",
+        "There is a price board beside your stall. Go and set your own prices.",
+        "Raise a price and some people will walk away. Lower it and more will buy, but you keep less from each one.",
+        "Try something. Then watch what happens."
+      ]
+    },
+    {
+      "id": "pricing-evidence",
+      "when": "dayEnd",
+      "level": 2,
+      "minAsked": 6,
+      "minPriceChanges": 1,
+      "unlocks": ["margin", "price-demand"],
+      "lines": [
+        "Ei, my dear. I saw you at the price board today.",
+        { "if": "hasWalkaways", "text": "{pricedPeople} looked at your price for {pricedItem} and walked away." },
+        { "if": "hasLoss", "text": "You sold {lossItem} for less than it cost you. You lost {lossAmount} on every one. Customers love that. Your purse does not." },
+        { "if": "hasThinMargin", "text": "You sold {thinCount} {thinItem}, but you keep only {thinProfit} from each. Plenty of work for very little." },
+        { "if": "pricingQuiet", "text": "Nobody walked away and your margins were fair. Now try a little higher, and see how far people will go." },
+        "You took in {revenueToday} today. But after paying for the goods, you kept {profitToday}. That is the money that is yours.",
+        "Money coming in is not money kept. Revenue is what comes in. Profit is what stays.",
+        "A price is a guess about what people will pay. Test it, the way you tested what they wanted.",
+        "I have written it in your Notebook."
       ]
     }
   ]

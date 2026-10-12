@@ -7,6 +7,8 @@ export const state = {
   batches: {},  // the same stock split by age: batches[id][age] = how many
   today: null,
   notebook: { unlocked: [], evidence: {} }, // ideas the player has found
+  prices: {},        // what the player charges, by item id (empty means the standard price)
+  priceChanges: 0,   // how many times the player has changed a price
   level: 1,          // the level being played
   missionsDone: [],  // ids of finished missions
   levelsDone: [],    // ids of finished levels
@@ -24,6 +26,8 @@ function freshDay() {
     asked: {},          // item id -> customers who came wanting it
     soldBy: {},         // item id -> how many were sold
     missedNoStock: {},  // item id -> customers who left because there was none
+    cogs: 0,            // what the goods that were sold cost to buy
+    pricedOut: {},      // item id -> customers who walked away over the price
     startCash: state.cash
   };
 }
@@ -40,6 +44,8 @@ export function initState(setting) {
   state.notebook = { unlocked: [], evidence: {} };
   state.beatsSeen = [];
   state.level = 1;
+  state.prices = {};
+  state.priceChanges = 0;
   state.missionsDone = [];
   state.levelsDone = [];
   state.today = freshDay();
@@ -74,8 +80,10 @@ export function sell(item) {
   }
 
   state.stock[item.id] -= 1;
-  state.cash += item.sellPrice;
-  state.today.revenue += item.sellPrice;
+  const price = priceOf(item);
+  state.cash += price;
+  state.today.revenue += price;
+  state.today.cogs += item.buyPrice;
   state.today.served += 1;
   state.today.soldBy[item.id] = (state.today.soldBy[item.id] || 0) + 1;
   return true;
@@ -134,4 +142,31 @@ export function stockValue(setting) {
 
 export function completeLevel(id) {
   if (!state.levelsDone.includes(id)) state.levelsDone.push(id);
+}
+
+// What the player is charging for an item right now
+export function priceOf(item) {
+  return state.prices[item.id] ?? item.sellPrice;
+}
+
+export function setPrice(item, price) {
+  if (price === priceOf(item)) return;
+  state.prices[item.id] = price;
+  state.priceChanges += 1;
+}
+
+// A customer came, saw the price, and walked away
+export function recordPricedOut(item) {
+  state.today.pricedOut[item.id] = (state.today.pricedOut[item.id] || 0) + 1;
+}
+
+// Sales, minus what the goods cost to buy, minus anything that spoiled
+export function profitToday() {
+  return state.today.revenue - state.today.cogs - state.today.spoiledCost;
+}
+
+// Moves to the next level, unless there isn't one yet
+export function advanceLevel(levels) {
+  const next = levels.find(level => level.id === state.level + 1);
+  if (next && !next.comingSoon) state.level = next.id;
 }
