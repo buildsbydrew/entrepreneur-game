@@ -37,8 +37,10 @@ const PLAYER_VIEWS = { idle: ['down', 'up', 'side'], walk: ['down', 'up', 'side'
 const CUSTOMER_VIEWS = { idle: ['up'], walk: ['side'] };
 const MENTOR_VIEWS = { idle: ['down', 'up', 'side'], walk: ['down', 'up', 'side'] };
 const MENTOR_GOODS = [{ id: 'yam' }, { id: 'tomato' }, { id: 'plantain' }];
+const VENDOR_VIEWS = { idle: ['down'], walk: [] };
+const WALKER_VIEWS = { idle: ['down', 'up', 'side'], walk: ['down', 'up', 'side'] };
 
-export function buildTextures(scene, setting, mentorLook) {
+export function buildTextures(scene, setting, mentorLook, ambient) {
   const jobs = [
     ['dirt', dirtSvg()],
     ['crate', crateSvg()],
@@ -54,6 +56,13 @@ export function buildTextures(scene, setting, mentorLook) {
 
   setting.items.forEach(item => jobs.push([`icon-${item.id}`, itemSvg(item)]));
   CUSTOMER_LOOKS.forEach((look, i) => jobs.push(...personJobs(CUSTOMER_KEYS[i], look, CUSTOMER_VIEWS)));
+
+  // The other traders, their stalls, and the people strolling around the market
+  ambient.vendors.forEach((vendor, i) => {
+    jobs.push([`vendor-stall-${i}`, stallOpenSvg(vendor.goods.map(id => ({ id })), vendor.awning[0], vendor.awning[1])]);
+    jobs.push(...personJobs(`vendor-${i}`, vendor.look, VENDOR_VIEWS));
+  });
+  ambient.walkers.people.forEach((person, i) => jobs.push(...personJobs(`walker-${i}`, person.look, WALKER_VIEWS)));
 
   return Promise.all(jobs.map(([key, svg]) => addSvgTexture(scene, key, svg)));
 }

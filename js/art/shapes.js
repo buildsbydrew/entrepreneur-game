@@ -14,7 +14,9 @@ export const ITEM_ART = {
   water: `<g ${LINE} stroke-width="2.5"><path d="M9 14c3-3 7-4 15-4s12 1 15 4l-2 20c-3 4-8 5-13 5s-10-1-13-5z" fill="#8fd0f5"/><path d="M12 14l2 2M17 12l1 3M23 11v3M29 12l-1 3M35 14l-2 2" fill="none"/><path d="M16 26c2 3 5 4 8 4" fill="none" stroke="#fff"/></g>`,
   plantain: `<g ${LINE} stroke-width="2.5"><path d="M7 32C8 17 20 7 38 7c3 0 4 3 2 5-12 3-19 10-21 22-1 4-5 6-9 4-2-1-3-4-3-6z" fill="#7fb069"/><path d="M13 28c3-10 10-16 22-18" fill="none" stroke="#b6d98f"/></g>`,
   yam: `<g ${LINE} stroke-width="2.5"><path d="M6 34c-2-6 4-10 14-14 10-4 18-10 22-8 4 2 2 8-4 14-8 8-18 14-26 12-3-1-5-2-6-4z" fill="#b5835a"/><path d="M16 28l3-3M24 24l3-3M31 19l3-3" fill="none" stroke="#8a5f3a"/></g>`,
-  tomato: `<g ${LINE} stroke-width="2.5"><circle cx="24" cy="28" r="14" fill="#d94b3d"/><path d="M16 17l8 5 8-5-3 7-5-2-5 2z" fill="#3a7d44"/></g>`
+  tomato: `<g ${LINE} stroke-width="2.5"><circle cx="24" cy="28" r="14" fill="#d94b3d"/><path d="M16 17l8 5 8-5-3 7-5-2-5 2z" fill="#3a7d44"/></g>`,
+  pepper: `<g ${LINE} stroke-width="2.5"><path d="M10 16c12-2 26 6 28 24-8-8-16-12-26-12z" fill="#d63a2a"/><path d="M10 16l-4-5" fill="none"/></g>`,
+  orange: `<g ${LINE} stroke-width="2.5"><circle cx="24" cy="27" r="14" fill="#f5a623"/><path d="M24 13c4-5 9-5 11-3-2 4-7 5-11 3z" fill="#3a7d44"/></g>`
 };
 
 // Items with no drawing yet get a simple colored disc

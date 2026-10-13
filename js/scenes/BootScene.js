@@ -11,6 +11,7 @@ export default class BootScene extends Phaser.Scene {
     this.load.json('mentors', 'data/mentors.json');
     this.load.json('notebook', 'data/notebook.json');
     this.load.json('levels', 'data/levels.json');
+    this.load.json('ambient', 'data/ambient.json');
   }
 
   create() {
@@ -23,7 +24,7 @@ export default class BootScene extends Phaser.Scene {
 
     const setting = this.cache.json.get('setting');
 
-    buildTextures(this, setting, this.cache.json.get('mentors').mentor.look)
+    buildTextures(this, setting, this.cache.json.get('mentors').mentor.look, this.cache.json.get('ambient'))
       .then(() => this.scene.start('MenuScene'))
       .catch(error => {
         console.error(error);

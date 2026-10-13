@@ -5,6 +5,7 @@ import {
 } from '../state.js';
 import Customer from '../entities/Customer.js';
 import PersonSprite from '../entities/PersonSprite.js';
+import Walker from '../entities/Walker.js';
 import { stepToward } from '../entities/movement.js';
 import { CUSTOMER_KEYS } from '../art/textures.js';
 import { profile } from '../profile.js';
@@ -46,6 +47,7 @@ export default class MarketScene extends Phaser.Scene {
     this.mentorData = this.cache.json.get('mentors');
     this.notebookData = this.cache.json.get('notebook');
     this.levelsData = this.cache.json.get('levels');
+    this.ambientData = this.cache.json.get('ambient');
     initState(this.setting);
 
     this.interactables = []; // things the player can press E on
@@ -71,12 +73,15 @@ export default class MarketScene extends Phaser.Scene {
     this.createProps();
     this.createMentor();
     this.createPriceBoard();
+    this.createVendors();
+    this.createWalkers();
     this.createPlayer();
     this.setupCamera();
     this.setupControls();
     this.createPrompt();
     this.createHud();
     this.createMissionPanel();
+    this.createDusk();
     this.setupPause();
     this.startWelcome();
   }
@@ -250,6 +255,95 @@ export default class MarketScene extends Phaser.Scene {
     } else {
       sprite.animate(delta, step.pace, step.facing);
     }
+  }
+
+  // ---------- A lively market ----------
+
+  // Other traders around the market. Each has a stall and a person who calls out now and then.
+  createVendors() {
+    const scale = 0.95;
+
+    this.vendors = this.ambientData.vendors.map((vendor, i) => {
+      const baseY = vendor.y + 50; // where the stall meets the ground
+
+      // An invisible block so the player can't walk through the stall
+      const block = this.add.rectangle(vendor.x, vendor.y, 180, 100, 0x8d5524).setVisible(false);
+      this.physics.add.existing(block, true);
+      this.solids.push(block);
+
+      const art = this.add.image(vendor.x, baseY - 176 * scale, `vendor-stall-${i}`)
+        .setOrigin(0.5, 0)
+        .setDisplaySize(220 * scale, 190 * scale)
+        .setDepth(baseY);
+      this.makeSign(vendor.x, art.y + 16 * scale, vendor.name).setDepth(baseY + 1);
+
+      // The trader stands beside the stall, and is solid too
+      const standX = vendor.x - 150;
+      const standY = baseY + 8;
+      const person = new PersonSprite(this, `vendor-${i}`, standX, standY);
+      const stand = this.add.rectangle(standX, standY - 10, 34, 20, 0x000000).setVisible(false);
+      this.physics.add.existing(stand, true);
+      this.solids.push(stand);
+
+      return { person, calls: vendor.calls, standX, standY, nextCallIn: Phaser.Math.Between(2000, 9000) };
+    });
+  }
+
+  // People strolling around the market on a loop
+  createWalkers() {
+    const { route, people, speedMin, speedMax } = this.ambientData.walkers;
+    const points = route.map(([x, y]) => ({ x, y }));
+
+    this.walkers = people.map((person, i) =>
+      new Walker(this, `walker-${i}`, points, person.start, person.direction, Phaser.Math.Between(speedMin, speedMax)));
+  }
+
+  updateAmbient(delta) {
+    this.walkers.forEach(walker => walker.update(delta));
+
+    this.vendors.forEach(vendor => {
+      vendor.person.animate(delta, 0, null);
+
+      vendor.nextCallIn -= delta;
+      if (vendor.nextCallIn <= 0) {
+        this.vendorCall(vendor);
+        vendor.nextCallIn = Phaser.Math.Between(9000, 16000);
+      }
+    });
+  }
+
+  // A trader calls out to passers-by, and the words fade after a moment
+  vendorCall(vendor) {
+    const text = this.add.text(vendor.standX, vendor.standY - 118, Phaser.Utils.Array.GetRandom(vendor.calls), {
+      fontFamily: 'sans-serif',
+      fontSize: '15px',
+      fontStyle: 'bold',
+      color: '#3b2a20',
+      backgroundColor: '#fff4dc',
+      padding: { x: 8, y: 4 }
+    }).setOrigin(0.5, 1).setDepth(2100);
+
+    this.tweens.add({
+      targets: text,
+      alpha: 0,
+      delay: 2200,
+      duration: 400,
+      onComplete: () => text.destroy()
+    });
+  }
+
+  // A warm glow over the market that grows toward closing time
+  createDusk() {
+    this.dusk = this.add.rectangle(0, 0, 6000, 6000, 0xff7a2f, 0)
+      .setOrigin(0)
+      .setScrollFactor(0)
+      .setDepth(4000);
+  }
+
+  updateDusk() {
+    const progress = 1 - this.dayTimeLeft / this.setting.day.lengthMs;
+    const amount = Math.min(1, Math.max(0, (progress - 0.6) / 0.4));
+    this.dusk.setAlpha(0.22 * amount);
   }
 
   // ---------- Prices (Level 2) ----------
@@ -645,7 +739,7 @@ export default class MarketScene extends Phaser.Scene {
 
   // Umbrellas to make the market feel lived in. Only the pole is solid, because the canopy is high above.
   createProps() {
-    [[700, 780], [1750, 900], [520, 260]].forEach(([x, y]) => {
+    [[700, 780], [1750, 900], [480, 420]].forEach(([x, y]) => {
       this.add.image(x, y, 'umbrella')
         .setOrigin(0.5, 1)
         .setDisplaySize(100, 125)
@@ -752,6 +846,8 @@ export default class MarketScene extends Phaser.Scene {
       return;
     }
 
+    this.updateAmbient(delta);
+
     // While the report is showing, the market is frozen and we only wait for Enter
     if (this.dayOver) {
       this.playerSprite.animate(delta, 0, null);
@@ -844,6 +940,7 @@ export default class MarketScene extends Phaser.Scene {
 
   handleClock(delta) {
     this.dayTimeLeft -= delta;
+    this.updateDusk();
 
     if (this.dayTimeLeft <= 0) {
       this.dayTimeLeft = 0;
@@ -1047,6 +1144,7 @@ export default class MarketScene extends Phaser.Scene {
     this.player.body.reset(WORLD_W / 2, WORLD_H / 2);
 
     this.drawMissionPanel();
+    this.updateDusk();
     this.startDayBeat();
     this.updateHud();
     this.updateClock();
