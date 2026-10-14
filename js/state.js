@@ -6,6 +6,7 @@ export const state = {
   stock: {},    // total count of each item
   batches: {},  // the same stock split by age: batches[id][age] = how many
   today: null,
+  lastDay: null,     // the record of the day before, so the price board can show how prices did
   notebook: { unlocked: [], evidence: {} }, // ideas the player has found
   prices: {},        // what the player charges, by item id (empty means the standard price)
   priceChanges: 0,   // how many times the player has changed a price
@@ -48,10 +49,12 @@ export function initState(setting) {
   state.priceChanges = 0;
   state.missionsDone = [];
   state.levelsDone = [];
+  state.lastDay = null;
   state.today = freshDay();
 }
 
 export function startNextDay() {
+  state.lastDay = state.today;
   state.day += 1;
   state.today = freshDay();
 }

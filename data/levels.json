@@ -45,7 +45,7 @@
           "id": "profit1",
           "type": "profitInDay",
           "minCustomers": 8,
-          "target": 21,
+          "target": 23,
           "text": "Make {amount} profit in one day"
         },
         {
@@ -53,7 +53,7 @@
           "type": "profitInDay",
           "beat": "pricing-evidence",
           "minCustomers": 8,
-          "target": 25,
+          "target": 30,
           "text": "After Maame Gyasiwaa's visit, make {amount} profit in one day"
         }
       ]

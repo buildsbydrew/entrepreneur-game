@@ -2,6 +2,7 @@
 // us real text boxes, buttons that work with a keyboard, and layouts that fit any screen.
 import { makePersonSvg } from '../art/people.js';
 import { stallOpenSvg, itemSvg } from '../art/shapes.js';
+import { isTouchDevice } from './touch.js';
 import { GAME_TITLE } from '../config.js';
 import { DEFAULT_STALL_NAME } from '../profile.js';
 import { SKIN_TONES, HAIR_STYLES, HAIR_COLORS, WRAP_COLORS, OUTFIT_COLORS } from './options.js';
@@ -45,7 +46,7 @@ export function showTitle({ items, look, onPlay }) {
       <h1>${GAME_TITLE}</h1>
       <p class="tagline">Run a stall. Grow it into a business.</p>
       <button class="btn" id="play">Play</button>
-      <p class="hint">WASD or arrows to move &middot; E to interact &middot; Esc to pause</p>
+      <p class="hint">${isTouchDevice() ? 'Left stick to move &middot; Use button to interact' : 'WASD or arrows to move &middot; E to interact &middot; Esc to pause'}</p>
     </div>`;
 
   const play = document.getElementById('play');
@@ -243,7 +244,7 @@ export function showDialogue({ name, title, look, lines, onDone }) {
           <p class="dlg-name">${esc(name)} <span>${esc(title)}</span></p>
           <p class="dlg-text" id="dlg-text" aria-live="polite"></p>
           <div class="dlg-foot">
-            <span class="dlg-hint">Enter, E or click to continue</span>
+            <span class="dlg-hint">${isTouchDevice() ? 'Tap to continue' : 'Enter, E or click to continue'}</span>
             <button class="btn" id="dlg-next" tabindex="-1"></button>
           </div>
         </div>
@@ -361,7 +362,7 @@ export function showLevelComplete({ levelId, levelName, missions, nextName, onDo
 
 // One row per item: the cost, a price with - and + buttons, and what the player keeps from each sale.
 // onSetPrice(item, price) is called as the player changes a price.
-export function showPriceBoard({ items, symbol, priceOf, onSetPrice, onClose }) {
+export function showPriceBoard({ items, symbol, priceOf, history, onSetPrice, onClose }) {
   const rows = items.map(item => `
     <div class="price-row" data-id="${esc(item.id)}">
       <img class="price-icon" alt="" src="${svgUri(itemSvg(item))}">
@@ -372,6 +373,7 @@ export function showPriceBoard({ items, symbol, priceOf, onSetPrice, onClose }) 
         <button class="chip" data-step="1" aria-label="Raise the price of ${esc(item.name)}">+</button>
       </div>
       <p class="price-note" data-note></p>
+      <p class="price-history" data-history></p>
     </div>`).join('');
 
   ui().innerHTML = `
@@ -396,6 +398,13 @@ export function showPriceBoard({ items, symbol, priceOf, onSetPrice, onClose }) 
 
       row.querySelector('[data-value]').textContent = `${symbol}${price}`;
 
+      // How this item did yesterday and so far today, so a price can be judged by what happened
+      const record = history(item);
+      const lines = [];
+      if (record.yesterday) lines.push(`Yesterday: ${record.yesterday.sold} sold, ${record.yesterday.walked} walked away over the price.`);
+      if (record.today.sold + record.today.walked > 0) lines.push(`Today so far: ${record.today.sold} sold, ${record.today.walked} walked away.`);
+      row.querySelector('[data-history]').textContent = lines.join(' ');
+
       if (profit < 0) {
         note.textContent = `You lose ${symbol}${-profit} on every sale.`;
         note.className = 'price-note bad';
@@ -414,7 +423,8 @@ export function showPriceBoard({ items, symbol, priceOf, onSetPrice, onClose }) 
     if (!button) return;
 
     const item = items.find(i => i.id === button.closest('[data-id]').dataset.id);
-    const next = Math.min(Math.max(priceOf(item) + Number(button.dataset.step), 1), Math.round(item.sellPrice * 2));
+    const step = item.sellPrice <= 6 ? 0.5 : 1; // small items go up and down in half cedis
+    const next = Math.min(Math.max(priceOf(item) + Number(button.dataset.step) * step, 0.5), Math.round(item.sellPrice * 2));
     if (next !== priceOf(item)) onSetPrice(item, next);
     refresh();
   });

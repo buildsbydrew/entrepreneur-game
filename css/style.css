@@ -323,3 +323,57 @@ button {
 .price-note { grid-column: 1 / -1; margin: 0; font-size: 0.9rem; }
 .price-note.bad { color: #b03a2e; font-weight: 800; }
 .pricing .btn { display: block; margin: 14px auto 0; }
+
+/* ---------- Touch controls ---------- */
+
+#touch { position: fixed; inset: 0; pointer-events: none; }
+
+#stick {
+  position: absolute;
+  left: 24px;
+  bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  background: rgba(255, 244, 220, 0.35);
+  border: 3px solid rgba(59, 42, 32, 0.6);
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+}
+
+#knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 58px;
+  height: 58px;
+  margin: -29px 0 0 -29px;
+  border-radius: 50%;
+  background: rgba(243, 156, 18, 0.92);
+  border: 3px solid var(--ink);
+}
+
+#use-btn {
+  position: absolute;
+  right: 28px;
+  bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  background: var(--orange);
+  font-weight: 900;
+  font-size: 1.1rem;
+  box-shadow: 0 4px 0 var(--ink);
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+}
+
+#use-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+
+/* ---------- Price history ---------- */
+
+.price-history { grid-column: 1 / -1; margin: 0; font-size: 0.85rem; opacity: 0.8; }
+.price-history:empty { display: none; }

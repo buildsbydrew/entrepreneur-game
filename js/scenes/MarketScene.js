@@ -8,6 +8,7 @@ import PersonSprite from '../entities/PersonSprite.js';
 import Walker from '../entities/Walker.js';
 import { buildGraph, findPath, pathLength, pointOf } from '../entities/routes.js';
 import { popShopBubble } from '../entities/shopBubble.js';
+import { touch, showTouchControls, hideTouchControls, isTouchDevice } from '../ui/touch.js';
 import { stepToward } from '../entities/movement.js';
 import { CUSTOMER_KEYS } from '../art/textures.js';
 import { profile } from '../profile.js';
@@ -62,6 +63,8 @@ export default class MarketScene extends Phaser.Scene {
     this.outOfBusiness = false;
     this.modalOpen = false;   // true while a conversation or the Notebook is showing
     this.cutscene = false;    // true while the mentor walks over to talk
+    this.useLabel = isTouchDevice() ? 'Use' : 'E';
+    this.reportTapped = false; // the player tapped the Takings report
     this.levelUpPending = false; // every mission of the level is done
     this.bannerCount = 0;     // messages currently showing across the top
     this.pendingBeat = null;  // a conversation waiting for the end of the day
@@ -156,11 +159,16 @@ export default class MarketScene extends Phaser.Scene {
     this.input.keyboard.on('keyup-ESC', requestPause);
     this.input.keyboard.on('keyup-P', requestPause);
     showPauseButton(requestPause, requestNotebook);
+    showTouchControls();
 
-    this.hideButton = () => hidePauseButton();
+    this.hideButton = () => {
+      hidePauseButton();
+      hideTouchControls();
+    };
     this.showButton = () => {
       this.resumedAt = performance.now();
       showPauseButton(requestPause, requestNotebook);
+      showTouchControls();
     };
     this.events.on('pause', this.hideButton);
     this.events.on('resume', this.showButton);
@@ -168,6 +176,7 @@ export default class MarketScene extends Phaser.Scene {
     // Tidy up when this scene ends, so a new game starts clean
     this.events.once('shutdown', () => {
       hidePauseButton();
+      hideTouchControls();
       this.events.off('pause', this.hideButton);
       this.events.off('resume', this.showButton);
       this.events.off('customer-lost', this.onCustomerLost, this);
@@ -491,6 +500,26 @@ export default class MarketScene extends Phaser.Scene {
     });
   }
 
+  // Taps on the Use button are saved up until the next frame, then used once
+  takeUseTap() {
+    const tapped = touch.use;
+    touch.use = false;
+    return tapped;
+  }
+
+  // Smaller screens get a smaller interface, so it doesn't cover the market
+  layoutHud() {
+    const s = this.scale.height < 420 ? 0.6 : this.scale.height < 560 ? 0.72 : 1;
+    const place = (item, x, y) => item.setScale(s).setPosition(x, y * s);
+
+    place(this.hintText, 16, 16);
+    place(this.cashText, 16, 44);
+    place(this.stockText, 16, 86);
+    place(this.statsText, 16, 128);
+    place(this.missionText, 16, 178);
+    place(this.clockText, this.scale.width - 16, 16);
+  }
+
   // A warm glow over the market that grows toward closing time
   createDusk() {
     this.dusk = this.add.rectangle(0, 0, 6000, 6000, 0xff7a2f, 0)
@@ -538,6 +567,10 @@ export default class MarketScene extends Phaser.Scene {
       items: this.setting.items,
       symbol: this.setting.currencySymbol,
       priceOf,
+      history: item => {
+        const record = day => ({ sold: day.soldBy[item.id] ?? 0, walked: day.pricedOut[item.id] ?? 0 });
+        return { today: record(state.today), yesterday: state.lastDay ? record(state.lastDay) : null };
+      },
       onSetPrice: (item, price) => {
         setPrice(item, price);
         this.refreshMissions();
@@ -673,6 +706,7 @@ export default class MarketScene extends Phaser.Scene {
   // While a conversation or the Notebook is open, the market stands still
   openModal() {
     this.modalOpen = true;
+    hideTouchControls();
     this.player.body.setVelocity(0, 0);
     this.player.body.setAcceleration(0, 0);
     this.prompt.setVisible(false);
@@ -680,6 +714,8 @@ export default class MarketScene extends Phaser.Scene {
 
   closeModal() {
     this.modalOpen = false;
+    showTouchControls();
+    touch.use = false;
     this.resumedAt = performance.now();
 
     // Throw away key presses made during the conversation so they don't act afterwards
@@ -947,6 +983,13 @@ export default class MarketScene extends Phaser.Scene {
     this.keyE = this.input.keyboard.addKey('E');
     this.keyEnter = this.input.keyboard.addKey('ENTER');
     this.keySpace = this.input.keyboard.addKey('SPACE');
+
+    // Tapping the Takings report carries on, for phones and tablets
+    this.input.on('pointerdown', () => {
+      if (this.dayOver && !this.cutscene && !this.modalOpen && this.report && this.report.visible) {
+        this.reportTapped = true;
+      }
+    });
   }
 
   createPrompt() {
@@ -968,7 +1011,7 @@ export default class MarketScene extends Phaser.Scene {
       padding: { x: 10, y: 6 }
     };
 
-    this.add.text(16, 16, 'WASD or arrows to move, E to interact, N for Notebook, Esc to pause', {
+    this.hintText = this.add.text(16, 16, isTouchDevice() ? 'Left stick to move, Use button to interact' : 'WASD or arrows to move, E to interact, N for Notebook, Esc to pause', {
       fontFamily: 'sans-serif',
       fontSize: '14px',
       color: '#3b2a20'
@@ -995,7 +1038,7 @@ export default class MarketScene extends Phaser.Scene {
   // ---------- Each frame ----------
 
   update(time, delta) {
-    this.clockText.setPosition(this.scale.width - 16, 16);
+    this.layoutHud();
     this.layoutReport();
     this.syncPlayerSprite();
     this.updateMentor(delta);
@@ -1011,6 +1054,7 @@ export default class MarketScene extends Phaser.Scene {
     // While the report is showing, the market is frozen and we only wait for Enter
     if (this.dayOver) {
       this.playerSprite.animate(delta, 0, null);
+      touch.use = false;
       this.handleReportInput();
       return;
     }
@@ -1032,8 +1076,17 @@ export default class MarketScene extends Phaser.Scene {
     if (this.cursors.down.isDown || this.keys.S.isDown) y += 1;
 
     // Pushing a direction speeds the player up. Letting go lets drag slow them down.
-    const push = new Phaser.Math.Vector2(x, y).normalize().scale(ACCEL);
+    // The joystick takes over while it is held, and how far it is pushed sets how fast to go
+    if (Math.hypot(touch.x, touch.y) > 0.2) {
+      x = touch.x;
+      y = touch.y;
+    }
+
+    const push = new Phaser.Math.Vector2(x, y);
+    const strength = Math.min(1, push.length());
+    push.normalize().scale(ACCEL);
     this.player.body.setAcceleration(push.x, push.y);
+    this.player.body.setMaxSpeed(strength > 0 ? Math.max(70, this.speed * strength) : this.speed);
   }
 
   // Turns to face the way the player is heading and walks at the matching pace
@@ -1052,7 +1105,7 @@ export default class MarketScene extends Phaser.Scene {
   }
 
   handleInteraction() {
-    const pressedE = Phaser.Input.Keyboard.JustDown(this.keyE);
+    const pressedE = Phaser.Input.Keyboard.JustDown(this.keyE) || this.takeUseTap();
     const target = this.findNearestInteractable();
 
     if (!target) {
@@ -1060,7 +1113,7 @@ export default class MarketScene extends Phaser.Scene {
       return;
     }
 
-    this.prompt.setText(`E: ${target.label()}`);
+    this.prompt.setText(`${this.useLabel}: ${target.label()}`);
     this.prompt.setPosition(this.player.x, this.player.y - 112);
     this.prompt.setVisible(true);
 
@@ -1217,14 +1270,15 @@ export default class MarketScene extends Phaser.Scene {
     ];
 
     let title = `TAKINGS: DAY ${state.day}`;
-    let hint = `Press Enter to start Day ${state.day + 1}`;
+    const continueWord = isTouchDevice() ? 'Tap' : 'Press Enter';
+    let hint = `${continueWord} to start Day ${state.day + 1}`;
 
     if (this.outOfBusiness) {
       title = 'OUT OF BUSINESS';
       lines.push('', "You can't afford any more stock.");
-      hint = 'Press Enter to start over';
+      hint = `${continueWord} to start over`;
     } else if (this.pendingBeat) {
-      hint = `Press Enter. ${this.mentorData.mentor.name} wants a word.`;
+      hint = `${continueWord}. ${this.mentorData.mentor.name} wants a word.`;
     }
 
     const dim = this.add.rectangle(0, 0, 6000, 6000, 0x000000, 0.65);
@@ -1279,7 +1333,10 @@ export default class MarketScene extends Phaser.Scene {
     const pressedEnter = Phaser.Input.Keyboard.JustDown(this.keyEnter);
     const pressedSpace = Phaser.Input.Keyboard.JustDown(this.keySpace);
 
-    if (pressedEnter || pressedSpace) {
+    const tapped = this.reportTapped;
+    this.reportTapped = false;
+
+    if (pressedEnter || pressedSpace || tapped) {
       this.continueFromReport();
     }
   }

@@ -14,8 +14,9 @@ export default class Customer {
   constructor(scene, item, slot, startX, patienceMs, textureKey) {
     this.scene = scene;
     this.item = item;
-    // The most this customer will pay: a little under to well over the standard price
-    this.maxPrice = item.sellPrice * (0.9 + 0.9 * Math.random());
+    // The most this customer will pay: anywhere from the standard price up to double it.
+    // So nobody walks away at the standard price, and a small rise only loses a few people.
+    this.maxPrice = item.sellPrice * (1 + Math.random());
     this.slot = slot;
     this.textureKey = textureKey;
     this.patienceMax = patienceMs;
