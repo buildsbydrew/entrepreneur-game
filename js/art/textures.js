@@ -37,7 +37,7 @@ const PLAYER_VIEWS = { idle: ['down', 'up', 'side'], walk: ['down', 'up', 'side'
 const CUSTOMER_VIEWS = { idle: ['up'], walk: ['side'] };
 const MENTOR_VIEWS = { idle: ['down', 'up', 'side'], walk: ['down', 'up', 'side'] };
 const MENTOR_GOODS = [{ id: 'yam' }, { id: 'tomato' }, { id: 'plantain' }];
-const VENDOR_VIEWS = { idle: ['down'], walk: [] };
+const VENDOR_VIEWS = { idle: ['down', 'up', 'side'], walk: ['down', 'up', 'side'] };
 const WALKER_VIEWS = { idle: ['down', 'up', 'side'], walk: ['down', 'up', 'side'] };
 
 export function buildTextures(scene, setting, mentorLook, ambient) {
@@ -56,6 +56,12 @@ export function buildTextures(scene, setting, mentorLook, ambient) {
 
   setting.items.forEach(item => jobs.push([`icon-${item.id}`, itemSvg(item)]));
   CUSTOMER_LOOKS.forEach((look, i) => jobs.push(...personJobs(CUSTOMER_KEYS[i], look, CUSTOMER_VIEWS)));
+
+  // Small icons for goods that are only sold at the other stalls, for the shopping bubbles
+  const stallGoods = new Set([...ambient.vendors.flatMap(vendor => vendor.goods), ...MENTOR_GOODS.map(goods => goods.id)]);
+  stallGoods.forEach(id => {
+    if (!setting.items.some(item => item.id === id)) jobs.push([`icon-${id}`, itemSvg({ id })]);
+  });
 
   // The other traders, their stalls, and the people strolling around the market
   ambient.vendors.forEach((vendor, i) => {

@@ -6,6 +6,8 @@ import {
 import Customer from '../entities/Customer.js';
 import PersonSprite from '../entities/PersonSprite.js';
 import Walker from '../entities/Walker.js';
+import { buildGraph, findPath, pathLength, pointOf } from '../entities/routes.js';
+import { popShopBubble } from '../entities/shopBubble.js';
 import { stepToward } from '../entities/movement.js';
 import { CUSTOMER_KEYS } from '../art/textures.js';
 import { profile } from '../profile.js';
@@ -23,7 +25,8 @@ const PERSON_H = 108;
 const STALL_SCALE = 1.1;
 const ACCEL = 1500; // how quickly the player picks up speed
 const DRAG = 1300;  // how quickly the player slows down when you let go
-const MENTOR_SPEED = 95; // how fast Maame Gyasiwaa walks
+const MENTOR_SPEED = 95; // how fast Maame Gyasiwaa walks when she is on her way to talk to you
+const MENTOR_ERRAND_SPEED = 65; // and when she goes shopping
 
 // Things in the world sort by their position on the ground (their y value),
 // so anything lower on screen draws in front. Interface layers sit above all of it.
@@ -48,6 +51,7 @@ export default class MarketScene extends Phaser.Scene {
     this.notebookData = this.cache.json.get('notebook');
     this.levelsData = this.cache.json.get('levels');
     this.ambientData = this.cache.json.get('ambient');
+    this.graph = buildGraph(this.ambientData.graph.nodes, this.ambientData.graph.edges);
     initState(this.setting);
 
     this.interactables = []; // things the player can press E on
@@ -75,6 +79,7 @@ export default class MarketScene extends Phaser.Scene {
     this.createPriceBoard();
     this.createVendors();
     this.createWalkers();
+    this.createShops();
     this.createPlayer();
     this.setupCamera();
     this.setupControls();
@@ -201,9 +206,11 @@ export default class MarketScene extends Phaser.Scene {
     this.makeSign(stallX, art.y + 16 * scale, mentor.name).setDepth(baseY + 1);
 
     // Where she waits, and where she stands to talk to the player
-    this.mentorHome = { x: 850, y: 925 };
+    this.mentorHome = pointOf(this.graph, this.ambientData.mentor.homeNode);
     this.mentorMeet = { x: 1262, y: 600 };
     this.mentorTask = null;
+    this.mentorErrand = false; // true while she is out shopping
+    this.mentorErrandIn = Phaser.Math.Between(...this.ambientData.mentor.errandMs);
 
     this.mentorSprite = new PersonSprite(this, 'mentor', this.mentorHome.x, this.mentorHome.y);
     this.mentorBlock = this.add.rectangle(this.mentorHome.x, this.mentorHome.y - 10, 34, 20, 0x000000).setVisible(false);
@@ -223,43 +230,130 @@ export default class MarketScene extends Phaser.Scene {
     this.interactables.push({
       get x() { return body.x; },
       get y() { return body.y - 40; },
-      label: () => (this.mentorTask ? `${mentor.name} is on her way` : `Talk to ${mentor.name}`),
+      label: () => {
+        if (this.mentorErrand) return `${mentor.name} is out shopping`;
+        return this.mentorTask ? `${mentor.name} is on her way` : `Talk to ${mentor.name}`;
+      },
       use: () => this.talkToMentor()
     });
   }
 
-  // Sends her walking to a spot. onArrive runs when she gets there.
-  walkMentorTo(target, faceOnArrival, onArrive) {
-    this.mentorTask = { x: target.x, y: target.y, faceOnArrival, onArrive };
+  // Sends her walking along a list of points. options: speed, dwellMs (stand and shop at the end),
+  // onDwellStart. onArrive runs when she is finished.
+  walkMentorAlong(points, faceOnArrival, onArrive, options = {}) {
+    this.mentorTask = {
+      points,
+      index: 0,
+      faceOnArrival,
+      onArrive,
+      speed: options.speed ?? MENTOR_SPEED,
+      dwellMs: options.dwellMs ?? 0,
+      onDwellStart: options.onDwellStart,
+      dwelling: false
+    };
   }
 
-  // Walks her toward her current target, or lets her stand and breathe
+  walkMentorTo(target, faceOnArrival, onArrive) {
+    this.walkMentorAlong([{ x: target.x, y: target.y }], faceOnArrival, onArrive);
+  }
+
+  // Walks her along her path, or lets her stand and breathe
   updateMentor(delta) {
     const task = this.mentorTask;
     const sprite = this.mentorSprite;
 
     if (!task) {
       sprite.animate(delta, 0, null);
+      this.updateMentorErrands(delta);
       return;
     }
 
-    const step = stepToward(sprite.image, task, MENTOR_SPEED, delta);
+    // Standing at a shop, looking at the goods
+    if (task.dwelling) {
+      task.dwellMs -= delta;
+      sprite.animate(delta, 0, task.faceOnArrival);
+      if (task.dwellMs <= 0) {
+        this.mentorTask = null;
+        if (task.onArrive) task.onArrive();
+      }
+      return;
+    }
+
+    const step = stepToward(sprite.image, task.points[task.index], task.speed, delta);
     sprite.place(step.x, step.y);
     this.mentorLabel.setPosition(step.x, step.y - 112).setDepth(step.y + 1);
     this.mentorBlock.setPosition(step.x, step.y - 10);
 
-    if (step.arrived) {
-      this.mentorTask = null;
-      sprite.animate(delta, 0, task.faceOnArrival);
-      if (task.onArrive) task.onArrive();
-    } else {
+    if (!step.arrived) {
       sprite.animate(delta, step.pace, step.facing);
+      return;
     }
+
+    task.index += 1;
+    if (task.index < task.points.length) return; // more points to walk through
+
+    if (task.dwellMs > 0) {
+      task.dwelling = true;
+      if (task.onDwellStart) task.onDwellStart();
+      return;
+    }
+
+    this.mentorTask = null;
+    sprite.animate(delta, 0, task.faceOnArrival);
+    if (task.onArrive) task.onArrive();
+  }
+
+  // Every so often, when nothing else is going on, she goes shopping at another stall
+  updateMentorErrands(delta) {
+    if (this.cutscene || this.dayOver || this.modalOpen) return;
+
+    this.mentorErrandIn -= delta;
+    if (this.mentorErrandIn > 0) return;
+    this.mentorErrandIn = Phaser.Math.Between(...this.ambientData.mentor.errandMs);
+
+    const home = this.ambientData.mentor.homeNode;
+    const shop = this.pickShop({ at: home, ownShop: this.mentorShop });
+    const out = shop ? findPath(this.graph, home, shop.node) : null;
+    if (!out) return;
+
+    const pointsAlong = names => names.slice(1).map(name => pointOf(this.graph, name));
+    shop.busy = true;
+    this.mentorErrand = true;
+    this.mentorErrandShop = shop;
+
+    this.walkMentorAlong(pointsAlong(out), 'up', () => {
+      shop.busy = false;
+      this.walkMentorAlong(pointsAlong([...out].reverse()), 'down', () => {
+        this.mentorErrand = false;
+      }, { speed: MENTOR_ERRAND_SPEED });
+    }, {
+      speed: MENTOR_ERRAND_SPEED,
+      dwellMs: 3500,
+      onDwellStart: () => this.shopVisit(shop, this.mentorSprite.image)
+    });
+  }
+
+  // Puts her back at her stall straight away, for when the day ends and she has something to say
+  sendMentorHome() {
+    if (this.mentorErrandShop) this.mentorErrandShop.busy = false;
+    this.mentorTask = null;
+    this.mentorErrand = false;
+
+    const home = this.mentorHome;
+    this.mentorSprite.place(home.x, home.y);
+    this.mentorLabel.setPosition(home.x, home.y - 112).setDepth(home.y + 1);
+    this.mentorBlock.setPosition(home.x, home.y - 10);
+  }
+
+  // She is at her stall, and not busy
+  mentorIsHome() {
+    return !this.mentorErrand && !this.mentorTask && !this.cutscene;
   }
 
   // ---------- A lively market ----------
 
-  // Other traders around the market. Each has a stall and a person who calls out now and then.
+  // Other traders around the market. Each has a stall, and is a person who calls out to passers-by
+  // and now and then leaves the stall to go shopping at another one.
   createVendors() {
     const scale = 0.95;
 
@@ -277,44 +371,91 @@ export default class MarketScene extends Phaser.Scene {
         .setDepth(baseY);
       this.makeSign(vendor.x, art.y + 16 * scale, vendor.name).setDepth(baseY + 1);
 
-      // The trader stands beside the stall, and is solid too
-      const standX = vendor.x - 150;
-      const standY = baseY + 8;
-      const person = new PersonSprite(this, `vendor-${i}`, standX, standY);
-      const stand = this.add.rectangle(standX, standY - 10, 34, 20, 0x000000).setVisible(false);
-      this.physics.add.existing(stand, true);
-      this.solids.push(stand);
+      const walker = new Walker(this, `vendor-${i}`, {
+        graph: this.graph,
+        node: vendor.homeNode,
+        speed: 70,
+        pickShop: self => this.pickShop(self),
+        onShop: shop => this.shopkeeperThanks(shop),
+        errandMs: this.ambientData.vendorErrandMs,
+        canLeave: () => !this.vendors.some(vendor => vendor.walker.onErrand)
+      });
 
-      return { person, calls: vendor.calls, standX, standY, nextCallIn: Phaser.Math.Between(2000, 9000) };
+      return {
+        walker,
+        calls: vendor.calls,
+        shopNode: vendor.shopNode,
+        icons: [...new Set(vendor.goods)],
+        nextCallIn: Phaser.Math.Between(2000, 9000)
+      };
     });
   }
 
-  // People strolling around the market on a loop
+  // People strolling around the market on a loop, now and then stopping to shop
   createWalkers() {
-    const { route, people, speedMin, speedMax } = this.ambientData.walkers;
-    const points = route.map(([x, y]) => ({ x, y }));
+    const { ring, people, speedMin, speedMax } = this.ambientData.walkers;
 
-    this.walkers = people.map((person, i) =>
-      new Walker(this, `walker-${i}`, points, person.start, person.direction, Phaser.Math.Between(speedMin, speedMax)));
+    this.walkers = people.map((person, i) => new Walker(this, `walker-${i}`, {
+      graph: this.graph,
+      node: person.start,
+      ring,
+      direction: person.direction,
+      speed: Phaser.Math.Between(speedMin, speedMax),
+      pickShop: self => this.pickShop(self),
+      onShop: shop => this.shopkeeperThanks(shop)
+    }));
   }
 
-  updateAmbient(delta) {
-    this.walkers.forEach(walker => walker.update(delta));
+  // The places people can shop: the supplier and every stall except the player's.
+  // A shop is only open while its owner is home, and one person shops at a time.
+  createShops() {
+    const { supplier, mentor } = this.ambientData;
 
-    this.vendors.forEach(vendor => {
-      vendor.person.animate(delta, 0, null);
+    this.shops = [
+      { id: 'supplier', node: supplier.node, icons: supplier.icons, busy: false, owner: null, ownerHome: () => true },
+      { id: 'mentor', node: mentor.shopNode, icons: mentor.icons, busy: false, owner: 'mentor', ownerHome: () => this.mentorIsHome() },
+      ...this.vendors.map((vendor, i) => ({
+        id: `vendor-${i}`,
+        node: vendor.shopNode,
+        icons: vendor.icons,
+        busy: false,
+        owner: vendor,
+        ownerHome: () => !vendor.walker.onErrand
+      }))
+    ];
 
-      vendor.nextCallIn -= delta;
-      if (vendor.nextCallIn <= 0) {
-        this.vendorCall(vendor);
-        vendor.nextCallIn = Phaser.Math.Between(9000, 16000);
-      }
-    });
+    this.mentorShop = this.shops[1];
+    this.vendors.forEach((vendor, i) => { vendor.walker.ownShop = this.shops[i + 2]; });
   }
 
-  // A trader calls out to passers-by, and the words fade after a moment
-  vendorCall(vendor) {
-    const text = this.add.text(vendor.standX, vendor.standY - 118, Phaser.Utils.Array.GetRandom(vendor.calls), {
+  // Which shop should this person visit? One that is open and free, and not too far away.
+  pickShop(person) {
+    const options = this.shops
+      .filter(shop => !shop.busy && shop.ownerHome() && shop !== person.ownShop)
+      .map(shop => ({ shop, length: pathLength(this.graph, findPath(this.graph, person.at, shop.node)) }))
+      .filter(option => Number.isFinite(option.length))
+      .sort((a, b) => a.length - b.length)
+      .slice(0, 2);
+
+    return options.length > 0 ? Phaser.Utils.Array.GetRandom(options).shop : null;
+  }
+
+  // Someone started shopping, so the person who owns the stall thanks them
+  shopkeeperThanks(shop) {
+    const owner = shop.owner === 'mentor' ? this.mentorSprite.image : shop.owner?.walker.person.image;
+    if (owner) this.sayAbove(owner.x, owner.y, 'Thank you!');
+  }
+
+  // The mentor reaches a shop, and the person who owns it thanks her
+  shopVisit(shop, image) {
+    const icons = shop.icons;
+    popShopBubble(this, image.x, image.y, `icon-${icons[Math.floor(Math.random() * icons.length)]}`, 1800);
+    this.shopkeeperThanks(shop);
+  }
+
+  // A few words above someone's head that fade after a moment
+  sayAbove(x, feetY, message) {
+    const text = this.add.text(x, feetY - 118, message, {
       fontFamily: 'sans-serif',
       fontSize: '15px',
       fontStyle: 'bold',
@@ -329,6 +470,24 @@ export default class MarketScene extends Phaser.Scene {
       delay: 2200,
       duration: 400,
       onComplete: () => text.destroy()
+    });
+  }
+
+  updateAmbient(delta) {
+    this.walkers.forEach(walker => walker.update(delta));
+
+    this.vendors.forEach(vendor => {
+      vendor.walker.update(delta);
+
+      // Traders call out to passers-by, unless they are away shopping
+      vendor.nextCallIn -= delta;
+      if (vendor.nextCallIn <= 0) {
+        vendor.nextCallIn = Phaser.Math.Between(9000, 16000);
+        if (!vendor.walker.onErrand) {
+          const image = vendor.walker.person.image;
+          this.sayAbove(image.x, image.y, Phaser.Utils.Array.GetRandom(vendor.calls));
+        }
+      }
     });
   }
 
@@ -453,6 +612,7 @@ export default class MarketScene extends Phaser.Scene {
     const ctx = this.beatContext;
     this.cutscene = true;
     this.report.setVisible(false);
+    this.sendMentorHome(); // if she was out shopping, she is back at her stall
     this.cameras.main.startFollow(this.mentorSprite.image, true, 0.08, 0.08);
 
     this.walkMentorTo(this.mentorMeet, 'right', () => {

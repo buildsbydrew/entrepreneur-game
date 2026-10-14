@@ -1,19 +1,37 @@
 {
+  "graph": {
+    "nodes": {
+      "R0": [320, 1010], "J3": [560, 1028], "J4": [780, 1045], "J2": [1000, 1062], "R1": [1100, 1070],
+      "R2": [1900, 1060], "R3": [2320, 960], "J1": [2320, 495], "R4": [2320, 330], "R5": [1700, 190],
+      "R6": [900, 190], "R7": [320, 330],
+      "S_V3": [560, 995], "S_SU": [780, 590], "S_M": [1000, 965], "S_V2": [2150, 515], "S_V1": [1850, 495],
+      "P_V1": [1690, 470], "P_V2": [1990, 490], "M12": [2000, 545], "P_V3": [410, 958], "H_M": [850, 925]
+    },
+    "edges": [
+      ["R0", "J3"], ["J3", "J4"], ["J4", "J2"], ["J2", "R1"], ["R1", "R2"], ["R2", "R3"],
+      ["R3", "J1"], ["J1", "R4"], ["R4", "R5"], ["R5", "R6"], ["R6", "R7"], ["R7", "R0"],
+      ["J3", "S_V3"], ["J4", "S_SU"], ["J2", "S_M"], ["J1", "S_V2"], ["S_V1", "M12"], ["M12", "S_V2"],
+      ["P_V1", "S_V1"], ["P_V2", "S_V2"], ["P_V3", "J3"], ["H_M", "J4"]
+    ]
+  },
+  "supplier": { "node": "S_SU", "icons": ["bread", "water", "plantain"] },
+  "mentor": { "homeNode": "H_M", "shopNode": "S_M", "icons": ["yam", "tomato", "plantain"], "errandMs": [25000, 45000] },
+  "vendorErrandMs": [20000, 40000],
   "vendors": [
     {
-      "name": "Fresh Tomatoes", "x": 1850, "y": 400,
+      "name": "Fresh Tomatoes", "x": 1850, "y": 400, "homeNode": "P_V1", "shopNode": "S_V1",
       "awning": ["#f6c026", "#fff4dc"], "goods": ["tomato", "pepper", "tomato", "pepper"],
       "look": { "body": "woman", "age": "adult", "skin": "#6b4226", "shirt": "#f6c026", "hairStyle": "braids", "hair": "#1a1a1a" },
       "calls": ["Fresh tomatoes! Come and see!", "Pepper, pepper, good price!"]
     },
     {
-      "name": "Fruit Corner", "x": 2150, "y": 420,
+      "name": "Fruit Corner", "x": 2150, "y": 420, "homeNode": "P_V2", "shopNode": "S_V2",
       "awning": ["#2f5fd0", "#fff4dc"], "goods": ["orange", "orange", "plantain", "orange"],
       "look": { "body": "man", "age": "adult", "skin": "#8d5a3b", "shirt": "#2f5fd0", "hairStyle": "short", "hair": "#1a1a1a" },
       "calls": ["Sweet oranges! Sweet, sweet!", "Fruit, fresh fruit!"]
     },
     {
-      "name": "Yam and Plantain", "x": 560, "y": 900,
+      "name": "Yam and Plantain", "x": 560, "y": 900, "homeNode": "P_V3", "shopNode": "S_V3",
       "awning": ["#3a7d44", "#fff4dc"], "goods": ["yam", "yam", "plantain", "yam"],
       "look": { "body": "man", "age": "elder", "skin": "#4a2c1a", "shirt": "#e67e22", "pants": "#5b4636", "hairStyle": "short", "hair": "#d8d8d8" },
       "calls": ["Yam and plantain here!", "Come, come, buy your yam!"]
@@ -22,14 +40,14 @@
   "walkers": {
     "speedMin": 55,
     "speedMax": 75,
-    "route": [[320, 1010], [1100, 1070], [1900, 1060], [2320, 960], [2320, 330], [1700, 190], [900, 190], [320, 330]],
+    "ring": ["R0", "J3", "J4", "J2", "R1", "R2", "R3", "J1", "R4", "R5", "R6", "R7"],
     "people": [
-      { "start": 0, "direction": 1,  "look": { "body": "man", "age": "adult", "skin": "#8d5a3b", "shirt": "#8e44ad", "hairStyle": "short", "hair": "#1a1a1a" } },
-      { "start": 3, "direction": 1,  "look": { "body": "woman", "age": "adult", "skin": "#6b4226", "shirt": "#e67e22", "hairStyle": "braids", "hair": "#1a1a1a" } },
-      { "start": 5, "direction": -1, "look": { "body": "man", "age": "teen", "skin": "#a8714a", "shirt": "#1fa7a0", "pants": "#2f3b6b", "hairStyle": "afro", "hair": "#2a1a12" } },
-      { "start": 6, "direction": 1,  "look": { "body": "woman", "age": "adult", "skin": "#4a2c1a", "shirt": "#2f5fd0", "hairStyle": "wrap", "wrap": "#f6c026" } },
-      { "start": 2, "direction": -1, "look": { "body": "man", "age": "elder", "skin": "#6b4226", "shirt": "#d6336c", "pants": "#5b4636", "hairStyle": "short", "hair": "#d8d8d8" } },
-      { "start": 7, "direction": -1, "look": { "body": "woman", "age": "teen", "skin": "#c68b59", "shirt": "#f6c026", "hairStyle": "bun", "hair": "#2a1a12" } }
+      { "start": "R0", "direction": 1,  "look": { "body": "man", "age": "adult", "skin": "#8d5a3b", "shirt": "#8e44ad", "hairStyle": "short", "hair": "#1a1a1a" } },
+      { "start": "R2", "direction": 1,  "look": { "body": "woman", "age": "adult", "skin": "#6b4226", "shirt": "#e67e22", "hairStyle": "braids", "hair": "#1a1a1a" } },
+      { "start": "R4", "direction": -1, "look": { "body": "man", "age": "teen", "skin": "#a8714a", "shirt": "#1fa7a0", "pants": "#2f3b6b", "hairStyle": "afro", "hair": "#2a1a12" } },
+      { "start": "R6", "direction": 1,  "look": { "body": "woman", "age": "adult", "skin": "#4a2c1a", "shirt": "#2f5fd0", "hairStyle": "wrap", "wrap": "#f6c026" } },
+      { "start": "J4", "direction": -1, "look": { "body": "man", "age": "elder", "skin": "#6b4226", "shirt": "#d6336c", "pants": "#5b4636", "hairStyle": "short", "hair": "#d8d8d8" } },
+      { "start": "R1", "direction": -1, "look": { "body": "woman", "age": "teen", "skin": "#c68b59", "shirt": "#f6c026", "hairStyle": "bun", "hair": "#2a1a12" } }
     ]
   }
 }
