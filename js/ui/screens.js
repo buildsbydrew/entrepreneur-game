@@ -69,23 +69,6 @@ function bindSoundRows(container) {
   });
 }
 
-// The sound choices on a screen of their own, with a Back button
-function showSoundScreen(onBack) {
-  ui().innerHTML = `
-    <div class="screen">
-      <div class="panel pause">
-        <h1>Sound</h1>
-        ${soundRows()}
-        <button class="btn" id="snd-back">Back</button>
-      </div>
-    </div>`;
-
-  bindSoundRows(ui());
-  const back = document.getElementById('snd-back');
-  back.onclick = onBack;
-  back.focus();
-}
-
 // ---------- Title screen ----------
 
 export function showTitle({ items, look, onPlay }) {
@@ -99,14 +82,12 @@ export function showTitle({ items, look, onPlay }) {
         <h1>${GAME_TITLE}</h1>
         <p class="tagline">Run a stall. Grow it into a business.</p>
         <button class="btn" id="play">Play</button>
-        <button class="btn ghost" id="title-sound">Sound</button>
         <p class="hint">${isTouchDevice() ? 'Left stick to move &middot; Use button to interact' : 'WASD or arrows to move &middot; E to interact &middot; Esc to pause'}</p>
       </div>`;
 
     const play = document.getElementById('play');
     play.onclick = onPlay;
     play.focus();
-    document.getElementById('title-sound').onclick = () => showSoundScreen(render);
   }
 
   render();
