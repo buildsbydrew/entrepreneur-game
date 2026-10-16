@@ -1,4 +1,5 @@
 import { showPause, clearUi } from '../ui/screens.js';
+import { setDuck } from '../audio/sound.js';
 
 // Sits on top of the frozen market while the game is paused.
 export default class PauseScene extends Phaser.Scene {
@@ -7,6 +8,7 @@ export default class PauseScene extends Phaser.Scene {
   }
 
   create() {
+    setDuck(true); // the music and murmur get quieter while paused
     showPause({
       onResume: () => this.resume(),
       onNewGame: () => this.leaveFor('SetupScene'),
@@ -19,12 +21,14 @@ export default class PauseScene extends Phaser.Scene {
 
   resume() {
     clearUi();
+    setDuck(false);
     this.scene.resume('MarketScene');
     this.scene.stop();
   }
 
   leaveFor(next) {
     clearUi();
+    setDuck(false);
     this.scene.stop('MarketScene');
     this.scene.start(next);
   }

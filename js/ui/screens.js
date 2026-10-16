@@ -3,6 +3,7 @@
 import { makePersonSvg } from '../art/people.js';
 import { stallOpenSvg, itemSvg } from '../art/shapes.js';
 import { isTouchDevice } from './touch.js';
+import { play, getSoundSettings, setSoundSetting } from '../audio/sound.js';
 import { GAME_TITLE } from '../config.js';
 import { DEFAULT_STALL_NAME } from '../profile.js';
 import { SKIN_TONES, HAIR_STYLES, HAIR_COLORS, WRAP_COLORS, OUTFIT_COLORS } from './options.js';
@@ -34,24 +35,81 @@ export function hidePauseButton() {
   document.getElementById('notebook-btn').hidden = true;
 }
 
+// ---------- Sound settings ----------
+
+const SOUND_ROWS = [['sound', 'Sound'], ['music', 'Music'], ['ambience', 'Market sounds']];
+
+// One row for each kind of sound, each with an On and an Off to choose between
+function soundRows() {
+  const settings = getSoundSettings();
+  const rows = SOUND_ROWS.map(([key, label]) => `
+    <div class="sound-row">
+      <span>${label}</span>
+      <div class="row">
+        <button class="chip" data-sound="${key}" data-value="on" aria-pressed="${settings[key]}">On</button>
+        <button class="chip" data-sound="${key}" data-value="off" aria-pressed="${!settings[key]}">Off</button>
+      </div>
+    </div>`);
+  return `<div class="sound-rows">${rows.join('')}</div>`;
+}
+
+// Makes the On and Off buttons work, and keeps their highlighting up to date
+function bindSoundRows(container) {
+  const rows = container.querySelector('.sound-rows');
+  rows.addEventListener('click', event => {
+    const button = event.target.closest('[data-sound]');
+    if (!button) return;
+
+    setSoundSetting(button.dataset.sound, button.dataset.value === 'on');
+
+    const settings = getSoundSettings();
+    rows.querySelectorAll('[data-sound]').forEach(other => {
+      other.setAttribute('aria-pressed', String(settings[other.dataset.sound] === (other.dataset.value === 'on')));
+    });
+  });
+}
+
+// The sound choices on a screen of their own, with a Back button
+function showSoundScreen(onBack) {
+  ui().innerHTML = `
+    <div class="screen">
+      <div class="panel pause">
+        <h1>Sound</h1>
+        ${soundRows()}
+        <button class="btn" id="snd-back">Back</button>
+      </div>
+    </div>`;
+
+  bindSoundRows(ui());
+  const back = document.getElementById('snd-back');
+  back.onclick = onBack;
+  back.focus();
+}
+
 // ---------- Title screen ----------
 
 export function showTitle({ items, look, onPlay }) {
-  ui().innerHTML = `
-    <div class="screen title">
-      <div class="hero">
-        <img class="hero-stall" alt="" src="${svgUri(stallOpenSvg(items))}">
-        <img class="hero-person" alt="" src="${svgUri(makePersonSvg(look, 'idle', 'down'))}">
-      </div>
-      <h1>${GAME_TITLE}</h1>
-      <p class="tagline">Run a stall. Grow it into a business.</p>
-      <button class="btn" id="play">Play</button>
-      <p class="hint">${isTouchDevice() ? 'Left stick to move &middot; Use button to interact' : 'WASD or arrows to move &middot; E to interact &middot; Esc to pause'}</p>
-    </div>`;
+  function render() {
+    ui().innerHTML = `
+      <div class="screen title">
+        <div class="hero">
+          <img class="hero-stall" alt="" src="${svgUri(stallOpenSvg(items))}">
+          <img class="hero-person" alt="" src="${svgUri(makePersonSvg(look, 'idle', 'down'))}">
+        </div>
+        <h1>${GAME_TITLE}</h1>
+        <p class="tagline">Run a stall. Grow it into a business.</p>
+        <button class="btn" id="play">Play</button>
+        <button class="btn ghost" id="title-sound">Sound</button>
+        <p class="hint">${isTouchDevice() ? 'Left stick to move &middot; Use button to interact' : 'WASD or arrows to move &middot; E to interact &middot; Esc to pause'}</p>
+      </div>`;
 
-  const play = document.getElementById('play');
-  play.onclick = onPlay;
-  play.focus();
+    const play = document.getElementById('play');
+    play.onclick = onPlay;
+    play.focus();
+    document.getElementById('title-sound').onclick = () => showSoundScreen(render);
+  }
+
+  render();
 }
 
 // ---------- Character setup ----------
@@ -205,21 +263,42 @@ function confirmOnce(button, action, warning) {
 export function showPause({ onResume, onNewGame, onMenu }) {
   ui().innerHTML = `
     <div class="screen dim">
-      <div class="panel pause">
-        <h1>Paused</h1>
-        <button class="btn" id="resume">Resume</button>
-        <button class="btn ghost" id="new">New game</button>
-        <button class="btn ghost" id="menu">Main menu</button>
-        <p class="hint">Esc to resume</p>
-      </div>
+      <div class="panel pause" id="pause-panel"></div>
     </div>`;
+  const panel = document.getElementById('pause-panel');
 
-  const resume = document.getElementById('resume');
-  resume.onclick = onResume;
-  resume.focus();
+  function showMain() {
+    panel.innerHTML = `
+      <h1>Paused</h1>
+      <button class="btn" id="resume">Resume</button>
+      <button class="btn ghost" id="sound">Sound</button>
+      <button class="btn ghost" id="new">New game</button>
+      <button class="btn ghost" id="menu">Main menu</button>
+      <p class="hint">Esc to resume</p>`;
 
-  confirmOnce(document.getElementById('new'), onNewGame, 'Lose progress? Click again');
-  confirmOnce(document.getElementById('menu'), onMenu, 'Lose progress? Click again');
+    const resume = document.getElementById('resume');
+    resume.onclick = onResume;
+    resume.focus();
+
+    document.getElementById('sound').onclick = showSound;
+    confirmOnce(document.getElementById('new'), onNewGame, 'Lose progress? Click again');
+    confirmOnce(document.getElementById('menu'), onMenu, 'Lose progress? Click again');
+  }
+
+  // Choosing Sound shows On and Off for each kind of sound
+  function showSound() {
+    panel.innerHTML = `
+      <h1>Sound</h1>
+      ${soundRows()}
+      <button class="btn" id="snd-back">Back</button>`;
+
+    bindSoundRows(panel);
+    const back = document.getElementById('snd-back');
+    back.onclick = showMain;
+    back.focus();
+  }
+
+  showMain();
 }
 
 // ---------- Conversation ----------
@@ -263,6 +342,7 @@ export function showDialogue({ name, title, look, lines, onDone }) {
     const now = performance.now();
     if (now - lastAdvance < 150) return; // ignore an accidental double press
     lastAdvance = now;
+    play('blip');
 
     index += 1;
     if (index < lines.length) {

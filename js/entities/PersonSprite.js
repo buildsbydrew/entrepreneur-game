@@ -48,6 +48,7 @@ export default class PersonSprite {
       breathe = Math.sin(this.clock / 420) * 0.012;
     }
 
+    this.pose = pose; // the game listens for footsteps
     let texture = `${this.key}-${view}-${pose}`;
     if (!this.scene.textures.exists(texture)) texture = `${this.key}-down-idle`;
 

@@ -9,6 +9,7 @@ import Walker from '../entities/Walker.js';
 import { buildGraph, findPath, pathLength, pointOf } from '../entities/routes.js';
 import { popShopBubble } from '../entities/shopBubble.js';
 import { touch, showTouchControls, hideTouchControls, isTouchDevice } from '../ui/touch.js';
+import { play, startMusic, startAmbience, stopAmbience } from '../audio/sound.js';
 import { stepToward } from '../entities/movement.js';
 import { CUSTOMER_KEYS } from '../art/textures.js';
 import { profile } from '../profile.js';
@@ -92,6 +93,8 @@ export default class MarketScene extends Phaser.Scene {
     this.createDusk();
     this.setupPause();
     this.startWelcome();
+    startMusic();
+    startAmbience();
   }
 
   // ---------- Building the world ----------
@@ -177,6 +180,7 @@ export default class MarketScene extends Phaser.Scene {
     this.events.once('shutdown', () => {
       hidePauseButton();
       hideTouchControls();
+      stopAmbience();
       this.events.off('pause', this.hideButton);
       this.events.off('resume', this.showButton);
       this.events.off('customer-lost', this.onCustomerLost, this);
@@ -562,6 +566,7 @@ export default class MarketScene extends Phaser.Scene {
   openPriceBoard() {
     if (state.level < 2) return;
 
+    play('page');
     this.openModal();
     showPriceBoard({
       items: this.setting.items,
@@ -572,6 +577,7 @@ export default class MarketScene extends Phaser.Scene {
         return { today: record(state.today), yesterday: state.lastDay ? record(state.lastDay) : null };
       },
       onSetPrice: (item, price) => {
+        play('tick');
         setPrice(item, price);
         this.refreshMissions();
       },
@@ -676,6 +682,7 @@ export default class MarketScene extends Phaser.Scene {
   playDialogue(lines, onDone) {
     const mentor = this.mentorData.mentor;
 
+    play('chime');
     this.openModal();
     if (this.report) this.report.setVisible(false);
 
@@ -694,6 +701,7 @@ export default class MarketScene extends Phaser.Scene {
   openNotebook() {
     if (this.modalOpen || this.scene.isPaused() || performance.now() - this.resumedAt < 300) return;
 
+    play('page');
     this.openModal();
     showNotebook({
       entries: this.notebookData.entries,
@@ -776,7 +784,10 @@ export default class MarketScene extends Phaser.Scene {
 
     if (!state.levelsDone.includes(level.id)) {
       updateMissions(level, state, this.setting, { dayEnded })
-        .forEach(mission => this.showBanner(`Mission complete: ${describeMission(mission, this.setting)}`));
+        .forEach(mission => {
+          play('mission');
+          this.showBanner(`Mission complete: ${describeMission(mission, this.setting)}`);
+        });
 
       if (levelProgress(level, state).complete) this.levelUpPending = true;
     }
@@ -817,6 +828,7 @@ export default class MarketScene extends Phaser.Scene {
 
     const next = this.levelsData.levels.find(l => l.id === level.id + 1);
     advanceLevel(this.levelsData.levels); // the next level opens, if there is one
+    play('levelUp');
     this.openModal();
     if (this.report) this.report.setVisible(false);
 
@@ -836,6 +848,7 @@ export default class MarketScene extends Phaser.Scene {
   // A customer reached the stall and is waiting. We record what they came for.
   onCustomerArrived(customer) {
     recordAsked(customer.item);
+    play('arrive');
 
     // From Level 2 on, customers look at the price and walk away if it is too high
     if (state.level >= 2 && priceOf(customer.item) > customer.maxPrice) {
@@ -1102,6 +1115,13 @@ export default class MarketScene extends Phaser.Scene {
     }
 
     this.playerSprite.animate(delta, moving, facing);
+
+    // A soft footstep each time a foot lands
+    const pose = this.playerSprite.pose;
+    if (pose !== this.lastPose) {
+      if (pose === 'walk0' || pose === 'walk2') play('step');
+      this.lastPose = pose;
+    }
   }
 
   handleInteraction() {
@@ -1193,6 +1213,7 @@ export default class MarketScene extends Phaser.Scene {
 
   endDay() {
     this.dayOver = true;
+    play('bell');
     this.player.body.setVelocity(0, 0);
     this.player.body.setAcceleration(0, 0);
     this.prompt.setVisible(false);
@@ -1360,6 +1381,7 @@ export default class MarketScene extends Phaser.Scene {
     // Back to the starting spot for the morning
     this.player.body.reset(WORLD_W / 2, WORLD_H / 2);
 
+    play('morning');
     this.drawMissionPanel();
     this.updateDusk();
     this.startDayBeat();
@@ -1446,9 +1468,11 @@ export default class MarketScene extends Phaser.Scene {
 
     if (isOpen) {
       this.stallArt.setTexture('stall-open');
+      play('open');
       this.spawnTimer = 1500; // first customer arrives soon after opening
     } else {
       this.stallArt.setTexture('stall-closed');
+      play('close');
 
       // Anyone still walking up turns around
       this.customers
@@ -1469,6 +1493,7 @@ export default class MarketScene extends Phaser.Scene {
 
     if (!customer) {
       this.floatText('Out of stock', '#ff6b6b');
+      play('error');
       this.cameras.main.shake(120, 0.004);
       return;
     }
@@ -1476,6 +1501,7 @@ export default class MarketScene extends Phaser.Scene {
     sell(customer.item);
     customer.leave('happy');
     this.floatText(`+${symbol}${priceOf(customer.item)}`, '#7CFC98');
+    play('coin');
     this.updateHud();
     this.refreshMissions();
   }
@@ -1487,9 +1513,11 @@ export default class MarketScene extends Phaser.Scene {
 
     if (buy(item)) {
       this.floatText(`-${symbol}${item.buyPrice}`, '#ffd166');
+      play('buy');
       this.updateHud();
     } else {
       this.floatText('Not enough cash', '#ff6b6b');
+      play('error');
       this.cameras.main.shake(120, 0.004);
     }
   }

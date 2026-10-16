@@ -28,7 +28,7 @@
           "beat": "first-evidence",
           "minCustomers": 6,
           "minRate": 0.85,
-          "text": "After Maame Gyasiwaa's visit, serve {rate}% of your customers in a day (at least {min} customers)"
+          "text": "On a day after Maame Gyasiwaa's visit, serve {rate}% of your customers (at least {min} customers)"
         }
       ]
     },
@@ -54,7 +54,7 @@
           "beat": "pricing-evidence",
           "minCustomers": 8,
           "target": 30,
-          "text": "After Maame Gyasiwaa's visit, make {amount} profit in one day"
+          "text": "On a day after Maame Gyasiwaa's visit, make {amount} profit"
         }
       ]
     },

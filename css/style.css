@@ -377,3 +377,9 @@ button {
 
 .price-history { grid-column: 1 / -1; margin: 0; font-size: 0.85rem; opacity: 0.8; }
 .price-history:empty { display: none; }
+
+/* ---------- Sound settings ---------- */
+
+.sound-rows { margin: 4px 0 8px; text-align: left; }
+.sound-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 0; border-top: 2px dashed rgba(59, 42, 32, 0.3); }
+.sound-row span { font-weight: 800; }

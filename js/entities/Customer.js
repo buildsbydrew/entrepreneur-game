@@ -1,4 +1,5 @@
 import PersonSprite from './PersonSprite.js';
+import { play } from '../audio/sound.js';
 
 const WALK_SPEED = 90;
 const LEAVE_SPEED = 130;
@@ -22,7 +23,8 @@ export default class Customer {
     this.patienceMax = patienceMs;
     this.patience = patienceMs;
     this.state = 'walking'; // walking, waiting, leaving
-    this.exitX = startX;
+    // They walk off the edge of the market, to the left or to the right
+    this.exitX = Math.random() < 0.5 ? -80 : scene.physics.world.bounds.width + 80;
     this.leaveTime = 0;
     this.gone = false;
 
@@ -126,8 +128,13 @@ export default class Customer {
     [this.bubble, this.icon, this.barBack, this.barFill].forEach(part => part.setVisible(false));
 
     if (mood === 'happy') this.say('Thanks!', '#8ee59a');
-    else if (mood === 'angry') this.say('Too slow!', '#ff8a80');
-    else if (mood === 'pricey') this.say('Too pricey!', '#ffd180');
+    else if (mood === 'angry') {
+      this.say('Too slow!', '#ff8a80');
+      play('sad');
+    } else if (mood === 'pricey') {
+      this.say('Too pricey!', '#ffd180');
+      play('nope');
+    }
   }
 
   say(message, color) {
