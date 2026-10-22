@@ -32,9 +32,9 @@ function personJobs(key, look, { idle, walk }) {
   return jobs;
 }
 
-// The player walks every way. Customers walk sideways, then stand facing the stall.
+// The player and the customers walk every way.
 const PLAYER_VIEWS = { idle: ['down', 'up', 'side'], walk: ['down', 'up', 'side'] };
-const CUSTOMER_VIEWS = { idle: ['up'], walk: ['side'] };
+const CUSTOMER_VIEWS = { idle: ['down', 'up', 'side'], walk: ['down', 'up', 'side'] };
 const MENTOR_VIEWS = { idle: ['down', 'up', 'side'], walk: ['down', 'up', 'side'] };
 const MENTOR_GOODS = [{ id: 'yam' }, { id: 'tomato' }, { id: 'plantain' }];
 const VENDOR_VIEWS = { idle: ['down', 'up', 'side'], walk: ['down', 'up', 'side'] };

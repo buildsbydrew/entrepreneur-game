@@ -1,5 +1,5 @@
 import PersonSprite from './PersonSprite.js';
-import { stepToward } from './movement.js';
+import Mover from './Mover.js';
 import { findPath, pointOf } from './routes.js';
 import { popShopBubble } from './shopBubble.js';
 
@@ -44,10 +44,19 @@ export default class Walker {
     const start = pointOf(this.graph, this.at);
     this.person = new PersonSprite(scene, key, start.x, start.y);
 
+    // They keep out of other people's way, and other people keep out of theirs
+    this.mover = new Mover(scene.crowd, this);
+    scene.crowd.add(this);
+
     // An invisible block at their feet, so the player can't walk through them
-    this.block = scene.add.rectangle(start.x, start.y - 10, 34, 20, 0x000000).setVisible(false);
+    this.block = scene.add.rectangle(start.x, start.y - 10, 46, 20, 0x000000).setVisible(false);
     scene.movers.add(this.block);
     this.block.body.setImmovable(true);
+  }
+
+  // Where their feet are, which is what other people keep clear of
+  get image() {
+    return this.person.image;
   }
 
   // Plans a trip: walk to the shop, stand and shop for a while, then walk back to where they started
@@ -128,7 +137,14 @@ export default class Walker {
     }
 
     // Walking to the next waypoint
-    const move = stepToward(image, pointOf(this.graph, step.node), this.speed, delta);
+    const move = this.mover.step(image, pointOf(this.graph, step.node), this.speed, delta);
+
+    // Someone is in the way, so they wait a moment
+    if (move.waiting) {
+      this.person.animate(delta, 0, null);
+      return;
+    }
+
     this.person.place(move.x, move.y);
     this.block.setPosition(move.x, move.y - 10);
 

@@ -10,7 +10,8 @@ import { buildGraph, findPath, pathLength, pointOf } from '../entities/routes.js
 import { popShopBubble } from '../entities/shopBubble.js';
 import { touch, showTouchControls, hideTouchControls, isTouchDevice } from '../ui/touch.js';
 import { play, startMusic, startAmbience, stopAmbience } from '../audio/sound.js';
-import { stepToward } from '../entities/movement.js';
+import Crowd from '../entities/crowd.js';
+import Mover from '../entities/Mover.js';
 import { CUSTOMER_KEYS } from '../art/textures.js';
 import { profile } from '../profile.js';
 import { showPauseButton, hidePauseButton, showDialogue, showNotebook, showLevelComplete, showPriceBoard } from '../ui/screens.js';
@@ -226,7 +227,10 @@ export default class MarketScene extends Phaser.Scene {
     this.mentorErrandIn = Phaser.Math.Between(...this.ambientData.mentor.errandMs);
 
     this.mentorSprite = new PersonSprite(this, 'mentor', this.mentorHome.x, this.mentorHome.y);
-    this.mentorBlock = this.add.rectangle(this.mentorHome.x, this.mentorHome.y - 10, 34, 20, 0x000000).setVisible(false);
+    this.mentorBody = { image: this.mentorSprite.image };
+    this.crowd.add(this.mentorBody);
+    this.mentorMover = new Mover(this.crowd, this.mentorBody);
+    this.mentorBlock = this.add.rectangle(this.mentorHome.x, this.mentorHome.y - 10, 46, 20, 0x000000).setVisible(false);
     this.movers.add(this.mentorBlock);
     this.mentorBlock.body.setImmovable(true);
     this.mentorLabel = this.add.text(this.mentorHome.x, this.mentorHome.y - 112, mentor.name, {
@@ -292,7 +296,12 @@ export default class MarketScene extends Phaser.Scene {
       return;
     }
 
-    const step = stepToward(sprite.image, task.points[task.index], task.speed, delta);
+    const step = this.mentorMover.step(sprite.image, task.points[task.index], task.speed, delta);
+    if (step.waiting) {
+      sprite.animate(delta, 0, null); // someone is in the way, so she waits a moment
+      return;
+    }
+
     sprite.place(step.x, step.y);
     this.mentorLabel.setPosition(step.x, step.y - 112).setDepth(step.y + 1);
     this.mentorBlock.setPosition(step.x, step.y - 10);
@@ -350,6 +359,7 @@ export default class MarketScene extends Phaser.Scene {
   sendMentorHome() {
     if (this.mentorErrandShop) this.mentorErrandShop.busy = false;
     this.mentorTask = null;
+    this.mentorMover.reset();
     this.mentorErrand = false;
 
     const home = this.mentorHome;
@@ -866,6 +876,9 @@ export default class MarketScene extends Phaser.Scene {
     this.customers = [];
     this.spawnTimer = 0;
 
+    // Everyone in the market, so people can keep out of each other's way
+    this.crowd = new Crowd(this.solids);
+
     // Invisible blocks that follow people around, so the player can't walk through them
     this.movers = this.physics.add.group({ allowGravity: false, immovable: true });
 
@@ -948,7 +961,7 @@ export default class MarketScene extends Phaser.Scene {
 
   // Umbrellas to make the market feel lived in. Only the pole is solid, because the canopy is high above.
   createProps() {
-    [[700, 780], [1750, 900], [480, 420]].forEach(([x, y]) => {
+    [[720, 830], [1750, 900], [480, 420]].forEach(([x, y]) => {
       this.add.image(x, y, 'umbrella')
         .setOrigin(0.5, 1)
         .setDisplaySize(100, 125)
@@ -964,7 +977,7 @@ export default class MarketScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, WORLD_W, WORLD_H);
 
     // The invisible block is what moves and collides. The drawing follows it.
-    this.player = this.add.rectangle(WORLD_W / 2, WORLD_H / 2, 32, 32, 0xf39c12).setVisible(false);
+    this.player = this.add.rectangle(WORLD_W / 2, WORLD_H / 2, 36, 32, 0xf39c12).setVisible(false);
     this.physics.add.existing(this.player);
     this.player.body.setCollideWorldBounds(true);
 
@@ -974,6 +987,7 @@ export default class MarketScene extends Phaser.Scene {
 
     this.playerSprite = new PersonSprite(this, 'player', this.player.x, this.player.y + 16);
     this.syncPlayerSprite();
+    this.crowd.add({ image: this.playerSprite.image }); // so everyone else steers round the player
 
     this.solids.forEach(solid => this.physics.add.collider(this.player, solid));
     this.physics.add.collider(this.player, this.movers);
@@ -1395,12 +1409,16 @@ export default class MarketScene extends Phaser.Scene {
     const slot = this.slots.find(s => !s.customer);
     if (!slot) return; // every spot is taken, so this shopper walks on by
 
+    // Nobody appears on top of someone who is still on the street there
+    const startX = this.stall.x + 700;
+    if (this.crowd.blocker(null, startX, slot.y + 70)) return;
+
     const item = this.pickWantedItem();
     const customer = new Customer(
       this,
       item,
       slot,
-      this.stall.x + 700,
+      startX,
       this.setting.customers.patienceMs,
       this.pickCustomerLook()
     );

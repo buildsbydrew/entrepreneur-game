@@ -1,4 +1,5 @@
 import PersonSprite from './PersonSprite.js';
+import Mover from './Mover.js';
 import { play } from '../audio/sound.js';
 
 const WALK_SPEED = 90;
@@ -8,9 +9,15 @@ const BUBBLE_W = 52;
 const BUBBLE_H = 60;
 const ICON_SIZE = 38;
 const BAR_WIDTH = 50;
-const UI_DEPTH = 2000; // bubbles and bars always draw above the people
+const UI_DEPTH = 2000;   // bubbles and bars always draw above the people
+const LANE_OFFSET = 50;        // the street customers arrive along is this far below their spot at the stall
+const LEAVE_LANE_OFFSET = 85;  // and the one they leave along is further down, so the two never meet head-on
 
-// One shopper: walks to a spot at the stall, waits, then leaves happy or not.
+// One shopper. They walk along the street, step up to a spot at the stall, wait, then step back
+// down and walk off the edge of the market, to the left or the right.
+// Walking along the street and stepping in from below means they never walk through
+// anyone who is already waiting, and arriving and leaving on separate lanes means
+// people coming and going don't get in each other's way.
 export default class Customer {
   constructor(scene, item, slot, startX, patienceMs, textureKey) {
     this.scene = scene;
@@ -23,19 +30,30 @@ export default class Customer {
     this.patienceMax = patienceMs;
     this.patience = patienceMs;
     this.state = 'walking'; // walking, waiting, leaving
-    // They walk off the edge of the market, to the left or to the right
-    this.exitX = Math.random() < 0.5 ? -80 : scene.physics.world.bounds.width + 80;
     this.leaveTime = 0;
     this.gone = false;
 
+    // They walk off the edge of the market, to the left or to the right
+    this.exitX = Math.random() < 0.5 ? -80 : scene.physics.world.bounds.width + 80;
+
     // The person's feet stand a little below the spot at the stall
-    this.person = new PersonSprite(scene, textureKey, startX, slot.y + 20, 'up');
+    const slotFeet = slot.y + 20;
+    this.laneY = slotFeet + LANE_OFFSET;
+    this.leaveLaneY = slotFeet + LEAVE_LANE_OFFSET;
+    this.path = [{ x: slot.x, y: this.laneY }, { x: slot.x, y: slotFeet }];
+
+    this.person = new PersonSprite(scene, textureKey, startX, this.laneY);
     this.body = this.person.image;
 
     // An invisible block at their feet, so the player can't walk through them
-    this.block = scene.add.rectangle(startX, slot.y + 10, 34, 20, 0x000000).setVisible(false);
+    this.block = scene.add.rectangle(startX, this.laneY - 10, 46, 20, 0x000000).setVisible(false);
     scene.movers.add(this.block);
     this.block.body.setImmovable(true);
+
+    // They also keep out of other people's way
+    this.mover = new Mover(scene.crowd, this);
+    this.mover.preferSouth = true;
+    scene.crowd.add(this);
 
     // Thought bubble showing what they want
     this.bubble = scene.add.image(0, 0, 'bubble')
@@ -62,7 +80,14 @@ export default class Customer {
     this.syncUi();
   }
 
+  // Where their feet are, which is what other people keep clear of
+  get image() {
+    return this.body;
+  }
+
   update(delta) {
+    if (this.gone) return;
+
     if (this.state === 'walking') this.walkToSlot(delta);
     else if (this.state === 'waiting') this.wait(delta);
     else if (this.state === 'leaving') this.walkAway(delta);
@@ -73,23 +98,29 @@ export default class Customer {
     }
   }
 
-  // Slows down as they near their spot, so they settle in instead of stopping dead
-  walkToSlot(delta) {
-    const dx = this.slot.x - this.body.x;
-    const distance = Math.abs(dx);
-    const speed = Math.min(WALK_SPEED, 30 + distance * 2.2);
-    const step = (speed * delta) / 1000;
+  // Moves along the path, easing off at each corner. Returns false if someone made them wait.
+  followPath(delta, speed) {
+    const move = this.mover.step(this.body, this.path[0], speed, delta);
 
-    if (distance <= step || distance < 1.5) {
-      this.body.x = this.slot.x;
+    if (move.waiting) {
+      this.person.animate(delta, 0, null);
+      return false;
+    }
+
+    this.person.place(move.x, move.y);
+    this.person.animate(delta, move.arrived ? 0.6 : (move.pace * speed) / WALK_SPEED, move.facing);
+    if (move.arrived) this.path.shift();
+    return true;
+  }
+
+  walkToSlot(delta) {
+    this.followPath(delta, WALK_SPEED);
+
+    if (this.path.length === 0) {
       this.state = 'waiting';
       this.scene.events.emit('customer-arrived', this);
       this.person.animate(delta, 0, 'up');
-      return;
     }
-
-    this.body.x += Math.sign(dx) * step;
-    this.person.animate(delta, speed / WALK_SPEED, dx > 0 ? 'right' : 'left');
   }
 
   wait(delta) {
@@ -105,25 +136,23 @@ export default class Customer {
   // Starts slowly and picks up pace
   walkAway(delta) {
     this.leaveTime += delta;
-    const dx = this.exitX - this.body.x;
-    const speed = Math.min(LEAVE_SPEED, 40 + this.leaveTime * 0.2);
-    const step = (speed * delta) / 1000;
+    this.followPath(delta, Math.min(LEAVE_SPEED, 40 + this.leaveTime * 0.2));
 
-    if (Math.abs(dx) <= step) {
-      this.destroy();
-      return;
-    }
-
-    this.body.x += Math.sign(dx) * step;
-    this.person.animate(delta, speed / WALK_SPEED, dx > 0 ? 'right' : 'left');
+    if (this.path.length === 0) this.destroy();
   }
 
-  // mood is 'happy', 'angry', or 'neutral' (leaves quietly)
+  // mood is 'happy', 'angry', 'pricey' or 'neutral' (leaves quietly)
   leave(mood) {
     if (this.state === 'leaving') return;
 
     this.state = 'leaving';
     this.slot.customer = null;
+
+    // Back down to the lower lane, then off along it. On the way they step to their own right,
+    // so two people leaving in opposite directions pass each other.
+    this.path = [{ x: this.body.x, y: this.leaveLaneY }, { x: this.exitX, y: this.leaveLaneY }];
+    this.mover.reset();
+    this.mover.preferSouth = false;
 
     [this.bubble, this.icon, this.barBack, this.barFill].forEach(part => part.setVisible(false));
 
@@ -163,6 +192,7 @@ export default class Customer {
   }
 
   destroy() {
+    this.scene.crowd.remove(this);
     this.person.destroy();
     this.block.destroy();
     [this.bubble, this.icon, this.barBack, this.barFill, this.speech].forEach(part => part.destroy());
