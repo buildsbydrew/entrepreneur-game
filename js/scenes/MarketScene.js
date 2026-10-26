@@ -1,6 +1,6 @@
 import {
   state, initState, startNextDay, buy, sell, recordAsked, recordLostCustomer, unlockEntry, markBeatSeen, completeLevel,
-  priceOf, setPrice, recordPricedOut, profitToday, advanceLevel,
+  priceOf, setPrice, recordPricedOut, profitToday, advanceLevel, importState,
   endOfDayAging, expiringTonight, stockValue
 } from '../state.js';
 import Customer from '../entities/Customer.js';
@@ -10,6 +10,7 @@ import { buildGraph, findPath, pathLength, pointOf } from '../entities/routes.js
 import { popShopBubble } from '../entities/shopBubble.js';
 import { touch, showTouchControls, hideTouchControls, isTouchDevice } from '../ui/touch.js';
 import { play, startMusic, startAmbience, stopAmbience } from '../audio/sound.js';
+import { saveGame } from '../save.js';
 import Crowd from '../entities/crowd.js';
 import Mover from '../entities/Mover.js';
 import { CUSTOMER_KEYS } from '../art/textures.js';
@@ -55,7 +56,12 @@ export default class MarketScene extends Phaser.Scene {
     this.levelsData = this.cache.json.get('levels');
     this.ambientData = this.cache.json.get('ambient');
     this.graph = buildGraph(this.ambientData.graph.nodes, this.ambientData.graph.edges);
-    initState(this.setting);
+    // A saved game picks up where it left off. Otherwise this is a new game.
+    const saved = this.registry.get('loadedState');
+    this.registry.set('loadedState', null);
+    if (saved) importState(saved);
+    else initState(this.setting);
+    this.isNewGame = !saved;
 
     this.interactables = []; // things the player can press E on
     this.solids = [];        // things the player can't walk through
@@ -94,8 +100,10 @@ export default class MarketScene extends Phaser.Scene {
     this.createDusk();
     this.setupPause();
     this.startWelcome();
+    this.startDayBeat(); // a saved game may be waiting on a conversation it hadn't had yet
     startMusic();
     startAmbience();
+    if (this.isNewGame) this.saveProgress();
   }
 
   // ---------- Building the world ----------
@@ -512,6 +520,11 @@ export default class MarketScene extends Phaser.Scene {
         }
       }
     });
+  }
+
+  // Saves the game. This happens each morning, and when a new game begins.
+  saveProgress() {
+    if (saveGame(profile)) this.showBanner('Game saved');
   }
 
   // Taps on the Use button are saved up until the next frame, then used once
@@ -1401,6 +1414,7 @@ export default class MarketScene extends Phaser.Scene {
     this.startDayBeat();
     this.updateHud();
     this.updateClock();
+    this.saveProgress();
   }
 
   // ---------- Customers ----------

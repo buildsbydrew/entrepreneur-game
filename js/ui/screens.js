@@ -71,26 +71,40 @@ function bindSoundRows(container) {
 
 // ---------- Title screen ----------
 
-export function showTitle({ items, look, onPlay }) {
-  function render() {
-    ui().innerHTML = `
-      <div class="screen title">
-        <div class="hero">
-          <img class="hero-stall" alt="" src="${svgUri(stallOpenSvg(items))}">
-          <img class="hero-person" alt="" src="${svgUri(makePersonSvg(look, 'idle', 'down'))}">
-        </div>
-        <h1>${GAME_TITLE}</h1>
-        <p class="tagline">Run a stall. Grow it into a business.</p>
-        <button class="btn" id="play">Play</button>
-        <p class="hint">${isTouchDevice() ? 'Left stick to move &middot; Use button to interact' : 'WASD or arrows to move &middot; E to interact &middot; Esc to pause'}</p>
-      </div>`;
+// saved: a line describing the saved game, or null if there isn't one
+export function showTitle({ items, look, saved, onPlay, onContinue }) {
+  const buttons = saved
+    ? `<div class="title-buttons">
+         <button class="btn" id="continue">Continue</button>
+         <p class="save-note">${esc(saved)}</p>
+         <button class="btn ghost" id="play">New game</button>
+       </div>`
+    : `<div class="title-buttons"><button class="btn" id="play">Play</button></div>`;
 
-    const play = document.getElementById('play');
+  ui().innerHTML = `
+    <div class="screen title">
+      <div class="hero">
+        <img class="hero-stall" alt="" src="${svgUri(stallOpenSvg(items))}">
+        <img class="hero-person" alt="" src="${svgUri(makePersonSvg(look, 'idle', 'down'))}">
+      </div>
+      <h1>${GAME_TITLE}</h1>
+      <p class="tagline">Run a stall. Grow it into a business.</p>
+      ${buttons}
+      <p class="hint">${isTouchDevice() ? 'Left stick to move &middot; Use button to interact' : 'WASD or arrows to move &middot; E to interact &middot; Esc to pause'}</p>
+    </div>`;
+
+  const play = document.getElementById('play');
+
+  if (saved) {
+    // Starting a new game replaces the saved one, so it asks first
+    confirmOnce(play, onPlay, 'This replaces your save. Click again');
+    const resume = document.getElementById('continue');
+    resume.onclick = onContinue;
+    resume.focus();
+  } else {
     play.onclick = onPlay;
     play.focus();
   }
-
-  render();
 }
 
 // ---------- Character setup ----------
@@ -255,15 +269,15 @@ export function showPause({ onResume, onNewGame, onMenu }) {
       <button class="btn ghost" id="sound">Sound</button>
       <button class="btn ghost" id="new">New game</button>
       <button class="btn ghost" id="menu">Main menu</button>
-      <p class="hint">Esc to resume</p>`;
+      <p class="hint">Saves each morning &middot; Esc to resume</p>`;
 
     const resume = document.getElementById('resume');
     resume.onclick = onResume;
     resume.focus();
 
     document.getElementById('sound').onclick = showSound;
-    confirmOnce(document.getElementById('new'), onNewGame, 'Lose progress? Click again');
-    confirmOnce(document.getElementById('menu'), onMenu, 'Lose progress? Click again');
+    confirmOnce(document.getElementById('new'), onNewGame, 'Start a new game? Click again');
+    confirmOnce(document.getElementById('menu'), onMenu, "Leave? Today isn't saved. Click again");
   }
 
   // Choosing Sound shows On and Off for each kind of sound

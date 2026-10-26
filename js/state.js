@@ -173,3 +173,23 @@ export function advanceLevel(levels) {
   const next = levels.find(level => level.id === state.level + 1);
   if (next && !next.comingSoon) state.level = next.id;
 }
+
+// ---------- Saving ----------
+
+// Everything that makes up a game in progress
+const SAVED_KEYS = [
+  'day', 'cash', 'stock', 'batches', 'today', 'lastDay', 'notebook',
+  'beatsSeen', 'level', 'missionsDone', 'levelsDone', 'prices', 'priceChanges'
+];
+
+// A plain copy of the game, safe to store
+export function exportState() {
+  return JSON.parse(JSON.stringify(Object.fromEntries(SAVED_KEYS.map(key => [key, state[key]]))));
+}
+
+// Replaces the game with a saved one
+export function importState(data) {
+  const copy = JSON.parse(JSON.stringify(data));
+  SAVED_KEYS.forEach(key => { state[key] = copy[key]; });
+  state.lastDay = copy.lastDay ?? null;
+}
