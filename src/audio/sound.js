@@ -5,7 +5,7 @@
 // The settings (effects, music, ambience) live only in the pause menu.
 
 const KEY = 'lifegame.sound';
-const settings = { sfx: true, music: true, ambience: true };
+const settings = { sfx: true, music: true, ambience: true, voices: true };
 try { Object.assign(settings, JSON.parse(localStorage.getItem(KEY)) ?? {}); } catch (error) { /* storage blocked */ }
 
 let ctx = null;
@@ -13,6 +13,7 @@ let master;
 let sfxBus;
 let musicBus;
 let ambienceBus;
+let voiceBus;   // people speaking Urlivani (src/audio/voice.js)
 let noise; // a second of white noise, reused for footsteps, whooshes and birds' breath
 
 export function soundSettings() {
@@ -31,6 +32,12 @@ function applyVolumes() {
   sfxBus.gain.setTargetAtTime(settings.sfx ? 0.9 : 0, t, 0.05);
   musicBus.gain.setTargetAtTime(settings.music ? 0.32 : 0, t, 0.3);
   ambienceBus.gain.setTargetAtTime(settings.ambience ? ambienceLevel : 0, t, 0.5);
+  voiceBus.gain.setTargetAtTime(settings.voices ? 0.85 : 0, t, 0.05);
+}
+
+// Where voices are played, once sound has woken up (null before the first click or key press)
+export function voiceOutput() {
+  return ctx ? { ctx, bus: voiceBus, noise } : null;
 }
 
 // Wakes the sound up on the first click, tap or key press
@@ -46,7 +53,8 @@ export function initAudio() {
       sfxBus = ctx.createGain();
       musicBus = ctx.createGain();
       ambienceBus = ctx.createGain();
-      [sfxBus, musicBus, ambienceBus].forEach(bus => { bus.gain.value = 0; bus.connect(master); });
+      voiceBus = ctx.createGain();
+      [sfxBus, musicBus, ambienceBus, voiceBus].forEach(bus => { bus.gain.value = 0; bus.connect(master); });
       noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
       const data = noise.getChannelData(0);
       for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;

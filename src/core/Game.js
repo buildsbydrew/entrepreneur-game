@@ -21,6 +21,7 @@ import Person from '../people/Person.js';
 import { pickConversation, fillText } from '../story/conversation.js';
 import { runConversation } from '../story/talk.js';
 import { playPrologue } from '../story/prologue.js';
+import { speak, stopSpeaking, voiceFor } from '../audio/voice.js';
 import { initAudio, play, footstep, talkBlip, setMusicTime, setIndoors, soundSettings, setSound } from '../audio/sound.js';
 
 const deg = d => THREE.MathUtils.degToRad(d ?? 0);
@@ -56,12 +57,10 @@ export default class Game {
       else if (this.mode === 'people') this.closePeople();
     });
 
-    // Sound: little voices while people talk, a click when choosing
+    // Sound: people say their lines out loud in Urlivani (the English shows in the box), a click when choosing
     initAudio();
-    this.ui.onSay = (speaker, isYou) => {
-      const pitch = isYou ? (this.player?.stage === 'baby' ? 1.8 : 1.35) : this.voiceOf(speaker);
-      [0, 90, 180].forEach(ms => setTimeout(() => talkBlip(pitch), ms));
-    };
+    this.ui.onSay = (speaker, isYou, text) => speak(text, this.voiceOf(speaker, isYou));
+    this.ui.onSayEnd = () => stopSpeaking();
     this.ui.onChoose = () => play('choose');
 
     this.mode = 'title';   // 'title', 'cinematic' (the prologue), 'play', 'talk', 'menu', 'people', 'busy' (fading or between days)
@@ -111,13 +110,15 @@ export default class Game {
   }
 
   // Each person has their own voice pitch, worked out from their name
-  voiceOf(name) {
+  // Each person's own Urlivani voice, from their body and their age right now (so it changes as they grow)
+  voiceOf(name, isYou = false) {
+    if (isYou && state.life) {
+      return voiceFor({ body: state.life.look.body, stage: playerStage(world), seed: `you:${state.life.name}` });
+    }
     const person = peopleData.people.find(p => p.name === name);
-    if (!person) return 1;
+    if (!person) return voiceFor({ seed: name });
     const stage = stageForAge(ageOf(person.born, this.clockNow(), world));
-    const base = { baby: 1.9, child: 1.5, teen: 1.2, adult: 1, elder: 0.9 }[stage];
-    const wobble = [...name].reduce((a, c) => a + c.charCodeAt(0), 0) % 7;
-    return base * (person.look.body === 'girl' ? 1.25 : 0.85) * (0.94 + wobble * 0.02);
+    return voiceFor({ body: person.look.body, stage, seed: person.id });
   }
 
   // The date and time the world is at: the life being played, or the title screen's street

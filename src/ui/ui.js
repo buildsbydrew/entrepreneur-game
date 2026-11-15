@@ -137,11 +137,11 @@ export function createUI(root) {
 
   ui.dialogue = {
     open() { box.classList.remove('hidden'); },
-    close() { box.classList.add('hidden'); advance = null; },
+    close() { box.classList.add('hidden'); advance = null; ui.onSayEnd?.(); },
 
     // Shows one line, typing it out. Resolves when the player moves on.
     say(speaker, text, isYou = false) {
-      ui.onSay?.(speaker, isYou); // the game plays a little voice sound
+      ui.onSay?.(speaker, isYou, text); // the game says the line out loud, in Urlivani
       speakerEl.textContent = speaker;
       speakerEl.classList.toggle('you', isYou);
       choicesEl.innerHTML = '';
@@ -261,7 +261,7 @@ export function createUI(root) {
         <div><label>Picture quality</label>
           <div class="row" data-quality>${Object.entries(qualities).map(([k, q]) => `<button class="toggle ${k === quality ? 'on' : ''}" data-v="${k}">${q.label}</button>`).join('')}</div></div>
         <div><label>Sound</label>
-          <div class="row" data-sound>${[['sfx', 'Effects'], ['music', 'Music'], ['ambience', 'Outdoors']].map(([k, label]) => `<button class="toggle ${sound[k] ? 'on' : ''}" data-v="${k}">${label}</button>`).join('')}</div></div>
+          <div class="row" data-sound>${[['sfx', 'Effects'], ['voices', 'Voices'], ['music', 'Music'], ['ambience', 'Outdoors']].map(([k, label]) => `<button class="toggle ${sound[k] ? 'on' : ''}" data-v="${k}">${label}</button>`).join('')}</div></div>
         <button class="btn" data-menu>Main menu</button>
         <div class="muted">Your life saves by itself as you play.</div>
       </div></div>`, 'dim');
