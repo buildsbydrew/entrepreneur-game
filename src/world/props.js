@@ -152,7 +152,10 @@ export const PROPS = {
     const stepX = step.along === 'x' ? doorAt : step.cx + Math.sign(step.cx) * 0.35;
     const stepZ = step.along === 'x' ? step.cz + Math.sign(step.cz) * 0.35 : doorAt;
     g.add(at(rbox(step.along === 'x' ? 1.4 : 0.6, 0.1, step.along === 'x' ? 0.6 : 1.4, '#a99a86', 0.03), stepX, 0.05, stepZ));
-    addLamp(ctx, g, stepX * 1.0, 2.35, stepZ * 0.94, { range: 7, size: 0.18 });
+    // The porch light sits on the outside of the wall, just above the door
+    const lampX = step.along === 'x' ? doorAt : step.cx + Math.sign(step.cx) * (T / 2 + 0.12);
+    const lampZ = step.along === 'x' ? step.cz + Math.sign(step.cz) * (T / 2 + 0.12) : doorAt;
+    addLamp(ctx, g, lampX, 2.35, lampZ, { range: 7, size: 0.18 });
 
     if (p.sign) {
       const board = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.6), new THREE.MeshStandardMaterial({ map: textTexture(p.sign), roughness: 0.9 }));

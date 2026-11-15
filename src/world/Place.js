@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { flat, mesh, at, seededRandom } from '../render/shapes.js';
 import { createSpace, addSolid } from './collision.js';
 import { PROPS } from './props.js';
+import { TOWN_PROPS } from './propsTown.js';
 
 export default class Place {
   constructor(scene, data) {
@@ -28,10 +29,12 @@ export default class Place {
       house: house => this.houses.push({ ...house, open: 0 })
     };
     (data.props ?? []).forEach(p => {
-      const build = PROPS[p.type];
+      const build = PROPS[p.type] ?? TOWN_PROPS[p.type];
       if (build) build(p, ctx);
       else console.warn(`Unknown prop type "${p.type}" in ${data.id}`);
     });
+    // Pebbles belong outside: take away any that ended up on an indoor floor
+    (this.stones ?? []).forEach(stone => { if (this.insideHouse(stone.position.x, stone.position.z)) stone.visible = false; });
     (data.exits ?? []).forEach(exit => this.drawExitArrows(exit));
     (data.things ?? []).forEach(thing => this.interactables.push({ ...thing, kind: thing.kind ?? 'look' }));
   }
@@ -54,6 +57,8 @@ export default class Place {
       const stone = mesh(new THREE.DodecahedronGeometry(0.05 + rand() * 0.07, 0), rand() > 0.5 ? '#a88a66' : '#8f7a62');
       stone.castShadow = false;
       this.group.add(at(stone, (rand() - 0.5) * w, 0.03, (rand() - 0.5) * d));
+      this.stones = this.stones ?? [];
+      this.stones.push(stone);
     }
   }
 

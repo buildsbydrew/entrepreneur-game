@@ -1,97 +1,1259 @@
 {
   "_about": "Places the player can walk around. Sizes are in metres; the middle of a place is (0, 0); x runs east, z runs south (toward the camera). Props are built by src/world/props.js. Exits: walk off that stretch of an edge to go to another place. Entries: where the player appears. Things: what the player can use that isn't a person.",
-
   "home": {
     "id": "home",
     "name": "Home",
-    "size": [26, 18],
+    "size": [
+      26,
+      18
+    ],
     "ground": "#cdb48a",
     "seed": 11,
     "props": [
-      { "type": "path", "x": 11, "z": 3.4, "w": 18, "d": 2.2, "color": "#e3cfa6" },
-      { "type": "house", "x": -2, "z": -1.5, "w": 11, "d": 7.5, "door": "south", "doorAt": 3, "wall": "#f1e2c4", "roof": "#c0563a", "floor": "#d7c4a0" },
-      { "type": "bed", "x": -6.2, "z": -3.6, "cover": "#f39c12" },
-      { "type": "cot", "x": -3.9, "z": -4.4 },
-      { "type": "toys", "x": -6.6, "z": 1.0 },
-      { "type": "rug", "x": -5.4, "z": -0.6, "w": 2.4, "d": 1.6, "color": "#2f5fd0", "inner": "#f6c026" },
-      { "type": "sofa", "x": 0, "z": -4.4, "color": "#1fa7a0" },
-      { "type": "rug", "x": 0, "z": -2.4, "w": 2.8, "d": 1.6 },
-      { "type": "table", "x": -1.8, "z": 0.6, "w": 1.5, "d": 0.9 },
-      { "type": "chair", "x": -2.8, "z": 0.6, "rot": 90 },
-      { "type": "chair", "x": -0.8, "z": 0.6, "rot": 270 },
-      { "type": "stove", "x": 2.6, "z": -4.7 },
-      { "type": "shelf", "x": -2.6, "z": -4.9 },
-      { "type": "floorLamp", "x": -1.6, "z": -4.6 },
-      { "type": "plant", "x": 2.9, "z": 1.6 },
-      { "type": "tree", "x": 8.5, "z": -5, "size": 1.2 },
-      { "type": "tree", "x": -10.5, "z": 5, "size": 1 },
-      { "type": "flowers", "x": -4, "z": 4, "w": 4, "d": 0.9 },
-      { "type": "bush", "x": 5.2, "z": 6.6 },
-      { "type": "bush", "x": -9.5, "z": -6.5 },
-      { "type": "bench", "x": 6.5, "z": 0, "rot": 0 },
-      { "type": "fence", "x": -12.6, "z": -8.4, "length": 25.2 },
-      { "type": "fence", "x": -12.6, "z": -8.4, "length": 16.8, "rot": 90 },
-      { "type": "sign", "x": 11.2, "z": 1.6, "text": "Willow Lane →" }
+      {
+        "type": "path",
+        "x": 11,
+        "z": 3.4,
+        "w": 18,
+        "d": 2.2,
+        "color": "#e3cfa6"
+      },
+      {
+        "type": "house",
+        "x": -2,
+        "z": -1.5,
+        "w": 11,
+        "d": 7.5,
+        "door": "south",
+        "doorAt": 3,
+        "wall": "#f1e2c4",
+        "roof": "#c0563a",
+        "floor": "#d7c4a0"
+      },
+      {
+        "type": "bed",
+        "x": -6.2,
+        "z": -3.6,
+        "cover": "#f39c12"
+      },
+      {
+        "type": "cot",
+        "x": -3.9,
+        "z": -4.4
+      },
+      {
+        "type": "toys",
+        "x": -6.6,
+        "z": 1
+      },
+      {
+        "type": "rug",
+        "x": -5.4,
+        "z": -0.6,
+        "w": 2.4,
+        "d": 1.6,
+        "color": "#2f5fd0",
+        "inner": "#f6c026"
+      },
+      {
+        "type": "sofa",
+        "x": 0,
+        "z": -4.4,
+        "color": "#1fa7a0"
+      },
+      {
+        "type": "rug",
+        "x": 0,
+        "z": -2.4,
+        "w": 2.8,
+        "d": 1.6
+      },
+      {
+        "type": "table",
+        "x": -1.8,
+        "z": 0.6,
+        "w": 1.5,
+        "d": 0.9
+      },
+      {
+        "type": "chair",
+        "x": -2.8,
+        "z": 0.6,
+        "rot": 90
+      },
+      {
+        "type": "chair",
+        "x": -0.8,
+        "z": 0.6,
+        "rot": 270
+      },
+      {
+        "type": "stove",
+        "x": 2.6,
+        "z": -4.7
+      },
+      {
+        "type": "shelf",
+        "x": -2.6,
+        "z": -4.9
+      },
+      {
+        "type": "floorLamp",
+        "x": -1.6,
+        "z": -4.6
+      },
+      {
+        "type": "plant",
+        "x": 2.9,
+        "z": 1.6
+      },
+      {
+        "type": "tree",
+        "x": 8.5,
+        "z": -5,
+        "size": 1.2
+      },
+      {
+        "type": "tree",
+        "x": -10.5,
+        "z": 5,
+        "size": 1
+      },
+      {
+        "type": "flowers",
+        "x": -4,
+        "z": 4,
+        "w": 4,
+        "d": 0.9
+      },
+      {
+        "type": "bush",
+        "x": 5.2,
+        "z": 6.6
+      },
+      {
+        "type": "bush",
+        "x": -9.5,
+        "z": -6.5
+      },
+      {
+        "type": "bench",
+        "x": 6.5,
+        "z": 0,
+        "rot": 0
+      },
+      {
+        "type": "fence",
+        "x": -12.6,
+        "z": -8.4,
+        "length": 25.2
+      },
+      {
+        "type": "fence",
+        "x": -12.6,
+        "z": -8.4,
+        "length": 16.8,
+        "rot": 90
+      },
+      {
+        "type": "sign",
+        "x": 11.2,
+        "z": 1.6,
+        "text": "Willow Lane →"
+      }
     ],
     "exits": [
-      { "edge": "east", "min": 2.2, "max": 4.8, "to": "lane", "arriveAt": "fromHome", "label": "Willow Lane" }
+      {
+        "edge": "east",
+        "min": 2.2,
+        "max": 4.8,
+        "to": "lane",
+        "arriveAt": "fromHome",
+        "label": "Willow Lane"
+      }
     ],
     "entries": {
-      "bed": { "x": -4.8, "z": -2.6, "facing": 0 },
-      "cot": { "x": -3.9, "z": -3.2, "facing": 0 },
-      "fromLane": { "x": 12, "z": 3.4, "facing": -90 }
+      "bed": {
+        "x": -4.8,
+        "z": -2.6,
+        "facing": 0
+      },
+      "cot": {
+        "x": -3.9,
+        "z": -3.2,
+        "facing": 0
+      },
+      "fromLane": {
+        "x": 12,
+        "z": 3.4,
+        "facing": -90
+      }
     },
     "things": [
-      { "id": "bed", "kind": "sleep", "x": -6.2, "z": -2.4, "label": "Bed", "stages": ["child", "teen", "adult", "elder"] },
-      { "id": "cot", "kind": "sleep", "x": -3.9, "z": -3.5, "label": "Your cot", "stages": ["baby"] },
-      { "id": "toys", "kind": "look", "x": -6.6, "z": 1.6, "label": "Play with your toys", "text": "Your toy box. The red ball is losing its bounce.", "babyText": "You chew the red ball thoughtfully. Delicious.", "daily": { "traits": { "curious": 1 }, "needs": { "happiness": 4 } } },
-      { "id": "window", "kind": "look", "x": -4.75, "z": -4.7, "label": "Look out of the window", "stages": ["baby"], "text": "Birds. Leaves. A big wide world out there.", "daily": { "traits": { "curious": 1 } } }
+      {
+        "id": "bed",
+        "kind": "sleep",
+        "x": -6.2,
+        "z": -2.4,
+        "label": "Bed",
+        "stages": [
+          "child",
+          "teen",
+          "adult",
+          "elder"
+        ]
+      },
+      {
+        "id": "cot",
+        "kind": "sleep",
+        "x": -3.9,
+        "z": -3.5,
+        "label": "Your cot",
+        "stages": [
+          "baby"
+        ]
+      },
+      {
+        "id": "toys",
+        "kind": "look",
+        "x": -6.6,
+        "z": 1.6,
+        "label": "Play with your toys",
+        "text": "Your toy box. The red ball is losing its bounce.",
+        "babyText": "You chew the red ball thoughtfully. Delicious.",
+        "daily": {
+          "traits": {
+            "curious": 1
+          },
+          "needs": {
+            "happiness": 4
+          }
+        }
+      },
+      {
+        "id": "window",
+        "kind": "look",
+        "x": -4.75,
+        "z": -4.7,
+        "label": "Look out of the window",
+        "stages": [
+          "baby"
+        ],
+        "text": "Birds. Leaves. A big wide world out there.",
+        "daily": {
+          "traits": {
+            "curious": 1
+          }
+        }
+      }
     ]
   },
-
   "lane": {
     "id": "lane",
     "name": "Willow Lane",
-    "size": [44, 26],
+    "size": [
+      44,
+      26
+    ],
     "ground": "#c9b58c",
     "seed": 23,
     "props": [
-      { "type": "road", "x": 0, "z": 3.4, "length": 90, "width": 4.4 },
-      { "type": "path", "x": 0, "z": 0.2, "w": 90, "d": 1.6, "color": "#ddd2bd" },
-      { "type": "house", "x": -12, "z": -6, "w": 8, "d": 6, "door": "south", "wall": "#e8d4f0", "roof": "#5a6aa0", "floor": "#d9cdb8" },
-      { "type": "sofa", "x": -12, "z": -7.9, "color": "#f39c12" },
-      { "type": "table", "x": -13.6, "z": -5.2, "w": 1.1, "d": 0.8 },
-      { "type": "plant", "x": -9, "z": -4 },
-      { "type": "shop", "x": 1, "z": -6, "w": 8, "d": 6, "door": "south", "wall": "#fbe3b0", "roof": "#3a7d44", "floor": "#e2d6c0", "sign": "Corner Shop", "awning": "#d6336c" },
-      { "type": "shelf", "x": -1.5, "z": -8.3 },
-      { "type": "shelf", "x": 1, "z": -8.3 },
-      { "type": "shelf", "x": 3.5, "z": -8.3 },
-      { "type": "table", "x": 3, "z": -5.4, "w": 2, "d": 0.8 },
-      { "type": "house", "x": 13, "z": -6, "w": 8, "d": 6, "door": "south", "doorAt": -1.5, "wall": "#d4ecd8", "roof": "#b5652b", "floor": "#d7c9a8" },
-      { "type": "bed", "x": 15.2, "z": -7.4, "cover": "#d6336c" },
-      { "type": "table", "x": 14.8, "z": -4.4, "w": 1.2, "d": 0.8 },
-      { "type": "flowers", "x": -12, "z": -2, "w": 5, "d": 0.8 },
-      { "type": "flowers", "x": 13, "z": -2, "w": 4, "d": 0.8 },
-      { "type": "streetLamp", "x": -6, "z": 1 },
-      { "type": "streetLamp", "x": 7, "z": 1 },
-      { "type": "car", "x": 18, "z": 3.4, "rot": 90, "color": "#d6336c" },
-      { "type": "path", "x": 0, "z": 9.2, "w": 18, "d": 6.4, "color": "#9cc27a" },
-      { "type": "tree", "x": -6.5, "z": 9.5, "size": 1.1 },
-      { "type": "tree", "x": 7, "z": 10.5, "size": 1.3 },
-      { "type": "bench", "x": -2, "z": 8.2 },
-      { "type": "bench", "x": 3, "z": 8.2 },
-      { "type": "bush", "x": -16, "z": 9 },
-      { "type": "bush", "x": 16, "z": 9.5 },
-      { "type": "tree", "x": -18, "z": -10 },
-      { "type": "tree", "x": 19, "z": -10.5, "size": 0.9 },
-      { "type": "sign", "x": -19.5, "z": 0.6, "text": "← Home" }
+      {
+        "type": "road",
+        "x": 0,
+        "z": 3.4,
+        "length": 90,
+        "width": 4.4
+      },
+      {
+        "type": "path",
+        "x": 0,
+        "z": 0.2,
+        "w": 90,
+        "d": 1.6,
+        "color": "#ddd2bd"
+      },
+      {
+        "type": "house",
+        "x": -12,
+        "z": -6,
+        "w": 8,
+        "d": 6,
+        "door": "south",
+        "wall": "#e8d4f0",
+        "roof": "#5a6aa0",
+        "floor": "#d9cdb8"
+      },
+      {
+        "type": "sofa",
+        "x": -12,
+        "z": -7.9,
+        "color": "#f39c12"
+      },
+      {
+        "type": "table",
+        "x": -13.6,
+        "z": -5.2,
+        "w": 1.1,
+        "d": 0.8
+      },
+      {
+        "type": "plant",
+        "x": -9,
+        "z": -4
+      },
+      {
+        "type": "shop",
+        "x": 1,
+        "z": -6,
+        "w": 8,
+        "d": 6,
+        "door": "south",
+        "wall": "#fbe3b0",
+        "roof": "#3a7d44",
+        "floor": "#e2d6c0",
+        "sign": "Corner Shop",
+        "awning": "#d6336c"
+      },
+      {
+        "type": "shelf",
+        "x": -1.5,
+        "z": -8.3
+      },
+      {
+        "type": "shelf",
+        "x": 1,
+        "z": -8.3
+      },
+      {
+        "type": "shelf",
+        "x": 3.5,
+        "z": -8.3
+      },
+      {
+        "type": "table",
+        "x": 3,
+        "z": -5.4,
+        "w": 2,
+        "d": 0.8
+      },
+      {
+        "type": "house",
+        "x": 13,
+        "z": -6,
+        "w": 8,
+        "d": 6,
+        "door": "south",
+        "doorAt": -1.5,
+        "wall": "#d4ecd8",
+        "roof": "#b5652b",
+        "floor": "#d7c9a8"
+      },
+      {
+        "type": "bed",
+        "x": 15.2,
+        "z": -7.4,
+        "cover": "#d6336c"
+      },
+      {
+        "type": "table",
+        "x": 14.8,
+        "z": -4.4,
+        "w": 1.2,
+        "d": 0.8
+      },
+      {
+        "type": "flowers",
+        "x": -12,
+        "z": -2,
+        "w": 5,
+        "d": 0.8
+      },
+      {
+        "type": "flowers",
+        "x": 13,
+        "z": -2,
+        "w": 4,
+        "d": 0.8
+      },
+      {
+        "type": "streetLamp",
+        "x": -6,
+        "z": 1
+      },
+      {
+        "type": "streetLamp",
+        "x": 7,
+        "z": 1
+      },
+      {
+        "type": "car",
+        "x": 18,
+        "z": 3.4,
+        "rot": 90,
+        "color": "#d6336c"
+      },
+      {
+        "type": "path",
+        "x": 0,
+        "z": 9.2,
+        "w": 18,
+        "d": 6.4,
+        "color": "#9cc27a"
+      },
+      {
+        "type": "tree",
+        "x": -6.5,
+        "z": 9.5,
+        "size": 1.1
+      },
+      {
+        "type": "tree",
+        "x": 7,
+        "z": 10.5,
+        "size": 1.3
+      },
+      {
+        "type": "bench",
+        "x": -2,
+        "z": 8.2
+      },
+      {
+        "type": "bench",
+        "x": 3,
+        "z": 8.2
+      },
+      {
+        "type": "bush",
+        "x": -16,
+        "z": 9
+      },
+      {
+        "type": "bush",
+        "x": 16,
+        "z": 9.5
+      },
+      {
+        "type": "tree",
+        "x": -18,
+        "z": -10
+      },
+      {
+        "type": "tree",
+        "x": 19,
+        "z": -10.5,
+        "size": 0.9
+      },
+      {
+        "type": "sign",
+        "x": -19.5,
+        "z": 0.6,
+        "text": "← Home"
+      },
+      {
+        "type": "sign",
+        "x": 19.6,
+        "z": -1.4,
+        "text": "High Street →"
+      }
     ],
     "exits": [
-      { "edge": "west", "min": 1.2, "max": 5.6, "to": "home", "arriveAt": "fromLane", "label": "Home" }
+      {
+        "edge": "west",
+        "min": 1.2,
+        "max": 5.6,
+        "to": "home",
+        "arriveAt": "fromLane",
+        "label": "Home"
+      },
+      {
+        "edge": "east",
+        "min": -0.8,
+        "max": 5.6,
+        "to": "high-street",
+        "arriveAt": "fromLane",
+        "label": "High Street"
+      }
     ],
     "entries": {
-      "fromHome": { "x": -20.6, "z": 3.4, "facing": 90 },
-      "title": { "x": 0, "z": 4, "facing": 0 }
+      "fromHome": {
+        "x": -20.6,
+        "z": 3.4,
+        "facing": 90
+      },
+      "title": {
+        "x": 0,
+        "z": 4,
+        "facing": 0
+      },
+      "fromHighStreet": {
+        "x": 21.3,
+        "z": 0.4,
+        "facing": -90
+      }
+    },
+    "things": []
+  },
+  "high-street": {
+    "id": "high-street",
+    "name": "The High Street",
+    "size": [
+      46,
+      26
+    ],
+    "ground": "#c4b796",
+    "seed": 31,
+    "props": [
+      {
+        "type": "road",
+        "x": 0,
+        "z": 3.4,
+        "length": 110,
+        "width": 4.4
+      },
+      {
+        "type": "path",
+        "x": 0,
+        "z": 0.2,
+        "w": 110,
+        "d": 1.6,
+        "color": "#ddd2bd"
+      },
+      {
+        "type": "path",
+        "x": 0,
+        "z": 6.6,
+        "w": 110,
+        "d": 1.6,
+        "color": "#ddd2bd"
+      },
+      {
+        "type": "path",
+        "x": -0.5,
+        "z": -6.5,
+        "w": 3.2,
+        "d": 13,
+        "color": "#ddd2bd"
+      },
+      {
+        "type": "path",
+        "x": -3.5,
+        "z": 10.5,
+        "w": 3.2,
+        "d": 6,
+        "color": "#ddd2bd"
+      },
+      {
+        "type": "supermarket",
+        "x": -11,
+        "z": -6,
+        "w": 12,
+        "d": 7,
+        "door": "south",
+        "doorAt": 0,
+        "sign": "DailyVa",
+        "color": "#3a7d44"
+      },
+      {
+        "type": "shelf",
+        "x": -14,
+        "z": -8.8
+      },
+      {
+        "type": "shelf",
+        "x": -11,
+        "z": -8.8
+      },
+      {
+        "type": "shelf",
+        "x": -8,
+        "z": -8.8
+      },
+      {
+        "type": "table",
+        "x": -13.5,
+        "z": -5.4,
+        "w": 2.2,
+        "d": 0.8
+      },
+      {
+        "type": "shop",
+        "x": 7,
+        "z": -6,
+        "w": 7,
+        "d": 6,
+        "door": "south",
+        "sign": "Café Lumo",
+        "awning": "#f39c12",
+        "wall": "#f6e3c8",
+        "roof": "#8d5524"
+      },
+      {
+        "type": "table",
+        "x": 7,
+        "z": -7.4,
+        "w": 1.2,
+        "d": 0.8
+      },
+      {
+        "type": "cafeTable",
+        "x": 5,
+        "z": -1.4,
+        "color": "#f6c026"
+      },
+      {
+        "type": "cafeTable",
+        "x": 9,
+        "z": -1.4,
+        "color": "#1fa7a0"
+      },
+      {
+        "type": "block",
+        "x": 17,
+        "z": -7,
+        "w": 8,
+        "d": 6,
+        "height": 7,
+        "wall": "#cfd8dc"
+      },
+      {
+        "type": "busStop",
+        "x": 8,
+        "z": 8.2,
+        "text": "BUS"
+      },
+      {
+        "type": "block",
+        "x": -15,
+        "z": 12,
+        "w": 9,
+        "d": 4,
+        "height": 5,
+        "wall": "#e3d5c3"
+      },
+      {
+        "type": "block",
+        "x": 14,
+        "z": 12,
+        "w": 12,
+        "d": 4,
+        "height": 6,
+        "wall": "#d4c4e0"
+      },
+      {
+        "type": "streetLamp",
+        "x": -6,
+        "z": -0.9
+      },
+      {
+        "type": "streetLamp",
+        "x": 12,
+        "z": -0.9
+      },
+      {
+        "type": "streetLamp",
+        "x": 2,
+        "z": 7.6
+      },
+      {
+        "type": "tree",
+        "x": -20,
+        "z": -10,
+        "size": 0.9
+      },
+      {
+        "type": "bench",
+        "x": -8,
+        "z": 8
+      },
+      {
+        "type": "sign",
+        "x": -2.6,
+        "z": -2.2,
+        "text": "↑ Sunhill Primary"
+      },
+      {
+        "type": "sign",
+        "x": -6,
+        "z": 8.4,
+        "text": "↓ Hospital"
+      }
+    ],
+    "exits": [
+      {
+        "edge": "west",
+        "min": -0.8,
+        "max": 5.6,
+        "to": "lane",
+        "arriveAt": "fromHighStreet",
+        "label": "Willow Lane"
+      },
+      {
+        "edge": "east",
+        "min": -0.8,
+        "max": 7.6,
+        "to": "kestrel-park",
+        "arriveAt": "fromHighStreet",
+        "label": "Kestrel Park"
+      },
+      {
+        "edge": "north",
+        "min": -2,
+        "max": 1,
+        "to": "school",
+        "arriveAt": "fromHighStreet",
+        "label": "Sunhill Primary"
+      },
+      {
+        "edge": "south",
+        "min": -5,
+        "max": -2,
+        "to": "hospital",
+        "arriveAt": "fromHighStreet",
+        "label": "Hospital"
+      }
+    ],
+    "entries": {
+      "fromLane": {
+        "x": -22.4,
+        "z": 0.4,
+        "facing": 90
+      },
+      "fromPark": {
+        "x": 22.4,
+        "z": 3.4,
+        "facing": -90
+      },
+      "fromSchool": {
+        "x": -0.5,
+        "z": -12.4,
+        "facing": 0
+      },
+      "fromHospital": {
+        "x": -3.5,
+        "z": 12.4,
+        "facing": 180
+      }
+    },
+    "things": []
+  },
+  "school": {
+    "id": "school",
+    "name": "Sunhill Primary",
+    "size": [
+      40,
+      28
+    ],
+    "ground": "#b9c48a",
+    "seed": 41,
+    "props": [
+      {
+        "type": "path",
+        "x": 0,
+        "z": 7,
+        "w": 4,
+        "d": 14.5,
+        "color": "#ddd2bd"
+      },
+      {
+        "type": "path",
+        "x": 0,
+        "z": -0.6,
+        "w": 18,
+        "d": 2,
+        "color": "#ddd2bd"
+      },
+      {
+        "type": "house",
+        "x": 0,
+        "z": -6,
+        "w": 16,
+        "d": 8,
+        "height": 3.4,
+        "door": "south",
+        "doorAt": 0,
+        "wall": "#f3d7a6",
+        "roof": "#2f5fd0",
+        "floor": "#d9c9a8",
+        "sign": "Sunhill Primary",
+        "trim": "#8d5524"
+      },
+      {
+        "type": "blackboard",
+        "x": 0,
+        "z": -9.8,
+        "text": "Welcome to Class 1!"
+      },
+      {
+        "type": "teacherDesk",
+        "x": 3.5,
+        "z": -8.6
+      },
+      {
+        "type": "desk",
+        "x": -4.5,
+        "z": -7
+      },
+      {
+        "type": "desk",
+        "x": -1.5,
+        "z": -7
+      },
+      {
+        "type": "desk",
+        "x": 1.5,
+        "z": -7
+      },
+      {
+        "type": "desk",
+        "x": 4.5,
+        "z": -7
+      },
+      {
+        "type": "desk",
+        "x": -4.5,
+        "z": -4.9
+      },
+      {
+        "type": "desk",
+        "x": -1.5,
+        "z": -4.9
+      },
+      {
+        "type": "desk",
+        "x": 1.5,
+        "z": -4.9
+      },
+      {
+        "type": "desk",
+        "x": 4.5,
+        "z": -4.9
+      },
+      {
+        "type": "shelf",
+        "x": -7,
+        "z": -9.6
+      },
+      {
+        "type": "plant",
+        "x": 7.2,
+        "z": -2.8
+      },
+      {
+        "type": "hopscotch",
+        "x": -7,
+        "z": 6
+      },
+      {
+        "type": "climbingFrame",
+        "x": 8,
+        "z": 6.5
+      },
+      {
+        "type": "bench",
+        "x": -9,
+        "z": 10
+      },
+      {
+        "type": "bench",
+        "x": 9,
+        "z": 11
+      },
+      {
+        "type": "tree",
+        "x": -15,
+        "z": 2,
+        "size": 1.2
+      },
+      {
+        "type": "tree",
+        "x": 15,
+        "z": 0,
+        "size": 1.1
+      },
+      {
+        "type": "tree",
+        "x": -14,
+        "z": -11
+      },
+      {
+        "type": "flowers",
+        "x": -5,
+        "z": 0.9,
+        "w": 5,
+        "d": 0.7
+      },
+      {
+        "type": "flowers",
+        "x": 5,
+        "z": 0.9,
+        "w": 5,
+        "d": 0.7
+      },
+      {
+        "type": "fence",
+        "x": -20,
+        "z": 12.8,
+        "length": 17.6
+      },
+      {
+        "type": "fence",
+        "x": 2.4,
+        "z": 12.8,
+        "length": 17.6
+      },
+      {
+        "type": "sign",
+        "x": 3.6,
+        "z": 11.4,
+        "text": "Sunhill Primary"
+      }
+    ],
+    "exits": [
+      {
+        "edge": "south",
+        "min": -2,
+        "max": 2,
+        "to": "high-street",
+        "arriveAt": "fromSchool",
+        "label": "The High Street"
+      }
+    ],
+    "entries": {
+      "fromHighStreet": {
+        "x": 0,
+        "z": 12.6,
+        "facing": 180
+      }
+    },
+    "things": []
+  },
+  "hospital": {
+    "id": "hospital",
+    "name": "Urlivaven City Hospital",
+    "size": [
+      40,
+      28
+    ],
+    "ground": "#c9c2b0",
+    "seed": 53,
+    "props": [
+      {
+        "type": "path",
+        "x": 12,
+        "z": -4,
+        "w": 4,
+        "d": 20,
+        "color": "#ddd2bd"
+      },
+      {
+        "type": "path",
+        "x": 2,
+        "z": 3.2,
+        "w": 24,
+        "d": 3,
+        "color": "#ddd2bd"
+      },
+      {
+        "type": "house",
+        "x": -3,
+        "z": -5,
+        "w": 20,
+        "d": 10,
+        "height": 4,
+        "door": "south",
+        "doorAt": 3,
+        "wall": "#f4f4f0",
+        "roof": "#8a8f96",
+        "floor": "#e3e8ea",
+        "sign": "City Hospital",
+        "trim": "#1fa7a0"
+      },
+      {
+        "type": "reception",
+        "x": -6,
+        "z": -3,
+        "text": "Reception"
+      },
+      {
+        "type": "chairRow",
+        "x": 3,
+        "z": -2.4,
+        "rot": 180,
+        "count": 5
+      },
+      {
+        "type": "hospitalBed",
+        "x": -10.5,
+        "z": -8
+      },
+      {
+        "type": "hospitalBed",
+        "x": -7.5,
+        "z": -8
+      },
+      {
+        "type": "hospitalBed",
+        "x": 2.5,
+        "z": -8
+      },
+      {
+        "type": "hospitalBed",
+        "x": 5.5,
+        "z": -8
+      },
+      {
+        "type": "plant",
+        "x": -12,
+        "z": -1
+      },
+      {
+        "type": "plant",
+        "x": 6.2,
+        "z": -1
+      },
+      {
+        "type": "ambulance",
+        "x": -9,
+        "z": 6.5,
+        "rot": 90
+      },
+      {
+        "type": "bench",
+        "x": 4,
+        "z": 6.4
+      },
+      {
+        "type": "bench",
+        "x": 8,
+        "z": 6.4
+      },
+      {
+        "type": "tree",
+        "x": 16,
+        "z": 8,
+        "size": 1.1
+      },
+      {
+        "type": "tree",
+        "x": -17,
+        "z": 9
+      },
+      {
+        "type": "tree",
+        "x": 17,
+        "z": -11,
+        "size": 0.9
+      },
+      {
+        "type": "streetLamp",
+        "x": 9,
+        "z": 2
+      },
+      {
+        "type": "flowers",
+        "x": -2,
+        "z": 6.6,
+        "w": 4,
+        "d": 0.8
+      }
+    ],
+    "exits": [
+      {
+        "edge": "north",
+        "min": 10,
+        "max": 14,
+        "to": "high-street",
+        "arriveAt": "fromHospital",
+        "label": "The High Street"
+      }
+    ],
+    "entries": {
+      "fromHighStreet": {
+        "x": 12,
+        "z": -12.6,
+        "facing": 0
+      }
+    },
+    "things": []
+  },
+  "kestrel-park": {
+    "id": "kestrel-park",
+    "name": "Kestrel Park",
+    "size": [
+      46,
+      30
+    ],
+    "ground": "#a9c27a",
+    "seed": 67,
+    "props": [
+      {
+        "type": "path",
+        "x": -6,
+        "z": 3.4,
+        "w": 34,
+        "d": 2.4,
+        "color": "#e6d3ad"
+      },
+      {
+        "type": "path",
+        "x": 8,
+        "z": -2,
+        "w": 2.4,
+        "d": 11,
+        "color": "#e6d3ad"
+      },
+      {
+        "type": "road",
+        "x": 0,
+        "z": -4.6,
+        "length": 100,
+        "width": 3.6
+      },
+      {
+        "type": "house",
+        "x": -11,
+        "z": -10,
+        "w": 11,
+        "d": 7,
+        "height": 3.6,
+        "door": "south",
+        "doorAt": 2,
+        "wall": "#f4ecdf",
+        "roof": "#2f3e5a",
+        "floor": "#e9dfcf"
+      },
+      {
+        "type": "sofa",
+        "x": -12,
+        "z": -12.4,
+        "color": "#2f3e5a"
+      },
+      {
+        "type": "table",
+        "x": -8,
+        "z": -9,
+        "w": 1.8,
+        "d": 0.9
+      },
+      {
+        "type": "shelf",
+        "x": -15,
+        "z": -13
+      },
+      {
+        "type": "house",
+        "x": 10,
+        "z": -10,
+        "w": 10,
+        "d": 7,
+        "height": 3.6,
+        "door": "south",
+        "wall": "#e8eef2",
+        "roof": "#7a3b2e",
+        "floor": "#e9dfcf"
+      },
+      {
+        "type": "pond",
+        "x": -8,
+        "z": 9,
+        "r": 3.2
+      },
+      {
+        "type": "fountain",
+        "x": 8,
+        "z": 4
+      },
+      {
+        "type": "swings",
+        "x": 15,
+        "z": 10
+      },
+      {
+        "type": "bench",
+        "x": -2,
+        "z": 8
+      },
+      {
+        "type": "bench",
+        "x": 2,
+        "z": 11
+      },
+      {
+        "type": "bench",
+        "x": -14,
+        "z": 5.6
+      },
+      {
+        "type": "tree",
+        "x": -19,
+        "z": 10,
+        "size": 1.3
+      },
+      {
+        "type": "tree",
+        "x": -1,
+        "z": 13,
+        "size": 1.1
+      },
+      {
+        "type": "tree",
+        "x": 19,
+        "z": 2,
+        "size": 1.2
+      },
+      {
+        "type": "tree",
+        "x": -20,
+        "z": -1
+      },
+      {
+        "type": "tree",
+        "x": 3,
+        "z": -1.4,
+        "size": 0.9
+      },
+      {
+        "type": "flowers",
+        "x": 2,
+        "z": 6,
+        "w": 3,
+        "d": 1
+      },
+      {
+        "type": "flowers",
+        "x": 14,
+        "z": 5.4,
+        "w": 3,
+        "d": 1
+      },
+      {
+        "type": "streetLamp",
+        "x": -4,
+        "z": 1.6
+      },
+      {
+        "type": "streetLamp",
+        "x": 12,
+        "z": 1.6
+      }
+    ],
+    "exits": [
+      {
+        "edge": "west",
+        "min": 1.8,
+        "max": 5.2,
+        "to": "high-street",
+        "arriveAt": "fromPark",
+        "label": "The High Street"
+      }
+    ],
+    "entries": {
+      "fromHighStreet": {
+        "x": -22.4,
+        "z": 3.4,
+        "facing": 90
+      }
     },
     "things": []
   }
