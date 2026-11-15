@@ -60,6 +60,13 @@ world full of people with their own stories. This document records what has been
 - All earlier polish ideas and changes are approved: clean interface, phone controls, frequent saving,
   settings for cheap phones, fair monetisation only (no gambling-style mechanics, no pay-to-win).
 
+### How people speak
+- **People speak Urlivani**, a made-up language generated in code: each person has their own voice (pitch,
+  speed, tone), emotion comes through (questions rise, anger is sharp, laughs and sighs are real), and voices
+  age with people. **Every word they say is written in English** in the dialogue box (and in the captions of
+  the videos), so everyone can read it. Other languages can be added later by translating the text only.
+- Real spoken lines may be added later for a few of a life's biggest moments, or the trailer.
+
 ### The build is documented
 - Each stage of the build becomes a YouTube video for Drew's Builds, made from real footage of the game.
   How this is done is still to be worked out.
