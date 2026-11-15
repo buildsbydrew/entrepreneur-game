@@ -39,7 +39,7 @@ export default class Person {
   }
 
   place() {
-    this.group.position.set(this.pos.x, 0, this.pos.z);
+    this.group.position.set(this.pos.x, this.lift ?? 0, this.pos.z); // lift: raised off the floor, like a baby in a cot
     this.group.rotation.y = this.facing;
   }
 

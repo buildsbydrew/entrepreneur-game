@@ -9,7 +9,7 @@ import focusData from '../data/focus.json';
 import eventsData from '../data/events.json';
 import { state, newLife, importState, personRecord } from './state.js';
 import { saveGame, loadGame, deleteSave } from './save.js';
-import { tick, formatTime, seasonOf, ageOf, isBedtime, nextMorning } from './clock.js';
+import { tick, formatTime, seasonOf, ageOf, isBedtime, nextMorning, createClock, daysPerYear } from './clock.js';
 import { stageForAge, playerAge, playerStage, chapterOf, focusChoices, jumpTime, drainEnergy, applyLifeEffects, topTraits, remember } from './life.js';
 import { scheduleNow, isPresent } from './schedule.js';
 import { createInput } from './input.js';
@@ -20,6 +20,7 @@ import Place from '../world/Place.js';
 import Person from '../people/Person.js';
 import { pickConversation, fillText } from '../story/conversation.js';
 import { runConversation } from '../story/talk.js';
+import { playPrologue } from '../story/prologue.js';
 import { initAudio, play, footstep, talkBlip, setMusicTime, setIndoors, soundSettings, setSound } from '../audio/sound.js';
 
 const deg = d => THREE.MathUtils.degToRad(d ?? 0);
@@ -63,7 +64,7 @@ export default class Game {
     };
     this.ui.onChoose = () => play('choose');
 
-    this.mode = 'title';   // 'title', 'play', 'talk', 'menu', 'people', 'busy' (fading or between days)
+    this.mode = 'title';   // 'title', 'cinematic' (the prologue), 'play', 'talk', 'menu', 'people', 'busy' (fading or between days)
     this.place = null;
     this.people = [];
     this.player = null;
@@ -85,7 +86,7 @@ export default class Game {
     addEventListener('touchend', () => { pinch = null; });
 
     // Phones close games without warning, so save the moment the game is hidden, and pause
-    const saveNow = () => { if (this.player && state.life && !state.dead) this.save(); };
+    const saveNow = () => { if (this.player && state.life && !state.dead && this.mode !== 'cinematic') this.save(); };
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
         saveNow();
@@ -150,18 +151,86 @@ export default class Game {
     return `${s.life.name}, age ${ageOf(s.life.birth, s.clock, world)} · Year ${s.clock.year}, ${season.name}`;
   }
 
+  // A new life: the prologue (the years you don't remember), then your first memory at age 5
   async startNewLife({ name, body, skin }) {
     this.ui.closeScreen();
+    this.ui.hud.show(false);
+    this.input.showPad(false);
     newLife(world, {
       name,
       look: { body, skin, shirt: '#f39c12', bottom: '#2c3e50', hair: body === 'girl' ? 'bun' : 'cap', accent: '#f39c12' }
     });
-    remember(`You were born, in the ${seasonOf(state.clock, world).name} of Year 1.`, world);
     // You know your family from the day you're born
     peopleData.people.filter(p => (p.tags ?? []).includes('family')).forEach(p => { personRecord(p.id).met = true; });
-    await this.enterPlace('home', 'cot', `Welcome to the world, ${name}`, 'Year 1 · ' + seasonOf(state.clock, world).name);
-    this.ui.toast('You are a baby. Crawl with WASD or the arrow keys. Press E near people and things.');
+
+    const { start, birth, knownNeighbours } = await playPrologue(this);
+
+    // Your first memory: a few days after your fifth birthday, first thing in the morning
+    state.life.birth = { ...birth };
+    state.clock = createClock(world, { year: birth.year, day: birth.day, minutes: start.hour * 60 });
+    nextMorning(state.clock, world, start.age * daysPerYear(world) + start.extraDays);
+    state.clock.minutes = start.hour * 60;
+    state.money = start.money;
+    state.needs = { energy: 100, health: 100, happiness: 80 };
+    knownNeighbours.forEach(id => { personRecord(id).met = true; });
+    remember(fillText(start.remember, { currency: world.currency.plural }), world);
+
+    const season = seasonOf(state.clock, world);
+    await this.enterPlace('home', 'bed', 'Your first memory', `Age ${playerAge(world)} · ${season.name}, Year ${state.clock.year}`);
+    play('morning');
+    this.ui.toast("You're five now. Today, for the first time, you're allowed out on Willow Lane by yourself.");
     this.save();
+  }
+
+  // Sets up one scene of the prologue: the place, the time, who is there, and you
+  async stageScene(scene, birth) {
+    this.mode = 'busy';
+    await this.ui.fadeOut();
+    this.clearPlace();
+    state.clock = createClock(world, { year: birth.year, day: birth.day });
+    nextMorning(state.clock, world, scene.days);
+    state.clock.minutes = scene.hour * 60;
+
+    this.place = new Place(this.scene, placesData[scene.place]);
+    this.people = [];
+    for (const c of scene.cast) {
+      const data = peopleData.people.find(p => p.id === c.id);
+      const person = this.spawnPerson(data, c.x, c.z, deg(c.facing));
+      person.scriptFacing = deg(c.facing);
+      if (c.walkTo) person.walkTo(c.walkTo);
+    }
+    const you = scene.you;
+    this.player = new Person(this.scene, this.place.space, {
+      id: 'you', look: state.life.look, stage: playerStage(world), x: you.x, z: you.z, facing: deg(you.facing)
+    });
+    this.player.lift = you.lift ?? 0;
+    this.player.scriptFacing = deg(you.facing);
+    if (you.walkTo) this.player.walkTo(you.walkTo);
+
+    this.cine = { x: scene.camera.x, z: scene.camera.z, zoom: scene.camera.zoom ?? 1, t: 0 };
+    this.camTarget.set(this.cine.x, 0, this.cine.z);
+    this.mode = 'cinematic';
+    await this.ui.fadeIn();
+  }
+
+  // Each frame of the prologue: people go about the scene, and the camera drifts slowly closer
+  cinematicFrame(dt) {
+    if (!this.player || !this.place) return;
+    const c = this.cine;
+    c.t += dt;
+    for (const person of [...this.people, this.player]) {
+      if (person.route.length) person.followRoute(dt);
+      else {
+        person.rest(dt);
+        person.turnToward(person.scriptFacing, dt * 3);
+      }
+      person.update(dt);
+    }
+    this.place.update(dt, { x: c.x, z: c.z }, this.daylight.lamps);
+    const k = c.zoom * (1.1 - Math.min(0.12, c.t * 0.012));
+    const sway = Math.sin(c.t * 0.25) * 1.2;
+    this.camera.position.set(c.x + sway, 13 * k, c.z + 13 * k);
+    this.camera.lookAt(c.x, 0.5, c.z);
   }
 
   async continueLife(saved) {
@@ -258,6 +327,14 @@ export default class Game {
       this.place?.update(dt, { x: 999, z: 999 }, this.daylight.lamps);
       this.daylight.update(this.titleClock.minutes, this.camTarget);
       setMusicTime(this.titleClock.minutes);
+      this.renderer.render(this.scene, this.camera);
+      return;
+    }
+
+    if (this.mode === 'cinematic' || (this.mode === 'busy' && !this.player && state.clock)) {
+      if (this.mode === 'cinematic') this.cinematicFrame(dt);
+      this.daylight.update(state.clock.minutes, this.camTarget);
+      setMusicTime(state.clock.minutes);
       this.renderer.render(this.scene, this.camera);
       return;
     }
@@ -450,6 +527,12 @@ export default class Game {
   // and turn to look at the player when they come close
   updatePeople(dt) {
     for (const person of [...this.people]) {
+      if (person.scriptFacing !== undefined) {
+        // In a prologue scene: they only do what the scene tells them
+        person.rest(dt);
+        person.update(dt);
+        continue;
+      }
       if (person.talking) {
         person.rest(dt);
         person.faceToward(this.player.pos.x, this.player.pos.z, dt);
@@ -464,9 +547,9 @@ export default class Game {
         const plan = person.plan;
         const near = this.player && Math.hypot(this.player.pos.x - person.pos.x, this.player.pos.z - person.pos.z) < 3;
         if (near) person.faceToward(this.player.pos.x, this.player.pos.z, dt * 0.5);
-        else person.turnToward(deg(plan.spot.facing), dt * 0.3);
+        else if (plan?.spot) person.turnToward(deg(plan.spot.facing), dt * 0.3);
         person.idleFor -= dt;
-        if (person.idleFor <= 0 && !near && plan.wander?.length) {
+        if (person.idleFor <= 0 && !near && plan?.spot && plan.wander?.length) {
           const there = plan.wander[Math.floor(Math.random() * plan.wander.length)];
           person.walkTo([there, plan.spot]);
           person.idleFor = 5 + Math.random() * 9;

@@ -15,9 +15,13 @@ world full of people with their own stories. This document records what has been
 - **Story first.** People remember what you did. Storylines run in the background and move on whether or
   not you are watching. Conversations offer real choices, and choices are trade-offs, not good/bad buttons.
   Drama is allowed (gossip, love, betrayal, family pressure, rivalry, reconciliation), kept family-friendly.
-- **Everyone starts as a baby.** Childhood is short and fun (about 1 to 2 hours) so nobody wants to skip it.
-  Later, other starts (teen, adult, elder) unlock for free after finishing a life, with paying only as a
-  shortcut. New *lives* (different families, cities, circumstances) are the thing worth paying for.
+- **A life begins with a prologue, then your first memory at age 5.** Nobody remembers being a baby, and
+  babies don't make choices, so the first years are a short prologue (about a minute, skippable): scenes told
+  the way families tell them, each with one family choice that shapes your personality and closest people.
+  The played life starts at age 5, on the first day you're allowed out on your street alone. Later starts
+  (teen, adult, elder) unlock for free after finishing a life, with paying only as a shortcut. New *lives*
+  (different families, cities, circumstances) are the thing worth paying for. The scenes are in
+  `src/data/prologue.json`.
 - **Life is uncertain.** Accidents, illness and sudden death can happen. Choices change the odds (health,
   habits, risks taken), but never remove them completely.
 - **When the character dies, the game ends** with a **life story**: the people, choices, turning points and

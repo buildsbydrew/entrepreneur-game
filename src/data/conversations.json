@@ -61,20 +61,20 @@
     {
       "id": "mum-first", "with": "mum", "once": true, "start": "a", "when": { "stage": "child" },
       "nodes": {
-        "a": { "lines": [["mum", "There you are, {name}. Did you sleep well?"]],
+        "a": { "lines": [["mum", "There you are, {name}. Five years old. Did you sleep at all?"]],
           "choices": [
             { "text": "Yes! I dreamed I could fly.", "effects": { "bond": 1 }, "next": "fly" },
             { "text": "Not really. A dog barked all night.", "next": "dog" },
             { "text": "Can I go outside to play?", "next": "play" }
           ] },
-        "fly": { "lines": [["mum", "Fly? Then you can fly to the shop for me one day."], ["mum", "Go on, the morning is the best part of the day."]] },
-        "dog": { "lines": [["mum", "That dog. I'll have a word with Mrs Pell."], ["mum", "Go and get some air. It'll wake you up."]] },
+        "fly": { "lines": [["mum", "Fly? Then you can fly down the lane today. By yourself."], ["mum", "Only the lane, mind. Stay off the road and be home before dark."]], "effects": { "setFlag": "allowed-out", "remember": "The first day Mum let you out on Willow Lane by yourself." } },
+        "dog": { "lines": [["mum", "That dog. I'll have a word with Mrs Pell."], ["mum", "Go on, you can go out on the lane by yourself today. Stay off the road, and be home before dark."]], "effects": { "setFlag": "allowed-out", "remember": "The first day Mum let you out on Willow Lane by yourself." } },
         "play": { "lines": [["mum", "Already? You haven't even said good morning."]],
           "choices": [
             { "text": "Good morning, Mum.", "effects": { "bond": 1 }, "next": "go" },
             { "text": "Mum, pleeease.", "effects": { "traits": { "cheeky": 1 } }, "next": "go" }
           ] },
-        "go": { "lines": [["mum", "Fine. Stay on Willow Lane, and be back before dark."]] }
+        "go": { "lines": [["mum", "Alright. Today you can go out on Willow Lane by yourself. Only the lane, mind."], ["mum", "Stay off the road, say hello to Mrs Pell, and be home before dark."]], "effects": { "setFlag": "allowed-out", "remember": "The first day Mum let you out on Willow Lane by yourself." } }
       }
     },
     {
@@ -98,14 +98,14 @@
     {
       "id": "nico-first", "with": "nico", "once": true, "start": "a", "when": { "stage": ["child", "teen"] },
       "nodes": {
-        "a": { "lines": [["nico", "Hey. You live at the end of the lane, right? I'm Nico."]],
+        "a": { "lines": [["nico", "{name}! Your mum let you out by yourself? Finally! Now we can actually do stuff."]],
           "choices": [
-            { "text": "I'm {name}. Want to play?", "effects": { "bond": 2, "traits": { "bold": 1 } }, "next": "play" },
+            { "text": "Let's go to the park!", "effects": { "bond": 2, "traits": { "bold": 1 } }, "next": "play" },
             { "text": "...Hi.", "effects": { "traits": { "calm": 1 } }, "next": "shy" },
             { "text": "I bet I can run faster than you.", "effects": { "bond": 1, "traits": { "cheeky": 1 } }, "next": "race" }
           ] },
-        "play": { "lines": [["nico", "Yes! Nobody else on this street is our age. It's all old people and cats."]], "effects": { "remember": "You met Nico, the only other kid on Willow Lane." } },
-        "shy": { "lines": [["nico", "You don't talk much. That's okay. I talk enough for two."]], "effects": { "remember": "You met Nico, who talks enough for two." } },
+        "play": { "lines": [["nico", "Yes! Nobody else on this street is our age. It's all old people and cats."]], "effects": { "remember": "Your first day out alone, you and Nico ran straight to the park." } },
+        "shy": { "lines": [["nico", "You never talk much. That's okay. I talk enough for two."]] },
         "race": { "lines": [["nico", "No way. I'm the fastest on Willow Lane."], ["nico", "Bench to the lamp post. One day. You're on."]], "effects": { "setFlag": "race-challenge", "remember": "Nico challenged you to a race." } }
       }
     },

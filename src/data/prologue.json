@@ -1,0 +1,98 @@
+{
+  "_about": "The prologue: the years before your first memory, told the way families tell them. Each scene sets a place, an age (days after you were born; a year is 120 days), a time of day, who is there and where, captions, and sometimes one choice that shapes who you are. 'you' is the player. walkTo sends someone walking. camera: the point the camera looks at, and how close (zoom, smaller is closer). After the last scene, the game begins at startAge with your first memory.",
+  "birth": { "year": 1, "day": 70 },
+  "start": { "age": 5, "extraDays": 2, "hour": 7, "money": 3, "remember": "Gran gave you 3 {currency} for your fifth birthday. You were rich." },
+  "knownNeighbours": ["nico", "pell", "ambrose"],
+  "scenes": [
+    {
+      "id": "birth", "place": "home", "days": 0, "hour": 22.5,
+      "camera": { "x": -3.9, "z": -3.6, "zoom": 0.74 },
+      "you": { "x": -3.9, "z": -4.4, "facing": 0, "lift": 0.5 },
+      "cast": [
+        { "id": "mum", "x": -2.7, "z": -3.3, "facing": -110 },
+        { "id": "gran", "x": -5.1, "z": -3.2, "facing": 120 }
+      ],
+      "captions": [
+        "You were born on a Long Rain night, in the city of Urlivaven.",
+        "Gran says you didn't cry. You just looked around, like you were taking notes."
+      ],
+      "choice": {
+        "prompt": "Ask anyone in your family, and they'll tell you that you were...",
+        "options": [
+          { "text": "A quiet baby", "effects": { "traits": { "calm": 1 } } },
+          { "text": "A loud baby", "effects": { "traits": { "bold": 1 } } },
+          { "text": "A baby who never, ever slept", "effects": { "traits": { "curious": 1 } } }
+        ]
+      }
+    },
+    {
+      "id": "first-steps", "place": "home", "days": 125, "hour": 9.5,
+      "camera": { "x": -2.2, "z": 5.4, "zoom": 0.88 },
+      "you": { "x": -4.2, "z": 5.6, "facing": 90, "walkTo": [{ "x": -2.6, "z": 5.6 }] },
+      "cast": [
+        { "id": "gran", "x": -1.2, "z": 5.6, "facing": -90 },
+        { "id": "mum", "x": 0.2, "z": 4.6, "facing": -110 }
+      ],
+      "captions": [
+        "Your first steps were out in the yard, wobbling toward Gran's open arms.",
+        "You fell, of course. Everybody does. What you did next, Mum still tells people about."
+      ],
+      "choice": {
+        "prompt": "What did you do?",
+        "options": [
+          { "text": "Got straight back up and tried again", "effects": { "traits": { "bold": 1 } } },
+          { "text": "Held out your arms until Gran picked you up", "effects": { "traits": { "kind": 1 }, "bondWith": { "gran": 2 } } },
+          { "text": "Crawled off and ate one of Gran's flowers", "effects": { "traits": { "cheeky": 1 } } }
+        ]
+      }
+    },
+    {
+      "id": "mum-works", "place": "home", "days": 250, "hour": 7,
+      "camera": { "x": 4.5, "z": 3.4, "zoom": 0.95 },
+      "you": { "x": 0.6, "z": 3.9, "facing": 90 },
+      "cast": [
+        { "id": "gran", "x": -0.4, "z": 3.4, "facing": 90 },
+        { "id": "mum", "x": 2.4, "z": 3.4, "facing": 90, "walkTo": [{ "x": 12.4, "z": 3.4 }] }
+      ],
+      "captions": [
+        "When you were two, Mum went back to work. Early mornings, long days, tired evenings.",
+        "So it was Gran who raised you most days. Gran's house, Gran's rules, Gran's songs."
+      ],
+      "choice": {
+        "prompt": "Gran says that, back then, you were always asking...",
+        "options": [
+          { "text": "\"When is Mum coming home?\"", "effects": { "bondWith": { "mum": 2 } } },
+          { "text": "\"Gran, sing it again\"", "effects": { "bondWith": { "gran": 2 }, "traits": { "calm": 1 } } },
+          { "text": "\"Why?\" About absolutely everything", "effects": { "traits": { "curious": 1 } } }
+        ]
+      }
+    },
+    {
+      "id": "the-lane", "place": "lane", "days": 490, "hour": 17.3,
+      "camera": { "x": -2.4, "z": 4.2, "zoom": 1.15 },
+      "you": { "x": -3.2, "z": 0.6, "facing": 0 },
+      "cast": [
+        { "id": "gran", "x": -4.2, "z": 0.4, "facing": 0 },
+        { "id": "nico", "x": -0.6, "z": 7.4, "facing": 0, "walkTo": [{ "x": 2.6, "z": 9.4 }, { "x": -1.8, "z": 10.6 }, { "x": -2.2, "z": 7.2 }] },
+        { "id": "pell", "x": -12, "z": -1.3, "facing": 0 },
+        { "id": "ambrose", "x": 1, "z": -2.3, "facing": 0 }
+      ],
+      "captions": [
+        "By four, Willow Lane was your whole world.",
+        "Mrs Pell and her flowers. Mr Ambrose and his jar of sweets. And Nico, the boy from two doors down, who never, ever stopped talking."
+      ],
+      "choice": {
+        "prompt": "Your favourite thing about the lane was...",
+        "options": [
+          { "text": "Mrs Pell's flowers", "effects": { "traits": { "kind": 1 }, "bondWith": { "pell": 2 } } },
+          { "text": "Mr Ambrose's sweets", "effects": { "traits": { "cheeky": 1 }, "bondWith": { "ambrose": 2 } } },
+          { "text": "Nico, even when he was annoying", "effects": { "bondWith": { "nico": 3 } } }
+        ]
+      }
+    }
+  ],
+  "ending": [
+    "Most of those years, you don't remember. They're stories other people tell you.",
+    "But not long after your fifth birthday came a day you would remember for the rest of your life."
+  ]
+}

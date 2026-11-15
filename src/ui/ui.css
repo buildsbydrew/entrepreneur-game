@@ -168,3 +168,22 @@ body.is-touch .focus-list .choice small { margin-left: 0; }
   .need i { width: 26px; }
   .hud.left { flex-direction: column; align-items: flex-start; }
 }
+
+/* ---------- The prologue: cinema bars and captions ---------- */
+.cinema { position: fixed; inset: 0; pointer-events: auto; }
+.cinema .bar { position: absolute; left: 0; right: 0; height: 9vh; background: #0d0a14; animation: bar-in .6s ease-out; }
+.cinema .bar.top { top: 0; display: flex; justify-content: flex-end; align-items: center; padding: 0 16px; }
+.cinema .bar.bottom { bottom: 0; }
+@keyframes bar-in { from { height: 0; } }
+.cinema.dark { background: #0d0a14; }
+.cinema .skip { font-weight: bold; font-size: 14px; color: var(--cream); background: transparent; border: 2px solid rgba(255, 244, 220, .5);
+  border-radius: 10px; padding: 5px 14px; }
+.cinema .skip:hover { border-color: var(--cream); }
+.caption-box { position: absolute; left: 50%; bottom: calc(9vh + 18px); transform: translateX(-50%); width: min(760px, calc(100% - 32px));
+  text-align: center; }
+.cinema.dark .caption-box { bottom: auto; top: 50%; transform: translate(-50%, -50%); }
+.caption { margin: 0; color: var(--cream); font-size: clamp(18px, 2.4vw, 24px); line-height: 1.45; font-style: italic;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, .85), 0 0 2px #000; min-height: 1.45em; }
+.caption-next { margin-top: 8px; color: rgba(255, 244, 220, .65); font-size: 13px; text-shadow: 0 1px 3px #000; }
+.caption-choices { display: flex; flex-direction: column; gap: 8px; align-items: center; margin-top: 12px; }
+.caption-choices .choice { width: min(480px, 100%); }

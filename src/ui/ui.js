@@ -346,5 +346,97 @@ export function createUI(root) {
     s.querySelector('[data-new]').addEventListener('click', onNew);
   };
 
+  // ---------- The prologue: cinema bars, captions, and family choices ----------
+  const cinema = el(`<div class="cinema hidden">
+    <div class="bar top"><button class="skip" data-skip>Skip</button></div>
+    <div class="bar bottom"></div>
+    <div class="caption-box"><p class="caption"></p><div class="caption-choices"></div><div class="caption-next"></div></div>
+  </div>`);
+  root.append(cinema);
+  const captionEl = cinema.querySelector('.caption');
+  const captionChoices = cinema.querySelector('.caption-choices');
+  const captionNext = cinema.querySelector('.caption-next');
+  let captionAdvance = null;
+  let onSkip = null;
+
+  cinema.querySelector('[data-skip]').addEventListener('click', e => { e.stopPropagation(); onSkip?.(); captionAdvance?.(true); });
+  cinema.addEventListener('click', e => { if (!e.target.closest('button') && captionAdvance) captionAdvance(); });
+  addEventListener('keydown', e => {
+    if (cinema.classList.contains('hidden') || e.repeat) return;
+    if (['Enter', 'Space', 'KeyE'].includes(e.code) && captionAdvance) { e.preventDefault(); captionAdvance(); }
+    const n = Number(e.key);
+    if (n >= 1 && n <= 9) captionChoices.querySelectorAll('.choice')[n - 1]?.click();
+  });
+
+  ui.cinema = {
+    // skip: what to do when the player presses Skip
+    open(skip) {
+      onSkip = skip;
+      cinema.classList.remove('hidden');
+      cinema.classList.remove('dark');
+      captionEl.textContent = '';
+      captionChoices.innerHTML = '';
+      captionNext.textContent = '';
+    },
+    close() {
+      cinema.classList.add('hidden');
+      captionAdvance = null;
+      onSkip = null;
+    },
+    // A black screen behind the captions, for the words between scenes
+    dark(on) { cinema.classList.toggle('dark', on); },
+    clear() {
+      captionEl.textContent = '';
+      captionChoices.innerHTML = '';
+      captionNext.textContent = '';
+    },
+
+    // Types out one caption. Resolves when the player moves on (or skips).
+    caption(text) {
+      captionChoices.innerHTML = '';
+      captionNext.textContent = matchMedia('(pointer: coarse)').matches ? 'Tap to continue' : 'Enter or click to continue';
+      return new Promise(resolve => {
+        let shown = 0;
+        const timer = setInterval(() => {
+          shown += 1;
+          captionEl.textContent = text.slice(0, shown);
+          if (shown >= text.length) clearInterval(timer);
+        }, 28);
+        captionAdvance = (skipAll = false) => {
+          if (!skipAll && shown < text.length) {
+            shown = text.length;
+            clearInterval(timer);
+            captionEl.textContent = text;
+            return;
+          }
+          clearInterval(timer);
+          captionAdvance = null;
+          resolve();
+        };
+      });
+    },
+
+    // Shows a question and its answers. Resolves with the answer picked, or null if skipped.
+    choose(prompt, options) {
+      captionEl.textContent = prompt;
+      captionNext.textContent = '';
+      captionChoices.innerHTML = '';
+      return new Promise(resolve => {
+        captionAdvance = skipAll => { if (skipAll) { captionAdvance = null; captionChoices.innerHTML = ''; resolve(null); } };
+        options.forEach((option, i) => {
+          const b = el(`<button class="choice"><span class="num">${i + 1}.</span>${escapeHtml(option.text)}</button>`);
+          b.addEventListener('click', e => {
+            e.stopPropagation();
+            captionAdvance = null;
+            captionChoices.innerHTML = '';
+            resolve(option);
+          });
+          captionChoices.append(b);
+        });
+        captionChoices.querySelector('.choice')?.focus({ preventScroll: true });
+      });
+    }
+  };
+
   return ui;
 }
