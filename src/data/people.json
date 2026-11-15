@@ -1,0 +1,33 @@
+{
+  "_about": "The people in the world. PLACEHOLDER CAST: these exist to show how people, talking and choices work. The real characters and storylines will be written together. Each person: where they live (place), where they stand (spot, facing in degrees: 0 faces the camera, 90 faces east), places they sometimes stroll to (wander), their stage of life, their look, and the conversations they can have, in order of priority.",
+  "people": [
+    {
+      "id": "mum", "name": "Mum", "place": "home", "stage": "adult",
+      "spot": { "x": 2.0, "z": -3.6, "facing": 180 },
+      "wander": [{ "x": 1.8, "z": -1.2 }, { "x": -0.6, "z": -1.6 }],
+      "look": { "body": "girl", "skin": "#8d5a3b", "shirt": "#d6336c", "bottom": "#2f5fd0", "hair": "wrap", "accent": "#f6c026" },
+      "conversations": ["mum-first", "mum-money", "mum-again"]
+    },
+    {
+      "id": "nico", "name": "Nico", "place": "lane", "stage": "child",
+      "spot": { "x": -1, "z": 10.4, "facing": 0 },
+      "wander": [{ "x": 2.5, "z": 11 }, { "x": -4.2, "z": 7 }, { "x": 1.2, "z": 6.6 }],
+      "look": { "body": "boy", "skin": "#c68a5e", "shirt": "#3a7d44", "bottom": "#3b2a20", "hair": "curls", "hairColor": "#3b2a20" },
+      "conversations": ["nico-first", "nico-friend", "nico-again"]
+    },
+    {
+      "id": "pell", "name": "Mrs Pell", "place": "lane", "stage": "elder",
+      "spot": { "x": -12, "z": -1.2, "facing": 0 },
+      "wander": [{ "x": -9.6, "z": -1.4 }, { "x": -14, "z": -1.3 }],
+      "look": { "body": "girl", "skin": "#e0b48c", "shirt": "#8e44ad", "bottom": "#5a4632", "hair": "bun" },
+      "conversations": ["pell-first", "pell-again"]
+    },
+    {
+      "id": "ambrose", "name": "Mr Ambrose", "place": "lane", "stage": "adult",
+      "spot": { "x": 3, "z": -6.4, "facing": 0 },
+      "look": { "body": "boy", "skin": "#5a3620", "shirt": "#f6c026", "bottom": "#34495e", "hair": "short" },
+      "conversations": ["ambrose-sweets", "ambrose-again"]
+    }
+  ],
+  "skins": ["#f1c9a5", "#e0b48c", "#c68a5e", "#a8714a", "#8d5a3b", "#5a3620"]
+}

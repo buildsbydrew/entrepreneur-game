@@ -1,5 +1,7 @@
 # World design (living document)
 
+> **Replaced by `life-design.md`** (2026-11-15). The game is now a life simulator in a made-up world. This file is kept for history, and describes the 2D game now in `legacy-2d/`.
+
 This is the plan for growing the game from one market into a place the player lives in.
 It records what we have decided, and what is still open. Change it as the game changes.
 

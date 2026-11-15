@@ -1,0 +1,15 @@
+{
+  "_about": "Names that belong to the made-up world. Everything here is a placeholder until we pick the final names; change it here and it changes everywhere.",
+  "worldName": "Larkhaven",
+  "currency": { "name": "orra", "plural": "orra", "symbol": "" },
+  "calendar": {
+    "daysPerSeason": 30,
+    "seasons": ["Bloom", "High Sun", "Long Rain", "Cool Wind"]
+  },
+  "day": {
+    "wakeHour": 6,
+    "sleepHour": 22,
+    "realMinutesPerDay": 15
+  },
+  "startingMoney": 20
+}

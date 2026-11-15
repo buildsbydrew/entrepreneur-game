@@ -1,0 +1,103 @@
+{
+  "_about": "PLACEHOLDER conversations, to show how talking and choices work until the real storylines are written. A line is [speaker id, text]; 'you' is the player. Choices can have conditions (if) and change things (effects: bond, money, setFlag). {name} is the player's name and {currency} the money's name.",
+  "conversations": [
+    {
+      "id": "mum-first", "with": "mum", "once": true, "start": "a",
+      "nodes": {
+        "a": { "lines": [["mum", "There you are, {name}. Did you sleep well?"]],
+          "choices": [
+            { "text": "Yes! I dreamed I could fly.", "effects": { "bond": 1 }, "next": "fly" },
+            { "text": "Not really. The dog next door barked all night.", "next": "dog" },
+            { "text": "Can I go outside to play?", "next": "play" }
+          ] },
+        "fly": { "lines": [["mum", "Fly? Then you can fly to the shop for me one day."], ["mum", "Go on, the morning is the best part of the day."]] },
+        "dog": { "lines": [["mum", "That dog. I'll have a word with Mrs Pell."], ["mum", "Go and get some air. It'll wake you up."]] },
+        "play": { "lines": [["mum", "Already? You haven't even said good morning."]],
+          "choices": [
+            { "text": "Good morning, Mum.", "effects": { "bond": 1 }, "next": "go" },
+            { "text": "Mum, pleeease.", "next": "go" }
+          ] },
+        "go": { "lines": [["mum", "Fine. Stay on Willow Lane, and be back before dark."]] }
+      }
+    },
+    {
+      "id": "mum-money", "with": "mum", "once": true, "start": "a", "when": { "flag": "wants-sweets" },
+      "nodes": {
+        "a": { "lines": [["you", "Mum... Mr Ambrose has new sweets at the shop."], ["mum", "And you have your own {currency}, don't you?"]],
+          "choices": [
+            { "text": "I want to keep mine. Can you buy them?", "effects": { "bond": -1 }, "next": "no" },
+            { "text": "I'll use my own. Just checking.", "effects": { "bond": 1 }, "next": "ok" },
+            { "text": "Can I earn some? I can sweep the yard.", "if": { "notFlag": "swept-yard" }, "effects": { "bond": 2, "money": 5, "setFlag": "swept-yard" }, "next": "work" }
+          ] },
+        "no": { "lines": [["mum", "Keep yours, spend mine? Nice try."]] },
+        "ok": { "lines": [["mum", "Good. It's yours. Spend it how you like, but it won't come back."]] },
+        "work": { "lines": [["mum", "Now that's an offer."], ["mum", "Sweep it properly and there's 5 {currency} in it for you."], ["you", "Deal!"]] }
+      }
+    },
+    {
+      "id": "mum-again", "with": "mum", "start": "a",
+      "nodes": { "a": { "lines": [["mum", "Back before dark, {name}. I mean it."]] } }
+    },
+    {
+      "id": "nico-first", "with": "nico", "once": true, "start": "a",
+      "nodes": {
+        "a": { "lines": [["nico", "Hey. You live at the end of the lane, right? I'm Nico."]],
+          "choices": [
+            { "text": "I'm {name}. Want to play?", "effects": { "bond": 2 }, "next": "play" },
+            { "text": "...Hi.", "next": "shy" },
+            { "text": "I bet I can run faster than you.", "effects": { "bond": 1 }, "next": "race" }
+          ] },
+        "play": { "lines": [["nico", "Yes! Nobody else on this street is our age. It's all old people and cats."]] },
+        "shy": { "lines": [["nico", "You don't talk much. That's okay. I talk enough for two."]] },
+        "race": { "lines": [["nico", "No way. I'm the fastest on Willow Lane."], ["nico", "Tomorrow. Bench to the lamp post. You're on."]], "effects": { "setFlag": "race-challenge" } }
+      }
+    },
+    {
+      "id": "nico-friend", "with": "nico", "start": "a", "when": { "bondAtLeast": 2 },
+      "nodes": { "a": { "lines": [["nico", "Mr Ambrose has new sweets. The fizzy ones."], ["nico", "I've only got 1 {currency} though."]],
+        "choices": [
+          { "text": "I'll buy you one.", "if": { "moneyAtLeast": 2 }, "effects": { "bond": 2, "money": -2 }, "next": "kind" },
+          { "text": "Same. We're both broke.", "next": "broke" }
+        ] },
+        "kind": { "lines": [["nico", "Really? You're the best."]] },
+        "broke": { "lines": [["nico", "One day I'll have a shop like his. Then sweets are free. For me."]] }
+      }
+    },
+    {
+      "id": "nico-again", "with": "nico", "start": "a",
+      "nodes": { "a": { "lines": [["nico", "Did you see that cat? It's been sitting on the car all day."]] } }
+    },
+    {
+      "id": "pell-first", "with": "pell", "once": true, "start": "a",
+      "nodes": {
+        "a": { "lines": [["pell", "Oh, hello dear. You're the little one from the end house."], ["pell", "My knees aren't what they were. Would you carry my bag to the door?"]],
+          "choices": [
+            { "text": "Of course, Mrs Pell.", "effects": { "bond": 3, "setFlag": "helped-pell" }, "next": "help" },
+            { "text": "Sorry, I'm busy.", "effects": { "bond": -1 }, "next": "busy" }
+          ] },
+        "help": { "lines": [["pell", "What a kind child. Your mother raised you well."], ["pell", "Here. Don't tell her I gave you this."]], "effects": { "money": 2 } },
+        "busy": { "lines": [["pell", "Busy. At your age. Well, off you go then."]] }
+      }
+    },
+    {
+      "id": "pell-again", "with": "pell", "start": "a",
+      "nodes": { "a": { "lines": [["pell", "The lane was all fields when I was your age. Fields, dear."]] } }
+    },
+    {
+      "id": "ambrose-sweets", "with": "ambrose", "start": "a",
+      "nodes": {
+        "a": { "lines": [["ambrose", "Welcome, welcome. What can I get you?"]], "effects": { "setFlag": "wants-sweets" },
+          "choices": [
+            { "text": "A fizzy sweet, please. (2 {currency})", "if": { "moneyAtLeast": 2 }, "effects": { "money": -2, "setFlag": "bought-sweet" }, "next": "buy" },
+            { "text": "Just looking.", "next": "look" }
+          ] },
+        "buy": { "lines": [["ambrose", "Good choice. Careful, they make your eyes water."]] },
+        "look": { "lines": [["ambrose", "Looking is free. Buying is how I eat."]] }
+      }
+    },
+    {
+      "id": "ambrose-again", "with": "ambrose", "start": "a",
+      "nodes": { "a": { "lines": [["ambrose", "Shop's open till late."]] } }
+    }
+  ]
+}

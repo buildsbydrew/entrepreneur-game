@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D Market Test</title>
+<!--
+  A test scene for a possible 3D look. It is NOT part of the game: nothing here touches the
+  real game's code or saves. Everything is built from simple shapes in code, like the 2D art.
+-->
+<style>
+  :root { --ink: #3b2a20; --cream: #fff4dc; --orange: #f39c12; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #9ed6f2; font-family: "Trebuchet MS", system-ui, sans-serif; }
+  canvas { display: block; }
+  .hud { position: fixed; color: var(--cream); background: rgba(59, 42, 32, .82); border-radius: 12px; padding: 8px 14px; user-select: none; }
+  #title { top: 14px; left: 14px; font-size: 14px; line-height: 1.5; max-width: 320px; }
+  #title b { font-size: 16px; color: var(--orange); }
+  #clock { top: 14px; right: 14px; font-size: 22px; font-weight: bold; min-width: 120px; text-align: center; }
+  #cash { top: 62px; right: 14px; font-size: 16px; font-weight: bold; }
+  #time { bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; align-items: center; font-size: 14px; width: min(640px, calc(100% - 28px)); }
+  #time input { flex: 1; accent-color: var(--orange); }
+  #time button { font: inherit; font-weight: bold; color: var(--ink); background: var(--cream); border: 2px solid var(--ink); border-radius: 8px; padding: 4px 10px; cursor: pointer; }
+  #time button.on { background: var(--orange); }
+  #prompt { left: 50%; top: 58%; transform: translateX(-50%); font-weight: bold; display: none; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="title" class="hud"><b>3D test scene</b><br>WASD or arrows to walk · E at your stall to serve<br>Drag the bar below to change the time of day · Mouse wheel to zoom</div>
+<div id="clock" class="hud">6:00 AM</div>
+<div id="cash" class="hud">GH₵100</div>
+<div id="prompt" class="hud"></div>
+<div id="time" class="hud">
+  <button id="playBtn" class="on">Pause time</button>
+  <input id="slider" type="range" min="360" max="1320" step="1" value="360">
+  <button id="fastBtn" class="on">Fast</button>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+// ---------------------------------------------------------------- Setup
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x9ed6f2, 34, 80);
+const camera = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 0.1, 200);
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// ---------------------------------------------------------------- Building blocks
+// Flat-shaded, slightly rough materials give the chunky "toy" look
+const mats = new Map();
+function mat(color, extra = {}) {
+  const key = color + JSON.stringify(extra);
+  if (!mats.has(key)) mats.set(key, new THREE.MeshStandardMaterial({ color, roughness: 0.85, flatShading: true, ...extra }));
+  return mats.get(key);
+}
+function mesh(geo, color, extra) {
+  const m = new THREE.Mesh(geo, typeof color === 'string' ? mat(color, extra) : color);
+  m.castShadow = true;
+  m.receiveShadow = true;
+  return m;
+}
+const rbox = (w, h, d, color, r = 0.06) => mesh(new RoundedBoxGeometry(w, h, d, 2, Math.min(r, w / 2, h / 2, d / 2)), color);
+const cyl = (rt, rb, h, color, seg = 10) => mesh(new THREE.CylinderGeometry(rt, rb, h, seg), color);
+const ball = (r, color, w = 12, h = 9) => mesh(new THREE.SphereGeometry(r, w, h), color);
+const at = (obj, x, y, z) => { obj.position.set(x, y, z); return obj; };
+
+// Things the player can't walk through: boxes on the ground (x and z ranges)
+const solids = [];
+const addSolid = (x, z, w, d) => solids.push({ minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2 });
+
+// Text painted onto a canvas, for signs and bubbles
+function textTexture(text, { w = 512, h = 128, bg = '#8d5524', fg = '#fff4dc', size = 64 } = {}) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  if (bg) {
+    g.fillStyle = bg; g.strokeStyle = '#3b2a20'; g.lineWidth = 10;
+    g.beginPath(); g.roundRect(6, 6, w - 12, h - 12, 28); g.fill(); g.stroke();
+  }
+  g.fillStyle = fg; g.font = `bold ${size}px Trebuchet MS, sans-serif`;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  if (!bg) { g.strokeStyle = '#3b2a20'; g.lineWidth = 12; g.strokeText(text, w / 2, h / 2 + 4); }
+  g.fillText(text, w / 2, h / 2 + 4);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+}
+
+// ---------------------------------------------------------------- Ground
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(140, 100), mat('#d8b98a'));
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// Patches of darker and lighter earth, and small stones, so the ground isn't one flat colour
+let seed = 7;
+const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+for (let i = 0; i < 90; i++) {
+  const patch = new THREE.Mesh(new THREE.CircleGeometry(0.6 + rand() * 2.2, 9), mat(rand() > 0.5 ? '#d0ae7e' : '#dfc497'));
+  patch.rotation.x = -Math.PI / 2;
+  patch.scale.y = 0.5 + rand() * 0.5;
+  patch.rotation.z = rand() * Math.PI;
+  patch.receiveShadow = true;
+  scene.add(at(patch, (rand() - 0.5) * 60, 0.005 + i * 0.0001, (rand() - 0.5) * 40));
+}
+for (let i = 0; i < 70; i++) {
+  const stone = mesh(new THREE.DodecahedronGeometry(0.06 + rand() * 0.08, 0), rand() > 0.5 ? '#a88a66' : '#8f7a62');
+  stone.castShadow = false;
+  scene.add(at(stone, (rand() - 0.5) * 50, 0.03, (rand() - 0.5) * 34));
+}
+// The worn path toward home, off to the west
+const path = new THREE.Mesh(new THREE.PlaneGeometry(18, 3.2), mat('#e9d3a8'));
+path.rotation.x = -Math.PI / 2;
+path.receiveShadow = true;
+scene.add(at(path, -22, 0.02, 1.5));
+
+// ---------------------------------------------------------------- Props
+
+// A market stall: counter, posts, striped awning, goods, a name board, and a lantern for the evening
+function makeStall(x, z, colors, name, goods) {
+  const g = new THREE.Group();
+  const W = 3.2;
+  g.add(at(rbox(W, 0.95, 1.2, '#8d5524', 0.08), 0, 0.48, 0));
+  g.add(at(rbox(W + 0.2, 0.14, 1.4, '#b27436', 0.05), 0, 1.0, 0));
+  g.add(at(rbox(W - 0.3, 0.06, 0.02, '#6e4219', 0.01), 0, 0.62, 0.61)); // a plank line on the front
+  g.add(at(rbox(W - 0.3, 0.06, 0.02, '#6e4219', 0.01), 0, 0.32, 0.61));
+  for (const px of [-W / 2 + 0.1, W / 2 - 0.1]) for (const pz of [-0.55, 0.55]) g.add(at(cyl(0.07, 0.08, 2.5, '#6e4219', 7), px, 1.25, pz));
+
+  // The awning: stripes sloping down toward the front, with a scalloped edge
+  const stripes = 7;
+  const sw = (W + 0.6) / stripes;
+  const awning = new THREE.Group();
+  for (let i = 0; i < stripes; i++) {
+    const c = colors[i % 2];
+    awning.add(at(rbox(sw, 0.08, 1.9, c, 0.03), -W / 2 - 0.3 + sw * (i + 0.5), 0, 0));
+    const scallop = mesh(new THREE.CylinderGeometry(sw / 2, sw / 2, 0.08, 12, 1, false, 0, Math.PI), c);
+    scallop.rotation.x = Math.PI / 2;
+    scallop.rotation.z = Math.PI / 2;
+    awning.add(at(scallop, -W / 2 - 0.3 + sw * (i + 0.5), 0, 0.95));
+  }
+  awning.rotation.x = 0.28;
+  g.add(at(awning, 0, 2.55, 0));
+
+  // Goods along the counter
+  goods.forEach((kind, i) => {
+    const item = makeGood(kind);
+    g.add(at(item, -W / 2 + 0.45 + i * ((W - 0.9) / (goods.length - 1)), 1.1, 0.1));
+  });
+
+  // Name board on top
+  const board = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.6), new THREE.MeshStandardMaterial({ map: textTexture(name), roughness: 0.9 }));
+  board.rotation.x = -0.35;
+  g.add(at(board, 0, 3.2, 0.35));
+
+  // A lantern hanging from the front of the awning, lit in the evening
+  const lantern = new THREE.Group();
+  lantern.add(at(cyl(0.11, 0.13, 0.26, '#3b2a20', 8), 0, 0, 0));
+  const glass = mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.18, 8), new THREE.MeshStandardMaterial({ color: '#ffe2a0', emissive: '#ffb347', emissiveIntensity: 0 }));
+  lantern.add(glass);
+  g.add(at(lantern, W / 2 - 0.3, 2.0, 0.95));
+  const light = new THREE.PointLight(0xffb060, 0, 9, 1.6);
+  light.position.set(W / 2 - 0.3, 1.9, 1.2);
+  g.add(light);
+  lanterns.push({ glass, light });
+
+  addSolid(x, z, W + 0.2, 1.4);
+  scene.add(at(g, x, 0, z));
+  return g;
+}
+
+// Small goods, built from shapes
+function makeGood(kind) {
+  const g = new THREE.Group();
+  if (kind === 'bread') {
+    const loaf = ball(0.2, '#d4a24c', 9, 6);
+    loaf.scale.set(1.3, 0.75, 0.9);
+    g.add(at(loaf, 0, 0.1, 0));
+  } else if (kind === 'water') {
+    for (let i = 0; i < 3; i++) {
+      const sachet = rbox(0.24, 0.07, 0.17, '#8fd0f5', 0.03);
+      sachet.rotation.y = i * 0.5;
+      g.add(at(sachet, (i - 1) * 0.08, 0.04 + i * 0.07, 0));
+    }
+  } else if (kind === 'plantain') {
+    for (let i = 0; i < 3; i++) {
+      const p = mesh(new THREE.TorusGeometry(0.22, 0.05, 6, 10, Math.PI * 0.75), i === 1 ? '#d9c34a' : '#7fb069');
+      p.rotation.set(Math.PI / 2, 0, i * 0.3);
+      g.add(at(p, 0, 0.06 + i * 0.05, -0.05));
+    }
+  } else if (kind === 'tomato') {
+    for (let i = 0; i < 4; i++) g.add(at(ball(0.11, '#d94b3d', 8, 6), (i % 2) * 0.18 - 0.09, 0.1 + Math.floor(i / 2) * 0.12, (i % 2) * 0.05));
+  } else if (kind === 'yam') {
+    const yam = ball(0.13, '#b5835a', 8, 6);
+    yam.scale.set(2.2, 0.8, 0.9);
+    g.add(at(yam, 0, 0.1, 0));
+  } else if (kind === 'orange') {
+    for (let i = 0; i < 3; i++) g.add(at(ball(0.12, '#f5a623', 8, 6), (i - 1) * 0.2, 0.12, 0));
+  }
+  return g;
+}
+
+// A market umbrella: a pole and a canopy of alternating colours. Only the pole is solid.
+function makeUmbrella(x, z, a, b) {
+  const g = new THREE.Group();
+  g.add(at(cyl(0.05, 0.06, 2.6, '#6e4219', 6), 0, 1.3, 0));
+  const parts = 8;
+  for (let i = 0; i < parts; i++) {
+    g.add(at(mesh(new THREE.ConeGeometry(1.6, 0.7, 1, 1, false, (i / parts) * Math.PI * 2, (Math.PI * 2) / parts), i % 2 ? a : b), 0, 2.75, 0));
+  }
+  g.add(at(ball(0.08, '#3b2a20', 6, 4), 0, 3.12, 0));
+  addSolid(x, z, 0.3, 0.3);
+  scene.add(at(g, x, 0, z));
+}
+
+// The supplier's crates, each with its goods on top
+function makeCrate(x, z, kind) {
+  const g = new THREE.Group();
+  g.add(at(rbox(1.0, 0.7, 0.8, '#a0682f', 0.05), 0, 0.35, 0));
+  for (const y of [0.18, 0.5]) g.add(at(rbox(1.02, 0.08, 0.82, '#7a4a1e', 0.02), 0, y, 0));
+  const goods = makeGood(kind);
+  goods.scale.setScalar(1.3);
+  g.add(at(goods, 0, 0.7, 0));
+  addSolid(x, z, 1.0, 0.8);
+  scene.add(at(g, x, 0, z));
+}
+
+// A shady tree: trunk plus clumps of leaves
+function makeTree(x, z, s = 1) {
+  const g = new THREE.Group();
+  g.add(at(cyl(0.18 * s, 0.26 * s, 2.2 * s, '#8d5524', 7), 0, 1.1 * s, 0));
+  const leaves = [[0, 3.0, 0, 1.4], [0.9, 2.6, 0.3, 1.0], [-0.9, 2.7, -0.2, 1.05], [0.2, 2.5, 0.9, 0.9], [-0.3, 3.6, -0.3, 0.9]];
+  leaves.forEach(([lx, ly, lz, r], i) => g.add(at(mesh(new THREE.IcosahedronGeometry(r * s, 0), i % 2 ? '#3a7d44' : '#4a9a52'), lx * s, ly * s, lz * s)));
+  addSolid(x, z, 0.5 * s, 0.5 * s);
+  scene.add(at(g, x, 0, z));
+}
+
+function makeBush(x, z) {
+  const g = new THREE.Group();
+  [[-0.35, 0.3, 0, 0.45], [0.35, 0.3, 0.05, 0.42], [0, 0.45, -0.1, 0.5]].forEach(([bx, by, bz, r], i) =>
+    g.add(at(mesh(new THREE.IcosahedronGeometry(r, 0), i === 2 ? '#4a9a52' : '#3a7d44'), bx, by, bz)));
+  g.add(at(ball(0.07, '#d6336c', 6, 4), 0.2, 0.85, 0.25));
+  g.add(at(ball(0.07, '#f6c026', 6, 4), -0.3, 0.7, 0.3));
+  addSolid(x, z, 1.2, 0.8);
+  scene.add(at(g, x, 0, z));
+}
+
+function makeSignpost(x, z, label, pointsLeft) {
+  const g = new THREE.Group();
+  g.add(at(cyl(0.07, 0.08, 2.0, '#6e4219', 6), 0, 1.0, 0));
+  const board = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.5), new THREE.MeshStandardMaterial({ map: textTexture((pointsLeft ? '← ' : '') + label + (pointsLeft ? '' : ' →'), { size: 60 }), roughness: 0.9 }));
+  board.rotation.x = -0.2;
+  g.add(at(board, 0, 1.75, 0.1));
+  addSolid(x, z, 0.3, 0.3);
+  scene.add(at(g, x, 0, z));
+}
+
+function makeSack(x, z, color) {
+  const sack = ball(0.35, color, 8, 6);
+  sack.scale.set(1, 1.2, 0.9);
+  scene.add(at(sack, x, 0.4, z));
+  addSolid(x, z, 0.7, 0.6);
+}
+
+// ---------------------------------------------------------------- The market
+const lanterns = [];
+const STALL = { x: 4, z: 0 };
+makeStall(STALL.x, STALL.z, ['#1fa7a0', '#fff4dc'], 'My Stall', ['bread', 'water', 'plantain', 'water', 'bread']);
+makeStall(-6, 6, ['#d6336c', '#fff4dc'], 'Maame Gyasiwaa', ['yam', 'tomato', 'plantain', 'yam']);
+makeStall(11, -6, ['#f39c12', '#fff4dc'], 'Fresh Tomatoes', ['tomato', 'tomato', 'orange', 'tomato']);
+makeStall(-3, -7, ['#2f5fd0', '#f6c026'], 'Fruit Corner', ['orange', 'plantain', 'orange', 'orange']);
+
+// The supplier: a mat and three crates
+const matRug = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 1.8), mat('#6b5a45'));
+matRug.rotation.x = -Math.PI / 2;
+matRug.receiveShadow = true;
+scene.add(at(matRug, -5, 0.015, -1));
+makeCrate(-6.4, -1, 'bread');
+makeCrate(-5, -1, 'water');
+makeCrate(-3.6, -1, 'plantain');
+const supplierSign = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 0.55), new THREE.MeshStandardMaterial({ map: textTexture('SUPPLIER', { bg: null, fg: '#fff4dc', size: 70 }), transparent: true }));
+supplierSign.rotation.x = -Math.PI / 2 + 0.3;
+scene.add(at(supplierSign, -5, 0.05, -2.3));
+
+makeUmbrella(-2.2, 6.6, '#d6336c', '#fff4dc');
+makeUmbrella(8.5, 6.6, '#f6c026', '#1fa7a0');
+makeUmbrella(-9.5, -4.5, '#2f5fd0', '#fff4dc');
+makeTree(-14, -9, 1.2);
+makeTree(16, 10, 1.1);
+makeTree(18, -4, 0.9);
+makeBush(-11, 12.8);
+makeBush(8, 12.8);
+makeBush(11, -13.2);
+makeSack(6.3, -1, '#e8d9b8');
+makeSack(6.9, -0.6, '#d9c39a');
+makeSignpost(-12.5, -0.6, 'Home', true);
+
+// A lamp post that lights the middle of the market at night
+{
+  const g = new THREE.Group();
+  g.add(at(cyl(0.06, 0.09, 3.2, '#3b2a20', 6), 0, 1.6, 0));
+  const glass = mesh(new THREE.BoxGeometry(0.3, 0.35, 0.3), new THREE.MeshStandardMaterial({ color: '#ffe2a0', emissive: '#ffb347', emissiveIntensity: 0 }));
+  g.add(at(glass, 0, 3.3, 0));
+  const light = new THREE.PointLight(0xffc070, 0, 12, 1.5);
+  light.position.set(0, 3.1, 0);
+  g.add(light);
+  lanterns.push({ glass, light });
+  addSolid(-0.5, 9, 0.3, 0.3);
+  scene.add(at(g, -0.5, 0, 9));
+}
+
+// ---------------------------------------------------------------- People
+
+const SKINS = ['#6b4226', '#8d5a3b', '#a8714a', '#5a3620', '#7a4a2a'];
+const SHIRTS = ['#8e44ad', '#e67e22', '#2f5fd0', '#1fa7a0', '#d6336c', '#3a7d44', '#f6c026'];
+const PANTS = ['#2c3e50', '#3b2a20', '#34495e', '#5a4632'];
+const pick = list => list[Math.floor(Math.random() * list.length)];
+
+// A person built from simple shapes. The front faces +z. Arms and legs swing from the shoulders and hips.
+function makePerson(look) {
+  const g = new THREE.Group();
+  const legs = [];
+  const arms = [];
+
+  for (const side of [-1, 1]) {
+    const hip = new THREE.Group();
+    hip.position.set(side * 0.13, 0.82, 0);
+    hip.add(at(rbox(0.2, 0.74, 0.22, look.woman ? look.skin : look.pants, 0.07), 0, -0.4, 0));
+    hip.add(at(rbox(0.22, 0.1, 0.32, '#3b2a20', 0.04), 0, -0.78, 0.05));
+    g.add(hip);
+    legs.push(hip);
+
+    const shoulder = new THREE.Group();
+    shoulder.position.set(side * 0.37, 1.38, 0);
+    shoulder.add(at(rbox(0.16, 0.5, 0.18, look.shirt, 0.07), 0, -0.22, 0));
+    shoulder.add(at(ball(0.09, look.skin, 8, 6), 0, -0.52, 0));
+    g.add(shoulder);
+    arms.push(shoulder);
+  }
+
+  const body = new THREE.Group();
+  g.add(body);
+  body.add(at(rbox(0.58, 0.64, 0.34, look.shirt, 0.12), 0, 1.15, 0));
+  if (look.woman) body.add(at(cyl(0.28, 0.4, 0.5, look.pants, 10), 0, 0.72, 0)); // a wrap skirt
+  body.add(at(cyl(0.08, 0.09, 0.12, look.skin, 6), 0, 1.5, 0));
+
+  const head = new THREE.Group();
+  head.position.y = 1.74;
+  body.add(head);
+  head.add(ball(0.28, look.skin, 14, 10));
+  for (const side of [-1, 1]) head.add(at(ball(0.04, '#1a1a1a', 6, 4), side * 0.1, 0.03, 0.25));
+  head.add(at(ball(0.05, look.skin, 6, 4), 0, -0.04, 0.27)); // nose
+
+  // Hair and hats
+  if (look.hair === 'cap') {
+    head.add(at(mesh(new THREE.SphereGeometry(0.3, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), look.cap), 0, 0.04, 0));
+    head.add(at(rbox(0.36, 0.05, 0.26, look.cap, 0.02), 0, 0.06, 0.26));
+  } else if (look.hair === 'wrap') {
+    const wrap = ball(0.31, look.wrap, 12, 8);
+    wrap.scale.set(1, 0.85, 1);
+    head.add(at(wrap, 0, 0.12, -0.03));
+    head.add(at(ball(0.13, look.wrap, 8, 6), 0, 0.38, -0.08));
+  } else if (look.hair === 'bun') {
+    head.add(at(mesh(new THREE.SphereGeometry(0.295, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2.2), '#1a1a1a'), 0, 0.02, -0.01));
+    head.add(at(ball(0.12, '#1a1a1a', 8, 6), 0, 0.26, -0.18));
+  } else {
+    head.add(at(mesh(new THREE.SphereGeometry(0.295, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2.4), look.hairColor ?? '#1a1a1a'), 0, 0.03, -0.01));
+  }
+
+  scene.add(g);
+  return { group: g, body, legs, arms, phase: Math.random() * 6, facing: 0, breath: Math.random() * 6 };
+}
+
+function randomLook() {
+  const woman = Math.random() < 0.5;
+  return {
+    woman,
+    skin: pick(SKINS),
+    shirt: pick(SHIRTS),
+    pants: pick(PANTS),
+    hair: woman ? pick(['wrap', 'bun', 'short']) : pick(['short', 'short', 'cap']),
+    wrap: pick(['#d6336c', '#f39c12', '#1fa7a0', '#f6c026']),
+    cap: pick(['#2f5fd0', '#3b2a20', '#d6336c'])
+  };
+}
+
+// Turns a person to face where they are going, and swings their arms and legs as they walk.
+// speed is in metres per second.
+function animatePerson(p, dt, speed, faceAngle) {
+  if (faceAngle !== null && faceAngle !== undefined) {
+    let diff = faceAngle - p.facing;
+    diff = Math.atan2(Math.sin(diff), Math.cos(diff)); // the short way round
+    p.facing += diff * Math.min(1, dt * 12);
+    p.group.rotation.y = p.facing;
+  }
+
+  const walking = speed > 0.15;
+  if (walking) p.phase += dt * (4 + speed * 2.2);
+  const amount = walking ? Math.min(1, speed / 2.5) : 0;
+  p.swing = (p.swing ?? 0) + (amount - (p.swing ?? 0)) * Math.min(1, dt * 10);
+  const s = Math.sin(p.phase) * 0.75 * p.swing;
+  p.legs[0].rotation.x = s;
+  p.legs[1].rotation.x = -s;
+  p.arms[0].rotation.x = -s * 0.85;
+  p.arms[1].rotation.x = s * 0.85;
+  p.body.position.y = Math.abs(Math.cos(p.phase)) * 0.06 * p.swing;
+
+  // A gentle breath while standing
+  p.breath += dt;
+  p.body.scale.y = 1 + Math.sin(p.breath * 2.2) * 0.012 * (1 - p.swing);
+}
+
+// Moves a point toward a target at a steady speed. Returns true on arrival.
+function moveToward(pos, target, speed, dt) {
+  const dx = target.x - pos.x;
+  const dz = target.z - pos.z;
+  const d = Math.hypot(dx, dz);
+  if (d < 0.05) return true;
+  const step = Math.min(d, speed * dt);
+  pos.x += (dx / d) * step;
+  pos.z += (dz / d) * step;
+  return false;
+}
+
+// ---------------------------------------------------------------- The player
+const player = makePerson({ woman: false, skin: '#6b4226', shirt: '#f39c12', pants: '#2c3e50', hair: 'cap', cap: '#f39c12' });
+const pos = new THREE.Vector3(1.5, 0, 3.2);
+const vel = new THREE.Vector2(0, 0);
+const keys = {};
+addEventListener('keydown', e => { keys[e.code] = true; if (e.code === 'KeyE') serve(); });
+addEventListener('keyup', e => { keys[e.code] = false; });
+
+// Can someone of this size stand here?
+function blocked(x, z, r = 0.32) {
+  if (Math.abs(x) > 26 || Math.abs(z) > 16) return true;
+  return solids.some(s => x + r > s.minX && x - r < s.maxX && z + r > s.minZ && z - r < s.maxZ);
+}
+
+// Maame Gyasiwaa stands by her stall
+const mentor = makePerson({ woman: true, skin: '#a8714a', shirt: '#1fa7a0', pants: '#d6336c', hair: 'wrap', wrap: '#d6336c' });
+const mentorPos = { x: -8.3, z: 6.6 };
+
+// ---------------------------------------------------------------- Customers
+const items = { bread: 9, water: 3, plantain: 6 };
+let cash = 100;
+const slots = [-1, 0, 1].map(i => ({ x: STALL.x + i * 1.0, z: STALL.z + 1.55, customer: null }));
+const customers = [];
+let spawnIn = 2;
+
+// A thought bubble showing what someone wants
+function bubbleSprite(kind) {
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const g = c.getContext('2d');
+  g.fillStyle = '#fff'; g.strokeStyle = '#3b2a20'; g.lineWidth = 6;
+  g.beginPath(); g.ellipse(64, 54, 52, 44, 0, 0, Math.PI * 2); g.fill(); g.stroke();
+  g.beginPath(); g.arc(40, 108, 9, 0, Math.PI * 2); g.fill(); g.stroke();
+  g.lineWidth = 4;
+  if (kind === 'bread') { g.fillStyle = '#d4a24c'; g.beginPath(); g.ellipse(64, 56, 30, 18, 0, 0, Math.PI * 2); g.fill(); g.stroke(); }
+  if (kind === 'water') { g.fillStyle = '#8fd0f5'; g.beginPath(); g.roundRect(40, 36, 48, 38, 8); g.fill(); g.stroke(); }
+  if (kind === 'plantain') { g.strokeStyle = '#7fb069'; g.lineWidth = 14; g.lineCap = 'round'; g.beginPath(); g.arc(64, 30, 32, 0.6, 2.5); g.stroke(); }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t }));
+  s.scale.set(0.8, 0.8, 1);
+  return s;
+}
+
+// Words that float up and fade, like "+GH₵9"
+const floaters = [];
+function floatText(text, x, y, z, color = '#7CFC98') {
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: textTexture(text, { bg: null, fg: color, size: 70, w: 512, h: 128 }), transparent: true, depthTest: false }));
+  s.scale.set(2.4, 0.6, 1);
+  s.position.set(x, y, z);
+  scene.add(s);
+  floaters.push({ s, life: 1.1 });
+}
+
+const LANE_IN = STALL.z + 3.0;   // customers arrive along this line
+const LANE_OUT = STALL.z + 4.1;  // and leave along this one, so they never meet head-on
+
+function spawnCustomer() {
+  const slot = slots.find(s => !s.customer);
+  if (!slot) return;
+  const kinds = Object.keys(items);
+  const kind = kinds[Math.floor(Math.random() * kinds.length)];
+  const fromRight = Math.random() < 0.6;
+  const c = {
+    p: makePerson(randomLook()),
+    pos: { x: fromRight ? 22 : -16, z: LANE_IN },
+    path: [{ x: slot.x, z: LANE_IN }, { x: slot.x, z: slot.z }],
+    state: 'arriving',
+    kind,
+    slot,
+    patience: 18,
+    bubble: null
+  };
+  slot.customer = c;
+  customers.push(c);
+}
+
+function leave(c) {
+  c.state = 'leaving';
+  c.slot.customer = null;
+  if (c.bubble) { scene.remove(c.bubble); c.bubble = null; }
+  const exitX = Math.random() < 0.5 ? -24 : 24; // people head off in different directions
+  c.path = [{ x: c.pos.x, z: LANE_OUT }, { x: exitX, z: LANE_OUT }];
+}
+
+function nearStall() {
+  return Math.abs(pos.x - STALL.x) < 2.4 && pos.z > STALL.z && pos.z - STALL.z < 2.6;
+}
+
+function serve() {
+  if (!nearStall()) return;
+  const c = customers.filter(c => c.state === 'waiting').sort((a, b) => a.patience - b.patience)[0];
+  if (!c) return;
+  cash += items[c.kind];
+  floatText(`+GH₵${items[c.kind]}`, c.pos.x, 2.6, c.pos.z);
+  leave(c);
+}
+
+function updateCustomers(dt) {
+  spawnIn -= dt;
+  if (spawnIn <= 0) { spawnCustomer(); spawnIn = 4 + Math.random() * 5; }
+
+  for (const c of customers) {
+    let speed = 0;
+    let face = null;
+    if (c.path.length) {
+      const target = c.path[0];
+      face = Math.atan2(target.x - c.pos.x, target.z - c.pos.z);
+      const before = { ...c.pos };
+      if (moveToward(c.pos, target, 2.3, dt)) c.path.shift();
+      speed = Math.hypot(c.pos.x - before.x, c.pos.z - before.z) / dt;
+    } else if (c.state === 'arriving') {
+      c.state = 'waiting';
+      c.bubble = bubbleSprite(c.kind);
+      scene.add(c.bubble);
+    } else if (c.state === 'waiting') {
+      face = Math.PI; // facing the stall
+      c.patience -= dt;
+      if (c.patience <= 0) { floatText('Customer left', c.pos.x, 2.6, c.pos.z, '#ff6b6b'); leave(c); }
+    } else if (c.state === 'leaving') {
+      c.gone = true;
+    }
+    c.p.group.position.set(c.pos.x, 0, c.pos.z);
+    animatePerson(c.p, dt, speed, face);
+    if (c.bubble) {
+      c.bubble.position.set(c.pos.x, 2.55 + Math.sin(performance.now() / 300) * 0.04, c.pos.z);
+      c.bubble.material.opacity = c.patience < 5 ? 0.5 + 0.5 * Math.abs(Math.sin(performance.now() / 150)) : 1;
+    }
+  }
+  for (const c of customers.filter(c => c.gone)) scene.remove(c.p.group);
+  for (let i = customers.length - 1; i >= 0; i--) if (customers[i].gone) customers.splice(i, 1);
+}
+
+// People strolling around the market on a loop
+const LOOP = [{ x: -15, z: 10 }, { x: 15, z: 10 }, { x: 15, z: -10.5 }, { x: -15, z: -10.5 }];
+const strollers = [0, 1, 2, 3, 4].map(i => {
+  const dir = i % 2 ? 1 : -1;
+  const start = i % 4;
+  const nextIndex = (start + (dir > 0 ? 1 : 3)) % 4;
+  // Each keeps to their right of the loop's line, so people going opposite ways pass side by side
+  const offset = dir > 0 ? 0.6 : -0.6;
+  return { p: makePerson(randomLook()), pos: { x: LOOP[start].x + offset, z: LOOP[start].z + offset }, next: nextIndex, dir, offset, speed: 1.5 + Math.random() * 0.5 };
+});
+
+function updateStrollers(dt) {
+  for (const s of strollers) {
+    const target = { x: LOOP[s.next].x + s.offset, z: LOOP[s.next].z + s.offset };
+    const face = Math.atan2(target.x - s.pos.x, target.z - s.pos.z);
+    if (moveToward(s.pos, target, s.speed, dt)) s.next = (s.next + (s.dir > 0 ? 1 : 3)) % 4;
+    s.p.group.position.set(s.pos.x, 0, s.pos.z);
+    animatePerson(s.p, dt, s.speed, face);
+  }
+}
+
+// ---------------------------------------------------------------- Light through the day
+
+const sun = new THREE.DirectionalLight(0xffffff, 3);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -22, right: 22, top: 22, bottom: -22, near: 1, far: 90 });
+sun.shadow.bias = -0.0004;
+sun.shadow.normalBias = 0.03;
+scene.add(sun, sun.target);
+const hemi = new THREE.HemisphereLight(0xd8ecff, 0xc49a64, 1);
+scene.add(hemi);
+
+// What the light looks like at key hours. Between them, the colours blend.
+const KEYS = [
+  { h: 5.5, sky: '#26315a', sun: '#ff9a6a', sunI: 0.0, top: '#4a5a90', bottom: '#3a2a30', hemiI: 0.55, lamps: 1 },
+  { h: 6.5, sky: '#f4c2a1', sun: '#ffb07a', sunI: 1.6, top: '#c9d4ef', bottom: '#b08a66', hemiI: 0.85, lamps: 0 },
+  { h: 9, sky: '#a9dcf2', sun: '#fff1dc', sunI: 2.7, top: '#d8ecff', bottom: '#c49a64', hemiI: 1.0, lamps: 0 },
+  { h: 13, sky: '#9ed6f2', sun: '#fffaf0', sunI: 3.0, top: '#d8ecff', bottom: '#c49a64', hemiI: 1.1, lamps: 0 },
+  { h: 16, sky: '#b5d8ea', sun: '#ffe2b5', sunI: 2.7, top: '#e4e4ea', bottom: '#c49a64', hemiI: 1.0, lamps: 0 },
+  { h: 17.6, sky: '#f7a96f', sun: '#ff9a55', sunI: 2.5, top: '#f8d0a8', bottom: '#b0805a', hemiI: 1.05, lamps: 0.1 },
+  { h: 18.6, sky: '#a35f72', sun: '#ff7a48', sunI: 1.1, top: '#b48ab0', bottom: '#5a4050', hemiI: 0.8, lamps: 0.8 },
+  { h: 19.6, sky: '#1f2c56', sun: '#8fa6e0', sunI: 0.45, top: '#3a5090', bottom: '#2a2030', hemiI: 0.42, lamps: 1 },
+  { h: 22.5, sky: '#111938', sun: '#8fa6e0', sunI: 0.4, top: '#2c3e70', bottom: '#1e1828', hemiI: 0.34, lamps: 1 }
+];
+const cA = new THREE.Color();
+const cB = new THREE.Color();
+function blend(a, b, t, out) { return out.copy(cA.set(a)).lerp(cB.set(b), t); }
+
+function applyTime(minutes) {
+  const h = minutes / 60;
+  let i = KEYS.findIndex(k => k.h > h);
+  if (i <= 0) i = i === 0 ? 1 : KEYS.length - 1;
+  const a = KEYS[i - 1];
+  const b = KEYS[i];
+  const t = THREE.MathUtils.clamp((h - a.h) / (b.h - a.h), 0, 1);
+
+  const sky = blend(a.sky, b.sky, t, new THREE.Color());
+  scene.background = sky;
+  scene.fog.color.copy(sky);
+  blend(a.sun, b.sun, t, sun.color);
+  sun.intensity = THREE.MathUtils.lerp(a.sunI, b.sunI, t);
+  blend(a.top, b.top, t, hemi.color);
+  blend(a.bottom, b.bottom, t, hemi.groundColor);
+  hemi.intensity = THREE.MathUtils.lerp(a.hemiI, b.hemiI, t);
+  document.body.style.background = '#' + sky.getHexString();
+
+  // The sun rises in the east (right), crosses the sky, and sets in the west. After dark the moon takes over.
+  const day = THREE.MathUtils.clamp((h - 6) / 12.9, 0, 1);
+  const arc = day * Math.PI;
+  const sunUp = h >= 5.8 && h <= 19.0;
+  const dir = sunUp
+    ? new THREE.Vector3(Math.cos(arc) * 30, Math.max(4, Math.sin(arc) * 30), 18)
+    : new THREE.Vector3(-12, 26, 14);
+  sun.position.copy(pos).add(dir);
+  sun.target.position.copy(pos);
+
+  const lamps = THREE.MathUtils.lerp(a.lamps, b.lamps, t);
+  for (const l of lanterns) {
+    l.light.intensity = lamps * 9;
+    l.glass.material.emissiveIntensity = lamps * 2.2;
+  }
+}
+
+// ---------------------------------------------------------------- Time controls
+let minutes = 360;
+let running = true;
+let fast = true;
+const slider = document.getElementById('slider');
+const playBtn = document.getElementById('playBtn');
+const fastBtn = document.getElementById('fastBtn');
+slider.addEventListener('input', () => { minutes = Number(slider.value); });
+playBtn.addEventListener('click', () => { running = !running; playBtn.textContent = running ? 'Pause time' : 'Play time'; playBtn.classList.toggle('on', running); playBtn.blur(); });
+fastBtn.addEventListener('click', () => { fast = !fast; fastBtn.textContent = fast ? 'Fast' : 'Game speed'; fastBtn.classList.toggle('on', fast); fastBtn.blur(); });
+
+function clockText(m) {
+  const total = Math.floor(m);
+  const h24 = Math.floor(total / 60) % 24;
+  const mins = total % 60;
+  return `${((h24 + 11) % 12) + 1}:${String(mins).padStart(2, '0')} ${h24 >= 12 ? 'PM' : 'AM'}`;
+}
+
+// ---------------------------------------------------------------- Each frame
+const clock = new THREE.Clock();
+const camTarget = new THREE.Vector3().copy(pos);
+const CAM_OFFSET = new THREE.Vector3(0, 11.5, 12);
+// The mouse wheel zooms in and out
+addEventListener('wheel', e => { const k = THREE.MathUtils.clamp(CAM_OFFSET.length() * (1 + Math.sign(e.deltaY) * 0.08), 8, 32) / CAM_OFFSET.length(); CAM_OFFSET.multiplyScalar(k); }, { passive: true });
+const promptEl = document.getElementById('prompt');
+
+function tick() {
+  const dt = Math.min(0.05, clock.getDelta());
+
+  // Time of day: the game's own speed is 5.5 game minutes per second. Fast is four times that.
+  if (running) {
+    minutes += dt * 5.5 * (fast ? 4 : 1);
+    if (minutes > 1320) minutes = 360;
+    slider.value = String(Math.floor(minutes));
+  }
+  document.getElementById('clock').textContent = clockText(minutes);
+  document.getElementById('cash').textContent = `GH₵${cash}`;
+
+  // The player: speed builds up and fades out, and they can't walk through solid things
+  let ix = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
+  let iz = (keys.KeyS || keys.ArrowDown ? 1 : 0) - (keys.KeyW || keys.ArrowUp ? 1 : 0);
+  const len = Math.hypot(ix, iz) || 1;
+  const want = new THREE.Vector2(ix / len, iz / len).multiplyScalar(ix || iz ? 4.2 : 0);
+  vel.lerp(want, Math.min(1, dt * 9));
+  const nx = pos.x + vel.x * dt;
+  if (!blocked(nx, pos.z) && !bumpsPerson(nx, pos.z)) pos.x = nx; else vel.x = 0;
+  const nz = pos.z + vel.y * dt;
+  if (!blocked(pos.x, nz) && !bumpsPerson(pos.x, nz)) pos.z = nz; else vel.y = 0;
+  player.group.position.copy(pos);
+  const speed = vel.length();
+  animatePerson(player, dt, speed, speed > 0.3 ? Math.atan2(vel.x, vel.y) : null);
+
+  mentor.group.position.set(mentorPos.x, 0, mentorPos.z);
+  animatePerson(mentor, dt, 0, 0.4);
+
+  updateCustomers(dt);
+  updateStrollers(dt);
+
+  for (let i = floaters.length - 1; i >= 0; i--) {
+    const f = floaters[i];
+    f.life -= dt;
+    f.s.position.y += dt * 1.2;
+    f.s.material.opacity = Math.max(0, f.life);
+    if (f.life <= 0) { scene.remove(f.s); floaters.splice(i, 1); }
+  }
+
+  const waiting = customers.some(c => c.state === 'waiting');
+  promptEl.style.display = nearStall() && waiting ? 'block' : 'none';
+  promptEl.textContent = 'E: Serve customer';
+
+  // The camera glides after the player from above and behind
+  camTarget.lerp(pos, Math.min(1, dt * 4));
+  camera.position.copy(camTarget).add(CAM_OFFSET);
+  camera.lookAt(camTarget.x, 0.8, camTarget.z);
+
+  applyTime(minutes);
+  renderer.render(scene, camera);
+  requestAnimationFrame(tick);
+}
+
+// The player can't walk through other people either
+function bumpsPerson(x, z) {
+  const others = [mentorPos, ...customers.map(c => c.pos), ...strollers.map(s => s.pos)];
+  return others.some(o => Math.hypot(o.x - x, o.z - z) < 0.62 && Math.hypot(o.x - pos.x, o.z - pos.z) >= Math.hypot(o.x - x, o.z - z));
+}
+
+tick();
+</script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+{
+  "_about": "Places the player can walk around. Sizes are in metres; the middle of a place is (0, 0); x runs east, z runs south (toward the camera). Props are built by src/world/props.js. Exits: walk off that stretch of an edge to go to another place. Entries: where the player appears. Things: what the player can use that isn't a person.",
+
+  "home": {
+    "id": "home",
+    "name": "Home",
+    "size": [26, 18],
+    "ground": "#cdb48a",
+    "seed": 11,
+    "props": [
+      { "type": "path", "x": 11, "z": 3.4, "w": 18, "d": 2.2, "color": "#e3cfa6" },
+      { "type": "house", "x": -2, "z": -1.5, "w": 11, "d": 7.5, "door": "south", "doorAt": 3, "wall": "#f1e2c4", "roof": "#c0563a", "floor": "#d7c4a0" },
+      { "type": "bed", "x": -6.2, "z": -3.6, "cover": "#f39c12" },
+      { "type": "toys", "x": -4.4, "z": -4.6 },
+      { "type": "rug", "x": -5.4, "z": -0.6, "w": 2.4, "d": 1.6, "color": "#2f5fd0", "inner": "#f6c026" },
+      { "type": "sofa", "x": 0, "z": -4.4, "color": "#1fa7a0" },
+      { "type": "rug", "x": 0, "z": -2.4, "w": 2.8, "d": 1.6 },
+      { "type": "table", "x": -1.8, "z": 0.6, "w": 1.5, "d": 0.9 },
+      { "type": "chair", "x": -2.8, "z": 0.6, "rot": 90 },
+      { "type": "chair", "x": -0.8, "z": 0.6, "rot": 270 },
+      { "type": "stove", "x": 2.6, "z": -4.7 },
+      { "type": "shelf", "x": -2.6, "z": -4.9 },
+      { "type": "floorLamp", "x": -1.6, "z": -4.6 },
+      { "type": "plant", "x": 2.9, "z": 1.6 },
+      { "type": "tree", "x": 8.5, "z": -5, "size": 1.2 },
+      { "type": "tree", "x": -10.5, "z": 5, "size": 1 },
+      { "type": "flowers", "x": -4, "z": 4, "w": 4, "d": 0.9 },
+      { "type": "bush", "x": 5.2, "z": 6.6 },
+      { "type": "bush", "x": -9.5, "z": -6.5 },
+      { "type": "bench", "x": 6.5, "z": 0, "rot": 0 },
+      { "type": "fence", "x": -12.6, "z": -8.4, "length": 25.2 },
+      { "type": "fence", "x": -12.6, "z": -8.4, "length": 16.8, "rot": 90 },
+      { "type": "sign", "x": 11.2, "z": 1.6, "text": "Willow Lane →" }
+    ],
+    "exits": [
+      { "edge": "east", "min": 2.2, "max": 4.8, "to": "lane", "arriveAt": "fromHome", "label": "Willow Lane" }
+    ],
+    "entries": {
+      "bed": { "x": -4.8, "z": -2.6, "facing": 0 },
+      "fromLane": { "x": 12, "z": 3.4, "facing": -90 }
+    },
+    "things": [
+      { "id": "bed", "kind": "sleep", "x": -6.2, "z": -2.4, "label": "Bed" },
+      { "id": "toys", "kind": "look", "x": -4.4, "z": -4, "label": "Look at your toys", "text": "Your toy box. The red ball is losing its bounce." }
+    ]
+  },
+
+  "lane": {
+    "id": "lane",
+    "name": "Willow Lane",
+    "size": [44, 26],
+    "ground": "#c9b58c",
+    "seed": 23,
+    "props": [
+      { "type": "road", "x": 0, "z": 3.4, "length": 90, "width": 4.4 },
+      { "type": "path", "x": 0, "z": 0.2, "w": 90, "d": 1.6, "color": "#ddd2bd" },
+      { "type": "house", "x": -12, "z": -6, "w": 8, "d": 6, "door": "south", "wall": "#e8d4f0", "roof": "#5a6aa0", "floor": "#d9cdb8" },
+      { "type": "sofa", "x": -12, "z": -7.9, "color": "#f39c12" },
+      { "type": "table", "x": -13.6, "z": -5.2, "w": 1.1, "d": 0.8 },
+      { "type": "plant", "x": -9, "z": -4 },
+      { "type": "shop", "x": 1, "z": -6, "w": 8, "d": 6, "door": "south", "wall": "#fbe3b0", "roof": "#3a7d44", "floor": "#e2d6c0", "sign": "Corner Shop", "awning": "#d6336c" },
+      { "type": "shelf", "x": -1.5, "z": -8.3 },
+      { "type": "shelf", "x": 1, "z": -8.3 },
+      { "type": "shelf", "x": 3.5, "z": -8.3 },
+      { "type": "table", "x": 3, "z": -5.4, "w": 2, "d": 0.8 },
+      { "type": "house", "x": 13, "z": -6, "w": 8, "d": 6, "door": "south", "doorAt": -1.5, "wall": "#d4ecd8", "roof": "#b5652b", "floor": "#d7c9a8" },
+      { "type": "bed", "x": 15.2, "z": -7.4, "cover": "#d6336c" },
+      { "type": "table", "x": 14.8, "z": -4.4, "w": 1.2, "d": 0.8 },
+      { "type": "flowers", "x": -12, "z": -2, "w": 5, "d": 0.8 },
+      { "type": "flowers", "x": 13, "z": -2, "w": 4, "d": 0.8 },
+      { "type": "streetLamp", "x": -6, "z": 1 },
+      { "type": "streetLamp", "x": 7, "z": 1 },
+      { "type": "car", "x": 18, "z": 3.4, "rot": 90, "color": "#d6336c" },
+      { "type": "path", "x": 0, "z": 9.2, "w": 18, "d": 6.4, "color": "#9cc27a" },
+      { "type": "tree", "x": -6.5, "z": 9.5, "size": 1.1 },
+      { "type": "tree", "x": 7, "z": 10.5, "size": 1.3 },
+      { "type": "bench", "x": -2, "z": 8.2 },
+      { "type": "bench", "x": 3, "z": 8.2 },
+      { "type": "bush", "x": -16, "z": 9 },
+      { "type": "bush", "x": 16, "z": 9.5 },
+      { "type": "tree", "x": -18, "z": -10 },
+      { "type": "tree", "x": 19, "z": -10.5, "size": 0.9 },
+      { "type": "sign", "x": -19.5, "z": 0.6, "text": "← Home" }
+    ],
+    "exits": [
+      { "edge": "west", "min": 1.2, "max": 5.6, "to": "home", "arriveAt": "fromLane", "label": "Home" }
+    ],
+    "entries": {
+      "fromHome": { "x": -20.6, "z": 3.4, "facing": 90 },
+      "title": { "x": 0, "z": 4, "facing": 0 }
+    },
+    "things": []
+  }
+}

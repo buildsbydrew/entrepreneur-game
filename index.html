@@ -1,21 +1,16 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Market Game</title>
-  <link rel="stylesheet" href="css/style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#3b2a20">
+  <title>Larkhaven</title>
 </head>
 <body>
-  <div id="game"></div>
-  <div id="ui"></div>
-  <button id="pause-btn" hidden aria-label="Pause game">II</button>
-  <button id="notebook-btn" hidden aria-label="Open Notebook">Notebook</button>
-  <div id="touch" hidden>
-    <div id="stick" aria-label="Move"><div id="knob"></div></div>
-    <button id="use-btn" aria-label="Use">Use</button>
+  <div id="app">
+    <div id="world"></div>
+    <div id="ui"></div>
   </div>
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
-  <script type="module" src="js/main.js"></script>
+  <script type="module" src="/src/main.js"></script>
 </body>
 </html>

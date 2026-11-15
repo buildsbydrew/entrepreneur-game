@@ -1,0 +1,125 @@
+/* The interface drawn over the 3D world: the corner readouts, conversations, menus and phone controls. */
+:root {
+  --ink: #3b2a20;
+  --cream: #fff4dc;
+  --paper: #fffaf0;
+  --orange: #f39c12;
+  --teal: #1fa7a0;
+  --magenta: #d6336c;
+  --shade: rgba(43, 30, 22, 0.82);
+  --radius: 16px;
+  --font: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #9ed6f2; font-family: var(--font); color: var(--ink);
+  -webkit-tap-highlight-color: transparent; user-select: none; touch-action: none; overscroll-behavior: none; }
+#world { position: fixed; inset: 0; }
+#world canvas { display: block; }
+#ui { position: fixed; inset: 0; pointer-events: none; }
+#ui > * { pointer-events: auto; }
+.hidden { display: none !important; }
+
+button { font: inherit; cursor: pointer; }
+.btn { font-weight: bold; font-size: 18px; color: var(--ink); background: var(--cream); border: 3px solid var(--ink);
+  border-radius: 14px; padding: 10px 22px; box-shadow: 0 4px 0 var(--ink); transition: transform .08s, box-shadow .08s; }
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+.btn.primary { background: var(--orange); }
+.btn:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+
+/* ---------- Corner readouts ---------- */
+.hud { position: fixed; top: 12px; display: flex; gap: 8px; pointer-events: none; }
+.hud.left { left: 12px; }
+.hud.right { right: 12px; }
+.chip { background: var(--shade); color: var(--cream); border-radius: 999px; padding: 6px 14px; font-weight: bold;
+  font-size: 16px; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.chip small { font-weight: normal; opacity: .8; }
+.coin { width: 18px; height: 18px; flex: none; }
+.icon-btn { pointer-events: auto; width: 40px; height: 40px; border-radius: 50%; border: 3px solid var(--ink);
+  background: var(--cream); font-weight: bold; font-size: 16px; box-shadow: 0 3px 0 var(--ink); display: grid; place-items: center; }
+
+/* ---------- "Press E" prompt, floating over the world ---------- */
+.prompt { position: fixed; transform: translate(-50%, -100%); background: var(--shade); color: var(--cream);
+  padding: 5px 12px; border-radius: 10px; font-weight: bold; font-size: 15px; white-space: nowrap; pointer-events: none; }
+.prompt kbd { background: var(--cream); color: var(--ink); border-radius: 6px; padding: 0 6px; margin-right: 6px; font-family: inherit; }
+body.is-touch .prompt kbd { display: none; }
+
+/* ---------- Short messages across the top ---------- */
+.toasts { position: fixed; top: 64px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column;
+  align-items: center; gap: 6px; pointer-events: none; }
+.toast { background: var(--ink); color: var(--cream); padding: 8px 16px; border-radius: 12px; font-weight: bold;
+  font-size: 15px; animation: toast-in .25s ease-out, toast-out .5s ease-in 3.2s forwards; max-width: min(90vw, 520px); text-align: center; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(-8px); } }
+@keyframes toast-out { to { opacity: 0; transform: translateY(-8px); } }
+
+/* ---------- Conversations ---------- */
+.dialogue { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); width: min(720px, calc(100% - 24px));
+  background: var(--paper); border: 3px solid var(--ink); border-radius: var(--radius); box-shadow: 0 6px 0 var(--ink);
+  padding: 14px 18px 16px; }
+.dialogue .speaker { display: inline-block; background: var(--orange); color: var(--ink); font-weight: bold;
+  border: 3px solid var(--ink); border-radius: 10px; padding: 2px 12px; margin: -32px 0 6px; }
+.dialogue .speaker.you { background: var(--teal); color: var(--cream); }
+.dialogue .text { font-size: 19px; line-height: 1.45; min-height: 2.9em; }
+.dialogue .next { font-size: 13px; opacity: .65; text-align: right; margin-top: 4px; }
+.choices { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.choice { text-align: left; font-size: 17px; background: var(--cream); border: 3px solid var(--ink); border-radius: 12px;
+  padding: 9px 14px; box-shadow: 0 3px 0 var(--ink); color: var(--ink); }
+.choice:hover, .choice:focus-visible { background: #ffe6b3; outline: none; }
+.choice .num { display: inline-block; width: 24px; font-weight: bold; color: var(--magenta); }
+body.is-touch .choice .num { display: none; }
+.feeling { position: fixed; pointer-events: none; font-weight: bold; font-size: 16px; padding: 4px 10px; border-radius: 10px;
+  transform: translate(-50%, -100%); animation: float-up 1.4s ease-out forwards; color: var(--cream); background: var(--shade); }
+@keyframes float-up { to { opacity: 0; margin-top: -40px; } }
+
+/* ---------- Full-screen menus ---------- */
+.screen { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; }
+.screen.dim { background: rgba(20, 16, 30, 0.45); }
+.panel { background: var(--paper); border: 3px solid var(--ink); border-radius: 22px; box-shadow: 0 8px 0 var(--ink);
+  padding: 26px 28px; width: min(440px, 100%); text-align: center; }
+.panel h1 { margin: 0 0 4px; font-size: clamp(34px, 8vw, 54px); letter-spacing: 1px; }
+.panel h2 { margin: 0 0 14px; font-size: 26px; }
+.panel p { margin: 6px 0 16px; line-height: 1.4; }
+.panel .stack { display: flex; flex-direction: column; gap: 12px; align-items: stretch; }
+.panel .row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.panel .muted { opacity: .7; font-size: 14px; }
+.panel label { display: block; text-align: left; font-weight: bold; margin: 10px 0 6px; }
+.panel input[type=text] { width: 100%; font: inherit; font-size: 18px; padding: 10px 12px; border: 3px solid var(--ink); border-radius: 12px; background: var(--cream); }
+.swatch { width: 38px; height: 38px; border-radius: 50%; border: 3px solid var(--ink); }
+.swatch.on, .toggle.on { outline: 4px solid var(--orange); outline-offset: 2px; }
+.toggle { font-weight: bold; padding: 8px 14px; border: 3px solid var(--ink); border-radius: 12px; background: var(--cream); }
+.title-screen { background: linear-gradient(180deg, rgba(255,244,220,0) 40%, rgba(43,30,22,.35)); }
+.title-screen .panel { background: rgba(255, 250, 240, 0.94); }
+
+/* ---------- The fade between places and days ---------- */
+.fade { position: fixed; inset: 0; background: #0d0a14; opacity: 0; pointer-events: none; transition: opacity .35s; display: grid; place-items: center; }
+.fade.on { opacity: 1; }
+.fade .card { color: var(--cream); text-align: center; font-size: 28px; font-weight: bold; opacity: 0; transition: opacity .6s; }
+.fade .card small { display: block; font-size: 17px; font-weight: normal; opacity: .75; margin-top: 6px; }
+.fade.show-card .card { opacity: 1; }
+
+/* ---------- Phone controls ---------- */
+.touch-pad { display: none; }
+body.is-touch .touch-pad { display: block; }
+.touch-pad.hidden { display: none !important; }
+.stick-base { position: fixed; width: 110px; height: 110px; margin: -55px 0 0 -55px; border-radius: 50%;
+  background: rgba(255, 244, 220, 0.25); border: 3px solid rgba(59, 42, 32, 0.5); left: 90px; top: calc(100% - 110px);
+  pointer-events: none; opacity: .55; }
+.stick-base.active { opacity: 1; }
+.stick-knob { position: absolute; left: 50%; top: 50%; width: 50px; height: 50px; margin: -25px 0 0 -25px; border-radius: 50%;
+  background: var(--cream); border: 3px solid var(--ink); }
+.action-btn { position: fixed; right: 26px; bottom: 34px; width: 84px; height: 84px; border-radius: 50%;
+  background: var(--orange); border: 3px solid var(--ink); box-shadow: 0 5px 0 var(--ink); font-size: 15px; font-weight: bold;
+  color: var(--ink); padding: 4px; line-height: 1.1; }
+.action-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--ink); }
+
+/* ---------- Testing panel (only with ?dev in the address) ---------- */
+.dev { position: fixed; left: 12px; bottom: 12px; background: var(--shade); color: var(--cream); border-radius: 12px; padding: 8px 10px;
+  font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; max-width: calc(100% - 24px); }
+.dev button { font-size: 12px; padding: 3px 8px; border-radius: 8px; border: 2px solid var(--ink); background: var(--cream); }
+.dev input { width: 140px; }
+
+@media (max-width: 560px) {
+  .chip { font-size: 14px; padding: 5px 10px; }
+  .dialogue .text { font-size: 17px; }
+  .choice { font-size: 16px; }
+}

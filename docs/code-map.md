@@ -1,67 +1,50 @@
 # Code map
 
-Where things live. Update this when the structure changes.
+Where things live in the 3D life game. Update this when the structure changes.
 
-## Scenes (`js/scenes/`)
+## Running it
 
-| File | What it is |
+```
+npm install      (once, after cloning)
+npm run dev      (play it at http://localhost:5173 ; add ?dev for the testing panel)
+npm test         (checks the clock, saving and conversations)
+npm run build    (packs the game into dist/ for the web and, later, the phone app)
+```
+
+## `src/`
+
+| Folder / file | What it is |
 | --- | --- |
-| `BootScene.js` | Loads the data files and draws the art once, then opens the menu. |
-| `MenuScene.js` | The title screen, with Continue if there is a saved game. |
-| `SetupScene.js` | Building the character and naming the stall. |
-| `WorldScene.js` | What every place the player can walk around has in common. |
-| `HomeScene.js` | Home: where the player wakes and sleeps. Games start here. It extends `WorldScene`. |
-| `MarketScene.js` | The market. It extends `WorldScene`. |
-| `PauseScene.js` | The pause menu, shown over a frozen place. |
-| `constants.js` | Numbers shared by the scenes: sizes, speeds, drawing order. |
+| `main.js` | Starts the game. Adds the testing panel with `?dev`. |
+| `core/Game.js` | The game itself: the 3D view, the current place, people, the player, camera, time, talking, sleeping, pause, saving. |
+| `core/clock.js` | The calendar (seasons, years, age) and time of day. No drawing; tested. |
+| `core/state.js` | The life being played: who you are, the date, money, where you are, how people feel about you, what has happened. |
+| `core/save.js` | Saving and loading, with a version number. Saves every 10 seconds, on every change of place, on sleep, and when the game is hidden. Tested. |
+| `core/input.js` | Keyboard, plus the phone joystick and action button. |
+| `render/shapes.js` | Building blocks for 3D shapes, shared materials, painted text for signs. |
+| `render/daylight.js` | The sun, sky and lamps through the day. |
+| `render/quality.js` | Low / Medium / High picture quality. |
+| `world/Place.js` | Builds a place from data: ground, props, exits at the edges, things to use. Lifts roofs when you walk inside. |
+| `world/props.js` | Every kind of prop: houses you can walk into, shops, furniture, trees, fences, roads, lamps, cars. |
+| `world/collision.js` | What can't be walked through: solid boxes and other people. Tested. |
+| `people/body.js` | A person's body for each stage of life (baby, child, teen, adult, elder), and how it moves. |
+| `people/Person.js` | One person: position, facing, walking, stepping aside for others. The player is one too. |
+| `story/conversation.js` | Conversation rules: which conversation someone wants to have, which choices show, what they change. Tested. |
+| `story/talk.js` | Plays a conversation on screen. |
+| `ui/ui.js`, `ui/ui.css` | The interface: corner readouts, prompts, messages, conversations, title, new life, pause menu, fades. |
 
-### Shared by every place (`js/scenes/world/`)
+## `src/data/` (change the game without touching code)
 
-| File | What it does |
+| File | What it holds |
 | --- | --- |
-| `hud.js` | The interface: cash, stock, clock, messages, the "press E" prompt. |
-| `controls.js` | The player, the camera, and moving with keys or the joystick. |
-| `modal.js` | Conversations and the Notebook. |
-| `pause.js` | Opening the pause menu. |
-| `missions.js` | The goals panel, finishing goals, the level-complete screen. |
-| `clock.js` | The clock on screen, and noticing 6 PM (trading ends) and 10 PM (bedtime). |
-| `day.js` | The shape of a day anywhere: closing the trading day, the Takings report, the evening, sleeping, waking up. |
-| `travel.js` | Getting a place ready, and walking off an edge into the next place (arrows, signposts, the fade). |
-| `saving.js` | Saving the game. |
-| `signs.js` | Wooden name boards over stalls. |
+| `world.json` | The world's name, the currency's name, the calendar, the length of a day, starting money. |
+| `places.json` | Every place: size, props, exits, entries, things to use. |
+| `people.json` | Every person: where they live and stand, their look, their stage of life, their conversations. |
+| `conversations.json` | What people say, the choices, and what each choice changes. |
 
-### The market only (`js/scenes/market/`)
+## Elsewhere
 
-| File | What it does |
-| --- | --- |
-| `stall.js` | The player's stall, opening and closing, serving customers. |
-| `customers.js` | Where customers wait, who comes, what they want. |
-| `supplier.js` | The supplier, buying stock, the umbrellas. |
-| `mentor.js` | Maame Gyasiwaa: her stall, her walks and errands, what she says. |
-| `ambient.js` | The other traders and strollers, and who shops where. |
-| `prices.js` | The price board and how customers react to prices. |
-| `day.js` | The market's part of the day: closing the stall at 6 PM, her evening visit, her morning talks, leaving for home. |
-
-### Home only (`js/scenes/home/`)
-
-| File | What it does |
-| --- | --- |
-| `room.js` | The walls, door, furniture, the bed, and the path to the market. Laid out in `data/places.json`. |
-
-A scene is built from its own class plus these files. Each file exports a group of methods that
-are added to the scene, so inside them `this` is the scene.
-
-## Everything else
-
-| Folder | What is in it |
-| --- | --- |
-| `js/entities/` | People and how they move: `Customer`, `Walker`, `PersonSprite`, `Mover`, `crowd`, `routes`, `movement`. |
-| `js/art/` | The art, drawn as code: `shapes`, `people`, `home`, `textures`. |
-| `js/audio/` | Sound effects, music and the market sounds, all made in code. |
-| `js/ui/` | The menu screens, touch controls, backdrop and options. |
-| `js/state.js` | The game's money, stock, goals and prices. No drawing. |
-| `js/dayClock.js` | The time of day, shared by every place, and the light at each hour. No drawing. |
-| `js/save.js` | Saving and loading. |
-| `js/mentor.js`, `js/missions.js` | The logic behind her conversations and the goals. |
-| `data/` | Items and prices (and the day's hours), levels and goals, the mentor's lines, the Notebook, the market's people, and `places.json`: each place's exits, entries, and home's layout. |
-| `docs/` | Design documents. |
+- `tests/` — the automatic checks (`npm test`).
+- `docs/life-design.md` — what the game is and what has been decided.
+- `prototypes/3d-market/` — the first 3D test scene.
+- `legacy-2d/` — the old 2D market game, kept for reference. It runs on its own with Live Server.
