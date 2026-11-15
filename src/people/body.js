@@ -14,14 +14,6 @@ export const STAGES = {
   elder: { leg: 0.7,  torso: 0.58, width: 0.56, head: 0.27, arm: 0.5,  stride: 0.5,  speed: 2.8, radius: 0.33, stoop: 0.16 }
 };
 
-export function stageForAge(age) {
-  if (age < 3) return 'baby';
-  if (age < 13) return 'child';
-  if (age < 20) return 'teen';
-  if (age < 60) return 'adult';
-  return 'elder';
-}
-
 // look: { body: 'boy' | 'girl', skin, shirt, bottom, hair: 'short' | 'bun' | 'wrap' | 'cap' | 'curls',
 //         hairColor, accent }
 export function buildBody(look, stage) {

@@ -1,32 +1,55 @@
 {
-  "_about": "The people in the world. PLACEHOLDER CAST: these exist to show how people, talking and choices work. The real characters and storylines will be written together. Each person: where they live (place), where they stand (spot, facing in degrees: 0 faces the camera, 90 faces east), places they sometimes stroll to (wander), their stage of life, their look, and the conversations they can have, in order of priority.",
+  "_about": "The people in the world. PLACEHOLDER CAST: these exist to show how people, talking and choices work; the real characters will be written together. born: their birth date (the player is born in year 1, day 1; a year is 120 days), so everyone ages as time passes. tags: groups used by focus choices (family, friends, neighbours). appearsFromAge: they only show up once they're this old. schedule: where they are through the day, from each hour onward (place null means away, off at work or elsewhere). spot facing is in degrees: 0 faces the camera, 90 faces east.",
   "people": [
     {
-      "id": "mum", "name": "Mum", "place": "home", "stage": "adult",
-      "spot": { "x": 2.0, "z": -3.6, "facing": 180 },
-      "wander": [{ "x": 1.8, "z": -1.2 }, { "x": -0.6, "z": -1.6 }],
+      "id": "mum", "name": "Mum", "born": { "year": -27, "day": 50 }, "tags": ["family"],
       "look": { "body": "girl", "skin": "#8d5a3b", "shirt": "#d6336c", "bottom": "#2f5fd0", "hair": "wrap", "accent": "#f6c026" },
-      "conversations": ["mum-first", "mum-money", "mum-again"]
+      "schedule": [
+        { "from": 0, "place": "home", "spot": { "x": 2.0, "z": -3.6, "facing": 180 }, "wander": [{ "x": 1.8, "z": -1.2 }, { "x": -0.6, "z": -1.6 }] },
+        { "from": 8, "place": null },
+        { "from": 17, "place": "home", "spot": { "x": -1.8, "z": -0.4, "facing": 0 }, "wander": [{ "x": 2.0, "z": -3.6 }, { "x": 0.4, "z": -2.0 }] }
+      ],
+      "conversations": ["mum-baby-morning", "mum-baby-again", "mum-first", "mum-money", "mum-again"]
     },
     {
-      "id": "nico", "name": "Nico", "place": "lane", "stage": "child",
-      "spot": { "x": -1, "z": 10.4, "facing": 0 },
-      "wander": [{ "x": 2.5, "z": 11 }, { "x": -4.2, "z": 7 }, { "x": 1.2, "z": 6.6 }],
+      "id": "gran", "name": "Gran", "born": { "year": -66, "day": 3 }, "tags": ["family"],
+      "look": { "body": "girl", "skin": "#7a4a2a", "shirt": "#3a7d44", "bottom": "#5a4632", "hair": "short" },
+      "schedule": [
+        { "from": 0, "place": "home", "spot": { "x": 0.9, "z": -3.1, "facing": 0 }, "wander": [{ "x": -3.8, "z": -1.8 }, { "x": 1.4, "z": -2.6 }] },
+        { "from": 15, "place": "home", "spot": { "x": 6.5, "z": 0.8, "facing": 0 }, "wander": [{ "x": 4.6, "z": 4.6 }, { "x": -2, "z": 4.8 }] },
+        { "from": 19, "place": "home", "spot": { "x": 0.9, "z": -3.1, "facing": 0 } }
+      ],
+      "conversations": ["gran-baby", "gran-child", "gran-again"]
+    },
+    {
+      "id": "nico", "name": "Nico", "born": { "year": 1, "day": 70 }, "tags": ["friends"], "appearsFromAge": 4,
       "look": { "body": "boy", "skin": "#c68a5e", "shirt": "#3a7d44", "bottom": "#3b2a20", "hair": "curls", "hairColor": "#3b2a20" },
+      "schedule": [
+        { "from": 0, "place": null },
+        { "from": 8, "place": "lane", "spot": { "x": -1, "z": 10.4, "facing": 0 }, "wander": [{ "x": 2.5, "z": 11 }, { "x": -4.2, "z": 7 }, { "x": 1.2, "z": 6.6 }] },
+        { "from": 18.5, "place": null }
+      ],
       "conversations": ["nico-first", "nico-friend", "nico-again"]
     },
     {
-      "id": "pell", "name": "Mrs Pell", "place": "lane", "stage": "elder",
-      "spot": { "x": -12, "z": -1.2, "facing": 0 },
-      "wander": [{ "x": -9.6, "z": -1.4 }, { "x": -14, "z": -1.3 }],
+      "id": "pell", "name": "Mrs Pell", "born": { "year": -70, "day": 88 }, "tags": ["neighbours"],
       "look": { "body": "girl", "skin": "#e0b48c", "shirt": "#8e44ad", "bottom": "#5a4632", "hair": "bun" },
+      "schedule": [
+        { "from": 0, "place": "lane", "spot": { "x": -10.4, "z": -6.2, "facing": 0 } },
+        { "from": 7, "place": "lane", "spot": { "x": -12, "z": -1.2, "facing": 0 }, "wander": [{ "x": -9.6, "z": -1.4 }, { "x": -14, "z": -1.3 }] },
+        { "from": 19, "place": "lane", "spot": { "x": -10.4, "z": -6.2, "facing": 0 } }
+      ],
       "conversations": ["pell-first", "pell-again"]
     },
     {
-      "id": "ambrose", "name": "Mr Ambrose", "place": "lane", "stage": "adult",
-      "spot": { "x": 3, "z": -6.4, "facing": 0 },
+      "id": "ambrose", "name": "Mr Ambrose", "born": { "year": -40, "day": 12 }, "tags": ["neighbours"],
       "look": { "body": "boy", "skin": "#5a3620", "shirt": "#f6c026", "bottom": "#34495e", "hair": "short" },
-      "conversations": ["ambrose-sweets", "ambrose-again"]
+      "schedule": [
+        { "from": 0, "place": null },
+        { "from": 7, "place": "lane", "spot": { "x": 3, "z": -6.4, "facing": 0 } },
+        { "from": 21, "place": null }
+      ],
+      "conversations": ["ambrose-sweets"]
     }
   ],
   "skins": ["#f1c9a5", "#e0b48c", "#c68a5e", "#a8714a", "#8d5a3b", "#5a3620"]

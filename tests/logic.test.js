@@ -89,9 +89,10 @@ describe('conversations', () => {
   });
 
   it('choices change how people feel, and money', () => {
+    state.money = 20;
     applyEffects({ bond: 2, money: -5 }, 'nico');
     expect(personRecord('nico').bond).toBe(2);
-    expect(state.money).toBe(world.startingMoney - 5);
+    expect(state.money).toBe(15);
     applyEffects({ money: -9999 });
     expect(state.money).toBe(0); // money never goes below zero
   });

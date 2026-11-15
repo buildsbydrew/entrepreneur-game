@@ -64,8 +64,9 @@ export default class Person {
     return moved;
   }
 
+  // points: [{ x, z }]. A point marked door: true must be passed through (people never skip a doorway).
   walkTo(points) {
-    this.route = points.map(p => ({ x: p.x, z: p.z }));
+    this.route = points.map(p => ({ x: p.x, z: p.z, door: Boolean(p.door) }));
   }
 
   // Follows the route. If someone is in the way they wait a moment, then step to their own right,
@@ -91,7 +92,12 @@ export default class Person {
         this.moveBy((-dz / dist) * speed * 0.6, (dx / dist) * speed * 0.6, dt);
       }
       if (this.wait > 3) {
-        this.route.shift();
+        // Still stuck: skip this point, except a doorway, which they step into so they never end up walking round the walls
+        const point = this.route.shift();
+        if (point.door && !this.space.solids.some(s => point.x > s.minX && point.x < s.maxX && point.z > s.minZ && point.z < s.maxZ)) {
+          this.pos.x = point.x;
+          this.pos.z = point.z;
+        }
         this.wait = 0;
       }
     } else {

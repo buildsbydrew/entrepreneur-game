@@ -93,6 +93,27 @@ export default class Place {
     return null;
   }
 
+  // A point just inside the edge, in the middle of a way out: where people arrive and leave
+  edgePoint(exit) {
+    const b = this.bounds;
+    const middle = (exit.min + exit.max) / 2;
+    return {
+      west: { x: b.minX + 0.6, z: middle },
+      east: { x: b.maxX - 0.6, z: middle },
+      north: { x: middle, z: b.minZ + 0.6 },
+      south: { x: middle, z: b.maxZ - 0.6 }
+    }[exit.edge];
+  }
+
+  // The way from a spot to the edge: out through the door first if the spot is indoors
+  routeToEdge(from) {
+    const exit = (this.data.exits ?? [])[0];
+    if (!exit) return [];
+    const house = this.insideHouse(from.x, from.z);
+    const points = house ? [house.doorIn, house.doorOut] : [];
+    return [...points, this.edgePoint(exit)];
+  }
+
   insideHouse(x, z) {
     return this.houses.find(h => x > h.minX && x < h.maxX && z > h.minZ && z < h.maxZ) ?? null;
   }

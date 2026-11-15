@@ -8,14 +8,15 @@ export function createClock(world, { year = 1, day = 1, minutes } = {}) {
   return { year, day, minutes: minutes ?? world.day.wakeHour * 60 };
 }
 
-// How many game minutes pass in one real millisecond
-export function minutesPerMs(world) {
-  const { wakeHour, sleepHour, realMinutesPerDay } = world.day;
-  return ((sleepHour - wakeHour) * 60) / (realMinutesPerDay * 60 * 1000);
+// How many game minutes pass in one real millisecond. realMinutes is how long a played day lasts
+// (each stage of life can have its own; babies' days are shorter).
+export function minutesPerMs(world, realMinutes = world.day.realMinutesPerDay) {
+  const { wakeHour, sleepHour } = world.day;
+  return ((sleepHour - wakeHour) * 60) / (realMinutes * 60 * 1000);
 }
 
-export function tick(clock, world, deltaMs) {
-  clock.minutes += deltaMs * minutesPerMs(world);
+export function tick(clock, world, deltaMs, realMinutes) {
+  clock.minutes += deltaMs * minutesPerMs(world, realMinutes);
 }
 
 export function daysPerYear(world) {

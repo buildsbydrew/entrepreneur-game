@@ -1,13 +1,70 @@
 {
-  "_about": "PLACEHOLDER conversations, to show how talking and choices work until the real storylines are written. A line is [speaker id, text]; 'you' is the player. Choices can have conditions (if) and change things (effects: bond, money, setFlag). {name} is the player's name and {currency} the money's name.",
+  "_about": "PLACEHOLDER conversations, to show how talking and choices work until the real storylines are written. A line is [speaker id, text]; 'you' is the player. 'when' and a choice's 'if' are conditions (stage, minAge, flag, bondAtLeast, moneyAtLeast, trait...). Effects: bond, money, setFlag, traits, skills, happiness, remember. {name} is the player's name and {currency} the money's name.",
   "conversations": [
     {
-      "id": "mum-first", "with": "mum", "once": true, "start": "a",
+      "id": "mum-baby-morning", "with": "mum", "once": true, "start": "a", "when": { "stage": "baby" },
+      "nodes": {
+        "a": { "lines": [["mum", "Good morning, my little one. Look at those eyes, {name}. Wide awake already."]],
+          "choices": [
+            { "text": "(Giggle)", "effects": { "bond": 1, "traits": { "calm": 1 } }, "next": "giggle" },
+            { "text": "(Grab her nose)", "effects": { "bond": 1, "traits": { "bold": 1 } }, "next": "nose" },
+            { "text": "(Stare at the light behind her)", "effects": { "traits": { "curious": 1 } }, "next": "light" }
+          ] },
+        "giggle": { "lines": [["mum", "Oh, that laugh. Your father had that laugh."]], "effects": { "remember": "Mum said you laugh like your father." } },
+        "nose": { "lines": [["mum", "Ow! Strong grip. You'll be trouble, you will."]] },
+        "light": { "lines": [["mum", "Always looking past me at something more interesting."]] }
+      }
+    },
+    {
+      "id": "mum-baby-again", "with": "mum", "start": "a", "when": { "stage": "baby" },
+      "nodes": {
+        "a": { "lines": [["mum", "Who's my favourite? You are. Don't tell anyone."]],
+          "choices": [
+            { "text": "(Reach up to be held)", "effects": { "bond": 1, "happiness": 3 }, "next": null },
+            { "text": "(Babble back at her)", "effects": { "skills": { "social": 1 } }, "next": "babble" }
+          ] },
+        "babble": { "lines": [["mum", "Is that so? Fascinating. Tell me more."]] }
+      }
+    },
+    {
+      "id": "gran-baby", "with": "gran", "start": "a", "when": { "stage": "baby" },
+      "nodes": {
+        "a": { "lines": [["gran", "Come here, little bird. Gran's got a song for you."]],
+          "choices": [
+            { "text": "(Listen quietly)", "effects": { "bond": 1, "traits": { "calm": 1 } }, "next": "song" },
+            { "text": "(Clap your hands off the beat)", "effects": { "bond": 1, "traits": { "cheeky": 1 } }, "next": "clap" },
+            { "text": "(Cry)", "effects": { "bond": -1 }, "next": "cry" }
+          ] },
+        "song": { "lines": [["gran", "That's it. My mother sang me this one. One day you'll sing it too."]] },
+        "clap": { "lines": [["gran", "Ha! No rhythm at all. You'll fit right in with this family."]] },
+        "cry": { "lines": [["gran", "Alright, alright. Not a music lover. Noted."]] }
+      }
+    },
+    {
+      "id": "gran-child", "with": "gran", "once": true, "start": "a", "when": { "stage": "child" },
+      "nodes": {
+        "a": { "lines": [["gran", "{name}. Come and sit. Your mother works too hard, you know that?"]],
+          "choices": [
+            { "text": "Why does she work so much?", "next": "why" },
+            { "text": "Can I help her?", "effects": { "bond": 2, "traits": { "kind": 1 } }, "next": "help" },
+            { "text": "Gran, can I go and play?", "next": "play" }
+          ] },
+        "why": { "lines": [["gran", "Because things cost money, and money doesn't grow on the trees out there."], ["gran", "I've checked."]] },
+        "help": { "lines": [["gran", "You already do, just by being a good child. But keep asking. She'll remember you asked."]], "effects": { "remember": "Gran told you your mother works too hard. You asked how you could help." } },
+        "play": { "lines": [["gran", "Go on. Childhood doesn't last. Nobody tells you that until it's gone."]] }
+      }
+    },
+    {
+      "id": "gran-again", "with": "gran", "start": "a",
+      "nodes": { "a": { "lines": [["gran", "My knees are telling me it'll rain."]] } }
+    },
+    {
+      "id": "mum-first", "with": "mum", "once": true, "start": "a", "when": { "stage": "child" },
       "nodes": {
         "a": { "lines": [["mum", "There you are, {name}. Did you sleep well?"]],
           "choices": [
             { "text": "Yes! I dreamed I could fly.", "effects": { "bond": 1 }, "next": "fly" },
-            { "text": "Not really. The dog next door barked all night.", "next": "dog" },
+            { "text": "Not really. A dog barked all night.", "next": "dog" },
             { "text": "Can I go outside to play?", "next": "play" }
           ] },
         "fly": { "lines": [["mum", "Fly? Then you can fly to the shop for me one day."], ["mum", "Go on, the morning is the best part of the day."]] },
@@ -15,19 +72,19 @@
         "play": { "lines": [["mum", "Already? You haven't even said good morning."]],
           "choices": [
             { "text": "Good morning, Mum.", "effects": { "bond": 1 }, "next": "go" },
-            { "text": "Mum, pleeease.", "next": "go" }
+            { "text": "Mum, pleeease.", "effects": { "traits": { "cheeky": 1 } }, "next": "go" }
           ] },
         "go": { "lines": [["mum", "Fine. Stay on Willow Lane, and be back before dark."]] }
       }
     },
     {
-      "id": "mum-money", "with": "mum", "once": true, "start": "a", "when": { "flag": "wants-sweets" },
+      "id": "mum-money", "with": "mum", "once": true, "start": "a", "when": { "flag": "wants-sweets", "stage": ["child", "teen"] },
       "nodes": {
         "a": { "lines": [["you", "Mum... Mr Ambrose has new sweets at the shop."], ["mum", "And you have your own {currency}, don't you?"]],
           "choices": [
-            { "text": "I want to keep mine. Can you buy them?", "effects": { "bond": -1 }, "next": "no" },
+            { "text": "I want to keep mine. Can you buy them?", "effects": { "bond": -1, "traits": { "cheeky": 1 } }, "next": "no" },
             { "text": "I'll use my own. Just checking.", "effects": { "bond": 1 }, "next": "ok" },
-            { "text": "Can I earn some? I can sweep the yard.", "if": { "notFlag": "swept-yard" }, "effects": { "bond": 2, "money": 5, "setFlag": "swept-yard" }, "next": "work" }
+            { "text": "Can I earn some? I can sweep the yard.", "if": { "notFlag": "swept-yard" }, "effects": { "bond": 2, "money": 5, "setFlag": "swept-yard", "skills": { "money": 1 }, "remember": "You earned your first 5 {currency}, sweeping the yard." }, "next": "work" }
           ] },
         "no": { "lines": [["mum", "Keep yours, spend mine? Nice try."]] },
         "ok": { "lines": [["mum", "Good. It's yours. Spend it how you like, but it won't come back."]] },
@@ -39,24 +96,24 @@
       "nodes": { "a": { "lines": [["mum", "Back before dark, {name}. I mean it."]] } }
     },
     {
-      "id": "nico-first", "with": "nico", "once": true, "start": "a",
+      "id": "nico-first", "with": "nico", "once": true, "start": "a", "when": { "stage": ["child", "teen"] },
       "nodes": {
         "a": { "lines": [["nico", "Hey. You live at the end of the lane, right? I'm Nico."]],
           "choices": [
-            { "text": "I'm {name}. Want to play?", "effects": { "bond": 2 }, "next": "play" },
-            { "text": "...Hi.", "next": "shy" },
-            { "text": "I bet I can run faster than you.", "effects": { "bond": 1 }, "next": "race" }
+            { "text": "I'm {name}. Want to play?", "effects": { "bond": 2, "traits": { "bold": 1 } }, "next": "play" },
+            { "text": "...Hi.", "effects": { "traits": { "calm": 1 } }, "next": "shy" },
+            { "text": "I bet I can run faster than you.", "effects": { "bond": 1, "traits": { "cheeky": 1 } }, "next": "race" }
           ] },
-        "play": { "lines": [["nico", "Yes! Nobody else on this street is our age. It's all old people and cats."]] },
-        "shy": { "lines": [["nico", "You don't talk much. That's okay. I talk enough for two."]] },
-        "race": { "lines": [["nico", "No way. I'm the fastest on Willow Lane."], ["nico", "Tomorrow. Bench to the lamp post. You're on."]], "effects": { "setFlag": "race-challenge" } }
+        "play": { "lines": [["nico", "Yes! Nobody else on this street is our age. It's all old people and cats."]], "effects": { "remember": "You met Nico, the only other kid on Willow Lane." } },
+        "shy": { "lines": [["nico", "You don't talk much. That's okay. I talk enough for two."]], "effects": { "remember": "You met Nico, who talks enough for two." } },
+        "race": { "lines": [["nico", "No way. I'm the fastest on Willow Lane."], ["nico", "Bench to the lamp post. One day. You're on."]], "effects": { "setFlag": "race-challenge", "remember": "Nico challenged you to a race." } }
       }
     },
     {
       "id": "nico-friend", "with": "nico", "start": "a", "when": { "bondAtLeast": 2 },
       "nodes": { "a": { "lines": [["nico", "Mr Ambrose has new sweets. The fizzy ones."], ["nico", "I've only got 1 {currency} though."]],
         "choices": [
-          { "text": "I'll buy you one.", "if": { "moneyAtLeast": 2 }, "effects": { "bond": 2, "money": -2 }, "next": "kind" },
+          { "text": "I'll buy you one.", "if": { "moneyAtLeast": 2 }, "effects": { "bond": 2, "money": -2, "traits": { "kind": 1 } }, "next": "kind" },
           { "text": "Same. We're both broke.", "next": "broke" }
         ] },
         "kind": { "lines": [["nico", "Really? You're the best."]] },
@@ -68,11 +125,11 @@
       "nodes": { "a": { "lines": [["nico", "Did you see that cat? It's been sitting on the car all day."]] } }
     },
     {
-      "id": "pell-first", "with": "pell", "once": true, "start": "a",
+      "id": "pell-first", "with": "pell", "once": true, "start": "a", "when": { "stage": ["child", "teen", "adult"] },
       "nodes": {
         "a": { "lines": [["pell", "Oh, hello dear. You're the little one from the end house."], ["pell", "My knees aren't what they were. Would you carry my bag to the door?"]],
           "choices": [
-            { "text": "Of course, Mrs Pell.", "effects": { "bond": 3, "setFlag": "helped-pell" }, "next": "help" },
+            { "text": "Of course, Mrs Pell.", "effects": { "bond": 3, "setFlag": "helped-pell", "traits": { "kind": 1 } }, "next": "help" },
             { "text": "Sorry, I'm busy.", "effects": { "bond": -1 }, "next": "busy" }
           ] },
         "help": { "lines": [["pell", "What a kind child. Your mother raised you well."], ["pell", "Here. Don't tell her I gave you this."]], "effects": { "money": 2 } },
@@ -88,16 +145,12 @@
       "nodes": {
         "a": { "lines": [["ambrose", "Welcome, welcome. What can I get you?"]], "effects": { "setFlag": "wants-sweets" },
           "choices": [
-            { "text": "A fizzy sweet, please. (2 {currency})", "if": { "moneyAtLeast": 2 }, "effects": { "money": -2, "setFlag": "bought-sweet" }, "next": "buy" },
+            { "text": "A fizzy sweet, please. (2 {currency})", "if": { "moneyAtLeast": 2 }, "effects": { "money": -2, "setFlag": "bought-sweet", "happiness": 4 }, "next": "buy" },
             { "text": "Just looking.", "next": "look" }
           ] },
         "buy": { "lines": [["ambrose", "Good choice. Careful, they make your eyes water."]] },
         "look": { "lines": [["ambrose", "Looking is free. Buying is how I eat."]] }
       }
-    },
-    {
-      "id": "ambrose-again", "with": "ambrose", "start": "a",
-      "nodes": { "a": { "lines": [["ambrose", "Shop's open till late."]] } }
     }
   ]
 }

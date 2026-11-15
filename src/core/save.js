@@ -5,7 +5,7 @@
 import { exportState } from './state.js';
 
 const STORAGE_KEY = 'lifegame.save';
-export const VERSION = 1;
+export const VERSION = 2; // 2: wellbeing, skills, personality and the life journal were added
 
 const isObject = value => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 const isNumber = Number.isFinite;
@@ -18,6 +18,8 @@ export function isValid(data) {
   if (!isObject(s.clock) || ![s.clock.year, s.clock.day, s.clock.minutes].every(isNumber)) return false;
   if (!isNumber(s.money) || typeof s.place !== 'string') return false;
   if (s.player !== null && !(isObject(s.player) && isNumber(s.player.x) && isNumber(s.player.z))) return false;
+  if (!isObject(s.needs) || !['energy', 'health', 'happiness'].every(k => isNumber(s.needs[k]))) return false;
+  if (!isObject(s.skills) || !isObject(s.traits) || !Array.isArray(s.journal)) return false;
   return isObject(s.people) && isObject(s.flags);
 }
 

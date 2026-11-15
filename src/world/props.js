@@ -160,7 +160,11 @@ export const PROPS = {
     }
 
     // The place lifts the roof and front wall away while the player is inside
-    ctx.house({ minX: p.x - W / 2, maxX: p.x + W / 2, minZ: p.z - D / 2, maxZ: p.z + D / 2, roof, front });
+    // People walking in or out go through the door: a point just inside it and one just outside
+    const inward = { south: [0, -1], north: [0, 1], east: [-1, 0], west: [1, 0] }[doorSide];
+    const doorOut = { door: true, x: p.x + stepX + (step.along === 'x' ? 0 : Math.sign(step.cx) * 0.6), z: p.z + stepZ + (step.along === 'x' ? Math.sign(step.cz) * 0.6 : 0) };
+    const doorIn = { door: true, x: p.x + (step.along === 'x' ? doorAt : step.cx) + inward[0] * 0.9, z: p.z + (step.along === 'x' ? step.cz : doorAt) + inward[1] * 0.9 };
+    ctx.house({ minX: p.x - W / 2, maxX: p.x + W / 2, minZ: p.z - D / 2, maxZ: p.z + D / 2, roof, front, doorIn, doorOut });
   },
 
   // A small corner shop: a house with a sign and an awning over the door

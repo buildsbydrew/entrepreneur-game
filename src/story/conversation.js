@@ -7,9 +7,12 @@
 // A line is [speaker, text]; the speaker "you" is the player. A node with no choices ends the conversation.
 // "when" and a choice's "if" are conditions; "effects" change the game.
 import { state, personRecord } from '../core/state.js';
+import { playerAge, stageForAge, changeNeed, addTrait, addSkill, remember } from '../core/life.js';
+import world from '../data/world.json';
 
 // Conditions:  { "flag": "name" }  { "notFlag": "name" }  { "bondAtLeast": 3 }  { "bondBelow": 0 }
-//              { "moneyAtLeast": 5 }  { "talkedBefore": true }   (all listed must be true)
+//              { "moneyAtLeast": 5 }  { "talkedBefore": true }  { "stage": "baby" or ["child", "teen"] }
+//              { "minAge": 6 }  { "maxAge": 12 }  { "trait": "kind" }   (all listed must be true)
 export function conditionsMet(cond, personId) {
   if (!cond) return true;
   const record = personId ? personRecord(personId) : null;
@@ -19,11 +22,20 @@ export function conditionsMet(cond, personId) {
   if (cond.bondBelow !== undefined && (!record || record.bond >= cond.bondBelow)) return false;
   if (cond.moneyAtLeast !== undefined && state.money < cond.moneyAtLeast) return false;
   if (cond.talkedBefore !== undefined && (!record || (record.talks > 0) !== cond.talkedBefore)) return false;
+  if (cond.stage || cond.minAge !== undefined || cond.maxAge !== undefined) {
+    const age = playerAge(world);
+    const stages = [].concat(cond.stage ?? []);
+    if (stages.length && !stages.includes(stageForAge(age))) return false;
+    if (cond.minAge !== undefined && age < cond.minAge) return false;
+    if (cond.maxAge !== undefined && age > cond.maxAge) return false;
+  }
+  if (cond.trait && !((state.traits[cond.trait] ?? 0) > 0)) return false;
   return true;
 }
 
 // Effects:  { "bond": 2 }  (how the person you're talking to feels)  { "money": -5 }
-//           { "setFlag": "name" }  { "bondWith": { "mum": 1 } }
+//           { "setFlag": "name" }  { "bondWith": { "mum": 1 } }  { "traits": { "bold": 1 } }
+//           { "skills": { "social": 1 } }  { "happiness": 5 }  { "remember": "A line for the life journal" }
 export function applyEffects(effects, personId) {
   if (!effects) return [];
   const notes = []; // short messages for the player, like "Nico liked that"
@@ -42,6 +54,13 @@ export function applyEffects(effects, personId) {
     notes.push({ kind: 'money', amount: effects.money });
   }
   if (effects.setFlag) state.flags[effects.setFlag] = true;
+  Object.entries(effects.traits ?? {}).forEach(([id, v]) => addTrait(id, v));
+  Object.entries(effects.skills ?? {}).forEach(([id, v]) => addSkill(id, v));
+  if (effects.happiness) {
+    changeNeed('happiness', effects.happiness);
+    notes.push({ kind: 'happiness', amount: effects.happiness });
+  }
+  if (effects.remember) remember(fillText(effects.remember), world);
   return notes;
 }
 

@@ -1,5 +1,5 @@
 {
-  "_about": "Names that belong to the made-up world. Everything here is a placeholder until we pick the final names; change it here and it changes everywhere.",
+  "_about": "Names that belong to the made-up world, and how time works. Names are placeholders until we pick the final ones; change them here and they change everywhere.",
   "worldName": "Larkhaven",
   "currency": { "name": "orra", "plural": "orra", "symbol": "" },
   "calendar": {
@@ -11,5 +11,33 @@
     "sleepHour": 22,
     "realMinutesPerDay": 15
   },
-  "startingMoney": 20
+  "_chapters": "For each stage of life: how many real minutes a played day lasts, and how many days pass between played days (a year is 120 days). Together these make a whole life about 25 hours long.",
+  "chapters": {
+    "baby":  { "realMinutesPerDay": 6,  "jumpDays": 40 },
+    "child": { "realMinutesPerDay": 15, "jumpDays": 150 },
+    "teen":  { "realMinutesPerDay": 15, "jumpDays": 50 },
+    "adult": { "realMinutesPerDay": 15, "jumpDays": 80 },
+    "elder": { "realMinutesPerDay": 15, "jumpDays": 200 }
+  },
+  "stageNames": {
+    "child": "You're not a baby any more. You can walk properly now, and talk, and ask why.",
+    "teen": "You're a teenager now. Everything feels bigger.",
+    "adult": "You're an adult now. Your life is your own.",
+    "elder": "The years have caught up with you. Your hair is grey and your steps are slower."
+  },
+  "startingMoney": 0,
+  "skills": {
+    "study": "Study",
+    "social": "People",
+    "fitness": "Fitness",
+    "craft": "Making things",
+    "money": "Money sense"
+  },
+  "traits": {
+    "curious": "Curious",
+    "bold": "Bold",
+    "kind": "Kind",
+    "cheeky": "Cheeky",
+    "calm": "Calm"
+  }
 }

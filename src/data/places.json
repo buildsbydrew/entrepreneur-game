@@ -11,7 +11,8 @@
       { "type": "path", "x": 11, "z": 3.4, "w": 18, "d": 2.2, "color": "#e3cfa6" },
       { "type": "house", "x": -2, "z": -1.5, "w": 11, "d": 7.5, "door": "south", "doorAt": 3, "wall": "#f1e2c4", "roof": "#c0563a", "floor": "#d7c4a0" },
       { "type": "bed", "x": -6.2, "z": -3.6, "cover": "#f39c12" },
-      { "type": "toys", "x": -4.4, "z": -4.6 },
+      { "type": "cot", "x": -3.9, "z": -4.4 },
+      { "type": "toys", "x": -6.6, "z": 1.0 },
       { "type": "rug", "x": -5.4, "z": -0.6, "w": 2.4, "d": 1.6, "color": "#2f5fd0", "inner": "#f6c026" },
       { "type": "sofa", "x": 0, "z": -4.4, "color": "#1fa7a0" },
       { "type": "rug", "x": 0, "z": -2.4, "w": 2.8, "d": 1.6 },
@@ -37,11 +38,14 @@
     ],
     "entries": {
       "bed": { "x": -4.8, "z": -2.6, "facing": 0 },
+      "cot": { "x": -3.9, "z": -3.2, "facing": 0 },
       "fromLane": { "x": 12, "z": 3.4, "facing": -90 }
     },
     "things": [
-      { "id": "bed", "kind": "sleep", "x": -6.2, "z": -2.4, "label": "Bed" },
-      { "id": "toys", "kind": "look", "x": -4.4, "z": -4, "label": "Look at your toys", "text": "Your toy box. The red ball is losing its bounce." }
+      { "id": "bed", "kind": "sleep", "x": -6.2, "z": -2.4, "label": "Bed", "stages": ["child", "teen", "adult", "elder"] },
+      { "id": "cot", "kind": "sleep", "x": -3.9, "z": -3.5, "label": "Your cot", "stages": ["baby"] },
+      { "id": "toys", "kind": "look", "x": -6.6, "z": 1.6, "label": "Play with your toys", "text": "Your toy box. The red ball is losing its bounce.", "babyText": "You chew the red ball thoughtfully. Delicious.", "daily": { "traits": { "curious": 1 }, "needs": { "happiness": 4 } } },
+      { "id": "window", "kind": "look", "x": -4.75, "z": -4.7, "label": "Look out of the window", "stages": ["baby"], "text": "Birds. Leaves. A big wide world out there.", "daily": { "traits": { "curious": 1 } } }
     ]
   },
 
