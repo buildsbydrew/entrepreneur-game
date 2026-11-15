@@ -1,6 +1,7 @@
 // Draws every piece of art once, at startup, and hands it to Phaser as a texture.
 import { itemSvg, stallOpenSvg, stallClosedSvg, crateSvg, umbrellaSvg, bubbleSvg, tagSvg, dirtSvg, priceBoardSvg } from './shapes.js';
 import { makePersonSvg, WALK_FRAMES, CUSTOMER_LOOKS } from './people.js';
+import { HOME_ART } from './home.js';
 
 export const CUSTOMER_KEYS = CUSTOMER_LOOKS.map((look, i) => `customer-${i}`);
 
@@ -51,6 +52,7 @@ export function buildTextures(scene, setting, mentorLook, ambient) {
     ['stall-closed', stallClosedSvg()],
     ['mentor-stall', stallOpenSvg(MENTOR_GOODS, '#d6336c', '#fff4dc')],
     ['price-board', priceBoardSvg()],
+    ...Object.entries(HOME_ART).map(([key, draw]) => [key, draw()]),
     ...personJobs('mentor', mentorLook, MENTOR_VIEWS)
   ];
 

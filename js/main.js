@@ -2,6 +2,7 @@ import BootScene from './scenes/BootScene.js';
 import MenuScene from './scenes/MenuScene.js';
 import SetupScene from './scenes/SetupScene.js';
 import MarketScene from './scenes/MarketScene.js';
+import HomeScene from './scenes/HomeScene.js';
 import PauseScene from './scenes/PauseScene.js';
 import { initAudio } from './audio/sound.js';
 
@@ -19,7 +20,7 @@ const config = {
     default: 'arcade',
     arcade: { debug: false }
   },
-  scene: [BootScene, MenuScene, SetupScene, MarketScene, PauseScene]
+  scene: [BootScene, MenuScene, SetupScene, HomeScene, MarketScene, PauseScene]
 };
 
 new Phaser.Game(config);

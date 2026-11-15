@@ -12,6 +12,7 @@ export default class BootScene extends Phaser.Scene {
     this.load.json('notebook', 'data/notebook.json');
     this.load.json('levels', 'data/levels.json');
     this.load.json('ambient', 'data/ambient.json');
+    this.load.json('places', 'data/places.json');
   }
 
   create() {

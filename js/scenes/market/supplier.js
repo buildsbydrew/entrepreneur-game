@@ -3,6 +3,7 @@
 import { buy } from '../../state.js';
 import { play } from '../../audio/sound.js';
 import { DEPTH } from '../constants.js';
+import { clock } from '../../dayClock.js';
 
 export const supplierMethods = {
   createSupplier() {
@@ -53,7 +54,7 @@ export const supplierMethods = {
       this.interactables.push({
         x,
         y,
-        label: () => `Buy ${item.name} (${symbol}${item.buyPrice})`,
+        label: () => (clock.tradingClosed ? 'The supplier has packed up for today' : `Buy ${item.name} (${symbol}${item.buyPrice})`),
         use: () => this.buyItem(item)
       });
     });
@@ -68,6 +69,13 @@ export const supplierMethods = {
   // ---------- Supplier ----------
   buyItem(item) {
     const symbol = this.setting.currencySymbol;
+
+    // After closing time the supplier has gone home. Come back in the morning.
+    if (clock.tradingClosed) {
+      this.floatText('Back tomorrow', '#fff4dc');
+      play('error');
+      return;
+    }
 
     if (buy(item)) {
       this.floatText(`-${symbol}${item.buyPrice}`, '#ffd166');

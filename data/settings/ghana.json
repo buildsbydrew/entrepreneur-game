@@ -5,7 +5,9 @@
   "day": {
     "lengthMs": 120000,
     "startHour": 7,
-    "endHour": 18
+    "endHour": 18,
+    "wakeHour": 6,
+    "bedHour": 22
   },
   "customers": {
     "spawnMinMs": 4000,

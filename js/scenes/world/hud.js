@@ -3,6 +3,7 @@
 import { state, expiringTonight } from '../../state.js';
 import { touch, isTouchDevice } from '../../ui/touch.js';
 import { INTERACT_RANGE, DEPTH } from '../constants.js';
+import { skyTint } from '../../dayClock.js';
 
 export const hudMethods = {
   createHud() {
@@ -68,18 +69,18 @@ export const hudMethods = {
     this.statsText.setText(`Served: ${state.today.served}   Lost: ${state.today.lost}`);
   },
 
-  // A warm glow over the market that grows toward closing time
+  // The colour of the light: a cool dawn, a warm glow toward closing time, then night
   createDusk() {
     this.dusk = this.add.rectangle(0, 0, 6000, 6000, 0xff7a2f, 0)
       .setOrigin(0)
       .setScrollFactor(0)
       .setDepth(4000);
+    this.updateDusk();
   },
 
   updateDusk() {
-    const progress = 1 - this.dayTimeLeft / this.setting.day.lengthMs;
-    const amount = Math.min(1, Math.max(0, (progress - 0.6) / 0.4));
-    this.dusk.setAlpha(0.22 * amount);
+    const { color, alpha } = skyTint();
+    this.dusk.setFillStyle(color, 1).setAlpha(alpha);
   },
 
   // A short message across the top of the screen that fades away. Several can show at once.

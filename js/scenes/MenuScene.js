@@ -30,14 +30,14 @@ export default class MenuScene extends Phaser.Scene {
     this.events.once('shutdown', clearUi);
   }
 
-  // Brings back the saved character, draws them, and opens the market with the saved game
+  // Brings back the saved character, draws them, and wakes them at home with the saved game
   continueGame(save) {
     profile.stallName = save.profile.stallName;
     profile.look = { ...save.profile.look };
     this.registry.set('loadedState', save.state);
 
     buildPlayerTextures(this, profile.look)
-      .then(() => this.scene.start('MarketScene'))
+      .then(() => this.scene.start('HomeScene'))
       .catch(error => console.error(error));
   }
 }

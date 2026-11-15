@@ -46,7 +46,7 @@ export const pauseMethods = {
     // The short wait stops the key that closed the menu from opening it again
     if (this.modalOpen || this.scene.isPaused() || performance.now() - this.resumedAt < 300) return;
 
-    this.scene.launch('PauseScene');
+    this.scene.launch('PauseScene', { from: this.scene.key }); // so it knows which place to come back to
     this.scene.pause();
   },
 };

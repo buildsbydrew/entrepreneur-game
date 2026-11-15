@@ -15,9 +15,12 @@ export default class PersonSprite {
     this.step = 0;
     this.clock = Math.random() * 3000; // so people don't breathe in sync
 
-    this.image = scene.add.image(x, feetY, `${key}-${facing}-idle`)
+    // Left and right share the side drawing (it gets flipped for left)
+    const view = facing === 'left' || facing === 'right' ? 'side' : facing;
+    this.image = scene.add.image(x, feetY, `${key}-${view}-idle`)
       .setOrigin(0.5, 1) // pivots around the feet
-      .setDisplaySize(PERSON_W, PERSON_H);
+      .setDisplaySize(PERSON_W, PERSON_H)
+      .setFlipX(facing === 'left');
     this.baseScaleX = this.image.scaleX;
     this.baseScaleY = this.image.scaleY;
     this.place(x, feetY);

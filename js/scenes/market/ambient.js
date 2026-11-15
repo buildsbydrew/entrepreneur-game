@@ -3,6 +3,7 @@
 import Walker from '../../entities/Walker.js';
 import { findPath, pathLength } from '../../entities/routes.js';
 import { popShopBubble } from '../../entities/shopBubble.js';
+import { canTrade } from '../../dayClock.js';
 
 export const ambientMethods = {
   // ---------- A lively market ----------
@@ -134,11 +135,11 @@ export const ambientMethods = {
     this.vendors.forEach(vendor => {
       vendor.walker.update(delta);
 
-      // Traders call out to passers-by, unless they are away shopping
+      // Traders call out to passers-by, unless they are away shopping or trading is over
       vendor.nextCallIn -= delta;
       if (vendor.nextCallIn <= 0) {
         vendor.nextCallIn = Phaser.Math.Between(9000, 16000);
-        if (!vendor.walker.onErrand) {
+        if (!vendor.walker.onErrand && canTrade()) {
           const image = vendor.walker.person.image;
           this.sayAbove(image.x, image.y, Phaser.Utils.Array.GetRandom(vendor.calls));
         }

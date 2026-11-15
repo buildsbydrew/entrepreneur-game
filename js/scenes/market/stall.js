@@ -3,6 +3,7 @@
 import { state, sell, priceOf } from '../../state.js';
 import { play } from '../../audio/sound.js';
 import { profile } from '../../profile.js';
+import { phase, dayTimes, formatTime } from '../../dayClock.js';
 import { WORLD_W, WORLD_H, STALL_SCALE } from '../constants.js';
 
 export const stallMethods = {
@@ -47,11 +48,20 @@ export const stallMethods = {
 
   // One key does three jobs depending on what's happening at the stall
   stallLabel() {
+    if (!this.stallOpen && phase() === 'morning') return `Opens at ${formatTime(dayTimes().open)}`;
+    if (!this.stallOpen && phase() !== 'trading') return 'Closed for the night';
     if (!this.stallOpen) return 'Open stall';
     return this.waitingCustomers().length > 0 ? 'Serve customer' : 'Close stall';
   },
 
   useStall() {
+    // The stall can only open during trading hours
+    if (!this.stallOpen && phase() !== 'trading') {
+      this.floatText(phase() === 'morning' ? 'Not open yet' : 'Closed for today', '#fff4dc');
+      play('error');
+      return;
+    }
+
     if (!this.stallOpen) {
       this.setStallOpen(true);
     } else if (this.waitingCustomers().length > 0) {

@@ -17,17 +17,23 @@ feel real, and why the world grows alongside the levels.
 - **Travel: walk off the edge of a place into the next one.**
 - **Evenings are walkable scenes**, built the same way as the market.
 - **A missed payment is decided by the background**, not by one global rule.
+- **Wake at 6:00 AM.** The market opens at 7:00. The walk from bed to the stall takes most of that hour.
+- **The player can leave the market any time.** Leaving shuts the stall: anyone waiting is a customer lost, and nobody comes while the stall is shut.
+- **Sleep from 6:00 PM, or at 10:00 PM wherever you are.** You always wake at home. The game saves when you wake.
+- **The supplier packs up at 6:00 PM**, and the other traders go quiet.
 
 ## A day
 
 | Time | What happens |
 | --- | --- |
-| Morning | Wake at home. Breakfast costs money. Family may need something. |
-| Day | Walk to the market. The stall is open from about 7:00 AM to 6:00 PM. |
-| Evening | After 6:00 PM, the player is free to walk around: rest, eat, visit, help family. |
-| Night | Sleep. A summary of the whole day, not only the stall. The game saves. |
+| Morning | Wake at home at 6:00. Breakfast costs money (later). Family may need something (later). |
+| Day | Walk to the market. The stall can open from 7:00 AM to 6:00 PM. |
+| Evening | At 6:00 PM the Takings report appears wherever the player is. Then they are free to walk around until bed. |
+| Night | Sleep in bed any time after 6:00 PM, or at 10:00 PM wherever you are. The game saves on waking. |
 
-Times and the length of a day are tunable. Today the stall day lasts two minutes of real time.
+The hours are in the setting file (`day` in `data/settings/ghana.json`). The clock runs at one speed
+everywhere: 7:00 AM to 6:00 PM is two minutes of real time, so a whole day from 6:00 AM to 10:00 PM is
+about 2 minutes 55 seconds.
 
 ## Places, and when they open
 
@@ -72,7 +78,7 @@ help that comes with strings attached, or a warning followed by a harder consequ
 1. **Invisible first step.** Split the market into the location framework and a day director.
    Nothing changes on screen. Saves are versioned.
 2. **Home and the edge between home and the market.** Wake up at home, walk to the market, walk
-   back, sleep. No bills yet.
+   back, sleep. No bills yet. *(Built.)*
 3. **Backgrounds and obligations.** Choose a background when creating a character. Rent and food
    arrive on a schedule. This is Level 3, cash flow.
 4. **Evenings.** Things to do at home: eat, rest, family. Energy and mood.
@@ -80,7 +86,7 @@ help that comes with strings attached, or a warning followed by a harder consequ
 
 ## Open questions
 
-- How long is a full day, from waking up to sleeping, in real time?
+- How long should a full day feel? Today it is about 3 minutes from 6:00 AM to 10:00 PM.
 - What does a player lose by skipping an evening, and by skipping a meal?
 - How does the player pick a background? A plain choice, or a short story?
 - Which people do we want first, and what does each one do?

@@ -22,10 +22,10 @@ export default class SetupScene extends Phaser.Scene {
     this.events.once('shutdown', clearUi);
   }
 
-  // Draws the chosen character, then opens the market
+  // Draws the chosen character, then starts a new game at home
   begin() {
     buildPlayerTextures(this, profile.look)
-      .then(() => this.scene.start('MarketScene'))
+      .then(() => this.scene.start('HomeScene', { newGame: true }))
       .catch(error => {
         console.error(error);
         this.screen.fail('Something went wrong drawing your character. Press F12 and check the Console.');

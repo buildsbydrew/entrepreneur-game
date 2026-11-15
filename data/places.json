@@ -1,0 +1,42 @@
+{
+  "_about": "The places the player can walk around. Each has a size, its exits (walk off this stretch of an edge to go somewhere else) and its entries (where the player stands on arriving). Home's room and furniture are laid out here too. Positions are in pixels; for things that stand on the ground, y is where they touch the ground.",
+
+  "market": {
+    "exits": [
+      { "edge": "west", "min": 610, "max": 790, "leadsTo": "HomeScene", "arriveAt": "fromMarket", "label": "Home" }
+    ],
+    "entries": {
+      "fromHome": { "x": 80, "y": 700, "facing": "right" }
+    }
+  },
+
+  "home": {
+    "width": 1700,
+    "height": 1100,
+    "room": { "x": 520, "y": 300, "w": 720, "h": 480, "wall": 26, "faceHeight": 78, "door": { "from": 500, "to": 610 } },
+    "furniture": [
+      { "type": "bed", "x": 650, "y": 520, "solid": [150, 74] },
+      { "type": "rug", "x": 820, "y": 640 },
+      { "type": "table", "x": 1030, "y": 712, "solid": [116, 40] },
+      { "type": "stool", "x": 950, "y": 746, "solid": [36, 18] },
+      { "type": "stool", "x": 1110, "y": 746, "solid": [36, 18] },
+      { "type": "cupboard", "x": 1130, "y": 412, "solid": [84, 20] },
+      { "type": "window", "x": 820, "y": 350 },
+      { "type": "waterPot", "x": 1160, "y": 476, "solid": [40, 18] },
+      { "type": "coalPot", "x": 1310, "y": 470, "solid": [40, 18] },
+      { "type": "tree", "x": 1480, "y": 300, "solid": [26, 18] },
+      { "type": "tree", "x": 260, "y": 820, "solid": [26, 18] },
+      { "type": "bush", "x": 1370, "y": 840 },
+      { "type": "bush", "x": 380, "y": 330 },
+      { "type": "bush", "x": 600, "y": 900 }
+    ],
+    "bed": { "x": 650, "y": 520 },
+    "exits": [
+      { "edge": "east", "min": 470, "max": 640, "leadsTo": "MarketScene", "arriveAt": "fromHome", "label": "Market" }
+    ],
+    "entries": {
+      "wake": { "x": 735, "y": 600, "facing": "down" },
+      "fromMarket": { "x": 1620, "y": 555, "facing": "left" }
+    }
+  }
+}

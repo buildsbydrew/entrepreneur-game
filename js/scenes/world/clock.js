@@ -1,35 +1,28 @@
-// The clock that runs through the day.
+// The clock on screen, and what happens when the time comes: trading ends at 6 PM, and
+// by 10 PM the player is too tired to stay up. The time itself lives in js/dayClock.js,
+// so it carries on when the player walks from one place to the next.
 // These methods are added to the scene, so `this` is the scene.
 import { state } from '../../state.js';
+import { clock, tick, formatTime, almostClosing, closingDue, bedtimeDue, phase } from '../../dayClock.js';
 
 export const clockMethods = {
   // ---------- The day ----------
   handleClock(delta) {
-    this.dayTimeLeft -= delta;
+    tick(delta);
     this.updateDusk();
+    this.updateClock();
 
-    if (this.dayTimeLeft <= 0) {
-      this.dayTimeLeft = 0;
-      this.updateClock();
-      this.endDay();
+    if (closingDue()) {
+      this.closeTradingDay();
       return;
     }
 
-    this.updateClock();
+    if (bedtimeDue()) this.goToSleep(true);
   },
 
-  // Turns the time left into a clock reading like "2:35 PM"
+  // Turns the time into a clock reading like "2:35 PM"
   formatClock() {
-    const { lengthMs, startHour, endHour } = this.setting.day;
-    const progress = 1 - this.dayTimeLeft / lengthMs;
-    const totalMinutes = Math.floor((startHour + progress * (endHour - startHour)) * 60);
-
-    const hours24 = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    const suffix = hours24 >= 12 ? 'PM' : 'AM';
-    const hours12 = ((hours24 + 11) % 12) + 1;
-
-    return `${hours12}:${String(minutes).padStart(2, '0')} ${suffix}`;
+    return formatTime(clock.minutes);
   },
 
   updateClock() {
@@ -39,8 +32,10 @@ export const clockMethods = {
     this.lastClock = text;
     this.clockText.setText(text);
 
-    // Turns red during the last stretch of the day
-    const almostClosing = this.dayTimeLeft < this.setting.day.lengthMs * 0.15;
-    this.clockText.setColor(almostClosing ? '#ff6b6b' : '#ffffff');
+    // Red during the last stretch of trading, and a soft blue once evening comes
+    let color = '#ffffff';
+    if (almostClosing()) color = '#ff6b6b';
+    else if (phase() === 'evening' || phase() === 'night') color = '#cfe0ff';
+    this.clockText.setColor(color);
   },
 };

@@ -3,14 +3,15 @@
 import PersonSprite from '../../entities/PersonSprite.js';
 import { touch } from '../../ui/touch.js';
 import { play } from '../../audio/sound.js';
-import { WORLD_W, WORLD_H, ACCEL, DRAG } from '../constants.js';
+import { ACCEL, DRAG } from '../constants.js';
 
 export const controlsMethods = {
-  createPlayer() {
-    this.physics.world.setBounds(0, 0, WORLD_W, WORLD_H);
+  // spot is where the player appears: { x, y, facing }. y is where their feet are.
+  createPlayer(spot = { x: this.worldW / 2, y: this.worldH / 2 + 16, facing: 'down' }) {
+    this.physics.world.setBounds(0, 0, this.worldW, this.worldH);
 
     // The invisible block is what moves and collides. The drawing follows it.
-    this.player = this.add.rectangle(WORLD_W / 2, WORLD_H / 2, 36, 32, 0xf39c12).setVisible(false);
+    this.player = this.add.rectangle(spot.x, spot.y - 16, 36, 32, 0xf39c12).setVisible(false);
     this.physics.add.existing(this.player);
     this.player.body.setCollideWorldBounds(true);
 
@@ -18,7 +19,7 @@ export const controlsMethods = {
     this.player.body.setDrag(DRAG, DRAG);
     this.player.body.setMaxSpeed(this.speed);
 
-    this.playerSprite = new PersonSprite(this, 'player', this.player.x, this.player.y + 16);
+    this.playerSprite = new PersonSprite(this, 'player', this.player.x, this.player.y + 16, spot.facing ?? 'down');
     this.syncPlayerSprite();
     this.crowd.add({ image: this.playerSprite.image }); // so everyone else steers round the player
 
@@ -33,8 +34,22 @@ export const controlsMethods = {
   },
 
   setupCamera() {
-    this.cameras.main.setBounds(0, 0, WORLD_W, WORLD_H);
+    this.fitCamera();
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+    this.cameras.main.fadeIn(300, 0, 0, 0);
+
+    // On a screen bigger than the place, the place sits in the middle instead of the corner
+    this.scale.on('resize', this.fitCamera, this);
+    this.events.once('shutdown', () => this.scale.off('resize', this.fitCamera, this));
+  },
+
+  fitCamera() {
+    const m = this.viewMargin ?? { west: 0, east: 0, north: 0, south: 0 };
+    const w = this.worldW + m.west + m.east;
+    const h = this.worldH + m.north + m.south;
+    const extraW = Math.max(0, this.scale.width - w);
+    const extraH = Math.max(0, this.scale.height - h);
+    this.cameras.main.setBounds(-m.west - extraW / 2, -m.north - extraH / 2, w + extraW, h + extraH);
   },
 
   setupControls() {
