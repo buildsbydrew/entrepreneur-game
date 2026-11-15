@@ -40,6 +40,8 @@ world full of people with their own stories. This document records what has been
 | Elder | about 3 hours |
 
 ### The world
+- **Names:** the game is called **Urlivaven**, the country is **Urlivana**, and the money is **livs**
+  ("12 livs"). The feel is a modern-day city.
 - **Made up and fully developed, for a global audience.** It must not copy any real country's places,
   towns, names, currency or brands. It needs its own geography, neighbourhoods, culture, food, names,
   money and history, consistent everywhere.
@@ -61,7 +63,7 @@ world full of people with their own stories. This document records what has been
 ## Still to decide
 - The world: its name, its main city or town, its look and feel.
 - The storylines and the first cast of characters (to be discussed together).
-- The final names of the world and the currency (placeholders for now).
+- The rest of the names: the city, neighbourhood, people and brands (suggestions are on the table).
 - The 2D market game is kept in `legacy-2d/` for reference only. Maame Gyasiwaa is retired with it.
 - The title of the game.
 - Money model (free, one-time price, ads, premium lives) and online features (leaderboards, sharing).

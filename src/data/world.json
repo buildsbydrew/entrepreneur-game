@@ -1,7 +1,8 @@
 {
   "_about": "Names that belong to the made-up world, and how time works. Names are placeholders until we pick the final ones; change them here and they change everywhere.",
-  "worldName": "Larkhaven",
-  "currency": { "name": "orra", "plural": "orra", "symbol": "" },
+  "gameTitle": "Urlivaven",
+  "worldName": "Urlivana",
+  "currency": { "name": "liv", "plural": "livs", "symbol": "" },
   "calendar": {
     "daysPerSeason": 30,
     "seasons": ["Bloom", "High Sun", "Long Rain", "Cool Wind"]

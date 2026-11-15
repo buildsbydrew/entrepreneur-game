@@ -134,7 +134,7 @@ export default class Game {
     this.input.showPad(false);
     const saved = loadGame();
     this.ui.showTitle({
-      title: world.worldName,
+      title: world.gameTitle,
       saved: saved ? this.describeSave(saved.state) : null,
       onNew: () => this.ui.showNewLife({
         skins: peopleData.skins,
