@@ -1,0 +1,11 @@
+{
+  "_about": "Things you can carry. They show in your pockets on the People screen, and conversations and big days can check for them ('has') or give and take them.",
+  "items": [
+    { "id": "mums-note", "name": "Mum's note", "text": "Folded twice. For Mr Ambrose. You're not supposed to read it." },
+    { "id": "carved-bird", "name": "A carved wooden bird", "text": "Small, smooth, carefully made. It came with a note signed only \"C.\"" },
+    { "id": "corin-note", "name": "A note signed \"C.\"", "text": "\"For the new one. Your father would want you to know he thinks of you.\"" },
+    { "id": "father-letter", "name": "A letter from your father", "text": "Opened. You've read it so many times the folds are soft." },
+    { "id": "gran-key", "name": "A small brass key", "text": "From Gran's envelope, with your name on it." },
+    { "id": "pell-photo", "name": "Mrs Pell's photo", "text": "A boy on a bicycle, squinting into the sun. Daniel." }
+  ]
+}

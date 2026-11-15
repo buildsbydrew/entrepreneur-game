@@ -1,0 +1,60 @@
+{
+  "_about": "The big days of a life: always played, never skipped by a time jump. See src/story/storyDays.js for how they work, and docs/story/ for the story. Days marked draft are planned but need places or people that don't exist yet, so they're skipped for now.",
+  "days": [
+    {
+      "id": "first-day-out", "age": 5, "extraDays": 2, "hour": 7, "place": "home", "wake": "bed",
+      "title": "The first day out alone",
+      "goals": [
+        { "id": "morning", "text": "Say good morning to Mum", "done": { "talkedTo": "mum" } },
+        { "id": "out", "text": "Go out on Willow Lane", "done": { "place": "lane" } },
+        { "id": "sweets", "text": "Spend Gran's birthday livs at the shop", "done": { "flag": "bought-sweet" } },
+        { "id": "home", "text": "Be home before dark", "done": { "place": "home", "hourAtLeast": 18 } }
+      ],
+      "moments": [
+        { "id": "coat-appears", "hour": 17.2, "place": "lane", "do": [
+          { "appear": "corin", "x": 9.5, "z": 6.2, "facing": 200 },
+          { "toast": "A man in a green coat is standing across the lane, watching your house." },
+          { "setFlag": "saw-green-coat" },
+          { "camera": "look", "at": "corin" }
+        ] },
+        { "id": "coat-leaves", "hour": 18.3, "place": "lane", "do": [ { "leave": "corin", "walkTo": [{ "x": 22, "z": 6.2 }] } ] },
+        { "id": "whispers", "hour": 20.5, "place": "home", "if": { "flag": "saw-green-coat" }, "do": [
+          { "toast": "Through the wall, Mum and Gran are arguing in whispers." }
+        ] }
+      ],
+      "end": {
+        "line": "That night, you heard Mum and Gran arguing in whispers. You only caught one word: Corin.",
+        "remember": "The first time you saw the man in the green coat."
+      }
+    },
+    {
+      "id": "first-school-day", "age": 5, "extraDays": 40, "hour": 7, "place": "home", "wake": "bed", "draft": true,
+      "title": "The first day at Sunhill Primary",
+      "_needs": "the Sunhill Primary place, Juno and Mr Hale"
+    },
+    {
+      "id": "the-tab", "age": 6, "extraDays": 20, "hour": 8, "place": "home", "wake": "bed",
+      "title": "The tab",
+      "goals": [
+        { "id": "note", "text": "Take Mum's note to Mr Ambrose's shop", "done": { "flag": "delivered-note" } },
+        { "id": "back", "text": "Bring the shopping home", "done": { "flag": "delivered-note", "place": "home" } }
+      ],
+      "moments": [
+        { "id": "given-note", "hour": 7, "place": "home", "do": [
+          { "give": "mums-note" },
+          { "toast": "Mum gave you a folded note for Mr Ambrose. \"Straight there and straight back.\"" }
+        ] }
+      ],
+      "end": {
+        "line": "That week, Mum's dinner plate was always half empty. She said she wasn't hungry.",
+        "remember": "The day you found out how much your family owed Mr Ambrose."
+      }
+    },
+    { "id": "the-baby", "age": 7, "extraDays": 60, "hour": 18, "place": "home", "wake": "bed", "draft": true, "title": "The baby", "_needs": "the hospital, the new sibling, Corin's gift" },
+    { "id": "pell-birthday", "age": 8, "extraDays": 30, "hour": 9, "place": "home", "wake": "bed", "draft": true, "title": "Mrs Pell's birthday", "_needs": "Mrs Pell's house inside" },
+    { "id": "nico-takes", "age": 9, "extraDays": 50, "hour": 8, "place": "home", "wake": "bed", "draft": true, "title": "Nico takes something" },
+    { "id": "the-box", "age": 10, "extraDays": 70, "hour": 9, "place": "home", "wake": "bed", "draft": true, "title": "The box", "_needs": "the letters as things you can hold" },
+    { "id": "scholarship", "age": 11, "extraDays": 80, "hour": 7, "place": "home", "wake": "bed", "draft": true, "title": "The scholarship", "_needs": "Sunhill Primary, the exam challenge" },
+    { "id": "two-celebrations", "age": 12, "extraDays": 100, "hour": 15, "place": "home", "wake": "bed", "draft": true, "title": "Two celebrations, and a fall", "_needs": "the High Street, DailyVa, the hospital" }
+  ]
+}

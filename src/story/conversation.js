@@ -6,7 +6,7 @@
 //
 // A line is [speaker, text]; the speaker "you" is the player. A node with no choices ends the conversation.
 // "when" and a choice's "if" are conditions; "effects" change the game.
-import { state, personRecord } from '../core/state.js';
+import { state, personRecord, giveItem, takeItem } from '../core/state.js';
 import { playerAge, stageForAge, changeNeed, addTrait, addSkill, remember } from '../core/life.js';
 import world from '../data/world.json';
 
@@ -30,6 +30,8 @@ export function conditionsMet(cond, personId) {
     if (cond.maxAge !== undefined && age > cond.maxAge) return false;
   }
   if (cond.trait && !((state.traits[cond.trait] ?? 0) > 0)) return false;
+  if (cond.today && state.flags.today !== cond.today) return false;   // only on this big day
+  if (cond.has && !state.items.includes(cond.has)) return false;     // carrying this thing
   return true;
 }
 
@@ -61,6 +63,8 @@ export function applyEffects(effects, personId) {
     notes.push({ kind: 'happiness', amount: effects.happiness });
   }
   if (effects.remember) remember(fillText(effects.remember), world);
+  if (effects.give) { giveItem(effects.give); notes.push({ kind: 'item', id: effects.give, gained: true }); }
+  if (effects.take) { takeItem(effects.take); notes.push({ kind: 'item', id: effects.take, gained: false }); }
   return notes;
 }
 

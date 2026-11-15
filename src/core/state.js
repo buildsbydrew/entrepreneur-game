@@ -15,6 +15,7 @@ export const state = {
   people: {},     // person id -> { bond, met, talks } how they feel about you
   flags: {},      // things that have happened: flag name -> true or a value
   journal: [],    // moments worth remembering: { year, day, age, text }
+  items: [],      // things you carry: ids from src/data/items.json
   focus: null,    // what the player chose to focus on during the last stretch of time
   dead: null      // { cause, age } once the life has ended
 };
@@ -32,8 +33,17 @@ export function newLife(world, { name, look }) {
   state.people = {};
   state.flags = {};
   state.journal = [];
+  state.items = [];
   state.focus = null;
   state.dead = null;
+}
+
+// Things you carry
+export function giveItem(id) {
+  if (!state.items.includes(id)) state.items.push(id);
+}
+export function takeItem(id) {
+  state.items = state.items.filter(item => item !== id);
 }
 
 // How someone feels about the player, created the first time they meet
@@ -42,7 +52,7 @@ export function personRecord(id) {
   return state.people[id];
 }
 
-export const SAVED_KEYS = ['life', 'clock', 'money', 'needs', 'skills', 'traits', 'place', 'player', 'people', 'flags', 'journal', 'focus', 'dead'];
+export const SAVED_KEYS = ['life', 'clock', 'money', 'needs', 'skills', 'traits', 'place', 'player', 'people', 'flags', 'journal', 'items', 'focus', 'dead'];
 
 export function exportState() {
   return JSON.parse(JSON.stringify(Object.fromEntries(SAVED_KEYS.map(key => [key, state[key]]))));
@@ -51,4 +61,5 @@ export function exportState() {
 export function importState(data) {
   const copy = JSON.parse(JSON.stringify(data));
   SAVED_KEYS.forEach(key => { state[key] = copy[key]; });
+  state.items = state.items ?? []; // saves from before you could carry things
 }
