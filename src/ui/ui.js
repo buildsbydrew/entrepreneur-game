@@ -24,6 +24,42 @@ const escapeHtml = text => String(text).replace(/[&<>"]/g, c => ({ '&': '&amp;',
 export function createUI(root) {
   const ui = {};
 
+  // ---------- Choosing with the arrow keys ----------
+  // Up and Down move through whatever options are showing (answers in a conversation, focus choices,
+  // the prologue's questions, or the buttons of a menu), and Enter or Space picks the highlighted one.
+  // This listens first, before anything else, so the arrows don't also walk the player around.
+  const visibleOptions = () => {
+    const visible = b => b.offsetParent !== null && !b.disabled;
+    const choices = [...root.querySelectorAll('.choice')].filter(visible);
+    if (choices.length) return choices;
+    return [...root.querySelectorAll('.screen button')].filter(visible);
+  };
+  addEventListener('keydown', e => {
+    if (e.target instanceof HTMLInputElement) return; // typing a name
+    const isArrow = e.code === 'ArrowUp' || e.code === 'ArrowDown';
+    const isPick = e.code === 'Enter' || e.code === 'Space';
+    if (!isArrow && !isPick) return;
+    const options = visibleOptions();
+    if (!options.length) return;
+    const current = options.findIndex(b => b.classList.contains('selected') || b === document.activeElement);
+
+    if (isArrow) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      const step = e.code === 'ArrowDown' ? 1 : -1;
+      const next = current === -1 ? (step > 0 ? 0 : options.length - 1) : (current + step + options.length) % options.length;
+      options.forEach(b => b.classList.remove('selected'));
+      options[next].classList.add('selected');
+      options[next].focus({ preventScroll: true });
+      return;
+    }
+    if (current !== -1 && !e.repeat) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      options[current].click();
+    }
+  }, true);
+
   // ---------- Corner readouts: time and date on the left, money and pause on the right ----------
   const needsHtml = ['energy', 'health', 'happiness'].map(n => `<span class="need" title="${n}">${ICONS[n]}<i><b data-need="${n}"></b></i></span>`).join('');
   const left = el(`<div class="hud left"><div class="chip" data-time></div><div class="chip needs">${needsHtml}</div></div>`);
@@ -144,7 +180,7 @@ export function createUI(root) {
           b.addEventListener('click', e => { e.stopPropagation(); choicesEl.innerHTML = ''; ui.onChoose?.(); resolve(choice); });
           choicesEl.append(b);
         });
-        choicesEl.querySelector('.choice')?.focus({ preventScroll: true });
+        // Nothing is picked until the player presses an arrow key, a number, or clicks
       });
     }
   };
@@ -278,7 +314,7 @@ export function createUI(root) {
     const onKey = e => { const n = Number(e.key); if (n >= 1 && n <= choices.length) pick(n - 1); };
     addEventListener('keydown', onKey);
     s.querySelectorAll('[data-i]').forEach(b => b.addEventListener('click', () => pick(Number(b.dataset.i))));
-    s.querySelector('[data-i]')?.focus({ preventScroll: true });
+    // Nothing is picked until the player presses an arrow key, a number, or clicks
   });
 
   // Shows what happened while time passed. Resolves when the player carries on.
@@ -433,7 +469,7 @@ export function createUI(root) {
           });
           captionChoices.append(b);
         });
-        captionChoices.querySelector('.choice')?.focus({ preventScroll: true });
+        // Nothing is picked until the player presses an arrow key, a number, or clicks
       });
     }
   };

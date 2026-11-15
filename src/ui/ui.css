@@ -64,7 +64,9 @@ body.is-touch .prompt kbd { display: none; }
 .choices { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
 .choice { text-align: left; font-size: 17px; background: var(--cream); border: 3px solid var(--ink); border-radius: 12px;
   padding: 9px 14px; box-shadow: 0 3px 0 var(--ink); color: var(--ink); }
-.choice:hover, .choice:focus-visible { background: #ffe6b3; outline: none; }
+.choice:hover, .choice:focus-visible, .choice.selected { background: #ffe6b3; outline: none; }
+.choice.selected { box-shadow: 0 3px 0 var(--ink), 0 0 0 3px var(--orange); }
+.screen .btn.selected, .screen .toggle.selected { outline: 3px solid var(--teal); outline-offset: 2px; }
 .choice .num { display: inline-block; width: 24px; font-weight: bold; color: var(--magenta); }
 body.is-touch .choice .num { display: none; }
 .feeling { position: fixed; pointer-events: none; font-weight: bold; font-size: 16px; padding: 4px 10px; border-radius: 10px;
