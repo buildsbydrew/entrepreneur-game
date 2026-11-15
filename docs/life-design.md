@@ -64,6 +64,18 @@ world full of people with their own stories. This document records what has been
 - Each stage of the build becomes a YouTube video for Drew's Builds, made from real footage of the game.
   How this is done is still to be worked out.
 
+## The story so far (decided with Drew)
+
+### Your family
+- **Mum and Gran raise you.** Mum works long days; Gran raises you most of the time. Three generations under
+  one roof, and Gran and Mum don't always agree on how to bring you up.
+- **Your father left, and nobody says why.** Gran knows something Mum won't say. As a teenager you can dig into
+  it, and maybe find him. A mystery that pays off years later.
+- **Money is tight, but hidden.** There's always food, but Mum counts every liv and nobody talks about it.
+  You start to notice as you grow.
+- **A younger brother or sister arrives when you're 7.** A big played day. You go from only child to big
+  brother or sister, and shape that bond for life.
+
 ## Still to decide
 - The world: its name, its main city or town, its look and feel.
 - The storylines and the first cast of characters (to be discussed together).
