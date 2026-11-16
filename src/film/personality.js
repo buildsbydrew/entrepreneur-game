@@ -76,13 +76,17 @@ export function pickOption(profile, options, partsOf, random, temperature = 1.6)
   let bestTotal = -Infinity;
   let bestParts = [];
   let bestNoise = 0;
+  const whys = [];
   options.forEach((option, i) => {
     const parts = partsOf(option, i);
+    // What tempts it about each option (for the edit: what the AI is weighing up)
+    const pull = [...parts].sort((a, b) => b.score - a.score)[0];
+    whys.push(pull && pull.score > 0 ? pull.why : null);
     const noise = random() * temperature;
     const total = parts.reduce((a, p) => a + p.score, 0) + noise;
     if (total > bestTotal) { bestTotal = total; best = i; bestParts = parts; bestNoise = noise; }
   });
   const top = [...bestParts].sort((a, b) => b.score - a.score)[0];
   const reason = top && top.score > bestNoise * 0.6 ? top.why : (top && top.score > 0 ? top.why : 'it just felt right');
-  return { index: Math.max(0, best), reason: `${profile.label}: ${reason}` };
+  return { index: Math.max(0, best), reason: `${profile.label}: ${reason}`, whys };
 }

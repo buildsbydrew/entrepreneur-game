@@ -5,6 +5,10 @@
 //   node plan.mjs --id ep01 --windows   (before recording) which stretches of the life to record
 //   node plan.mjs --id ep01             (after recording) the edit itself
 //
+// A life can be told across several episodes (a serial): --until <big day id> ends the episode on that
+// day's closing line (the cliffhanger), and --from <big day id> starts the next one after it, with a
+// "Previously" recap. Without them the episode is the whole life.
+//
 // Everything is timed in "sim" seconds (time since the life started, on film mode's own clock), so the
 // same plan works from the quick test run's log and from the recording's.
 // Writes episodes/<id>/script.draft.json (the words: chapter titles and captions, ready to polish).
@@ -14,6 +18,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { makeSoundtrack } from './audio.mjs';
+import storyData from '../src/data/storydays.json' with { type: 'json' };
+import intros from './intros.json' with { type: 'json' };
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const args = Object.fromEntries(process.argv.slice(2).reduce((acc, a, i, all) => {
@@ -52,9 +58,19 @@ const story = log.find(e => e.type === 'story');
 let seed = 12345;
 const rand = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
 const pick = list => list[Math.floor(rand() * list.length)];
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 const strip = s => String(s ?? '').replace(/\s*\(.*?\)\s*$/, '').replace(/\{currency\}/g, 'livs');
 
 // ---------- Splitting the life into scenes ----------
+const closingOf = dayId => log.find(e => e.type === 'closing' && e.bigDay === dayId);
+const readTime = text => text.length * 0.028 + 3.6; // how long a closing line stays up, typed out and read
+const fromClosing = args.from ? closingOf(args.from) : null;
+const untilClosing = args.until ? closingOf(args.until) : null;
+if (args.from && !fromClosing) throw new Error(`No closing line for "${args.from}" in the log`);
+if (args.until && !untilClosing) throw new Error(`No closing line for "${args.until}" in the log (did the test run get that far?)`);
+const startSim = fromClosing ? fromClosing.t + readTime(fromClosing.text) : 0;
+const endSim = untilClosing ? untilClosing.t + readTime(untilClosing.text) + 0.5 : Infinity;
+const inEpisode = e => e.t >= startSim && e.t < endSim;
 const firstScene = log.find(e => e.type === 'prologue-scene');
 const firstMemory = log.find(e => e.type === 'card' && e.title === 'Your first memory');
 const dayCards = log.filter(e => e.type === 'card' && e.t >= (firstMemory?.t ?? 0));
@@ -62,7 +78,7 @@ const storyAt = story?.t ?? end;
 
 // A played day: from its card to the next card (or the life story)
 const days = dayCards.map((card, i) => {
-  const until = dayCards[i + 1]?.t ?? storyAt;
+  const until = Math.min(dayCards[i + 1]?.t ?? storyAt, endSim);
   const events = log.filter(e => e.t >= card.t && e.t < until);
   const talks = events.filter(e => e.type === 'talk');
   const age = events.find(e => e.type === 'age')?.now ?? events.find(e => e.age !== undefined && e.type !== 'card')?.age ?? card.age;
@@ -70,8 +86,9 @@ const days = dayCards.map((card, i) => {
   const memories = events.filter(e => e.type === 'memory' && e.t < asleep && !/^Turned \d+/.test(e.text));
   const interesting = talks.some(t => t.isNew) || memories.length > 0;
   const stage = events.find(e => e.type === 'day')?.stage ?? 'child';
-  return { card, until, events, talks, age, memories, interesting, stage };
-});
+  const bigDay = events.find(e => e.type === 'big-day')?.id ?? null;
+  return { card, until, events, talks, age, memories, interesting: interesting || Boolean(bigDay), stage, bigDay };
+}).filter(d => d.card.t >= startSim && d.card.t < endSim);
 
 // ---------- Choosing what to keep ----------
 // Each kept stretch: { from, to } in footage seconds, plus what it is
@@ -91,6 +108,8 @@ function keepRanges(day, { quiet }) {
     for (const place of ev.filter(e => e.type === 'place')) add(place.t - 0.2, place.t + 1.2, 'arrive');
     if (sleep) add(sleep.t - 1.2, sleep.t + 0.5, 'bed');
   }
+  const closing = ev.find(e => e.type === 'closing');
+  if (closing) add(closing.t - 0.2, closing.t + readTime(closing.text), 'closing');
   if (quiet) add(day.card.t + 0.4, day.card.t + 2.6, 'morning');
   // Merge stretches that are close together, so short gaps aren't choppy
   ranges.sort((a, b) => a.from - b.from);
@@ -127,7 +146,7 @@ const shorten = text => {
 
 // ---------- The few big decisions that get a card ----------
 const MAX_DECISIONS = Number(args.decisions ?? 4);
-const decisions = log.map((e, i) => ({ e, i })).filter(({ e }) => e.type === 'choice' && e.kind !== 'focus' && (e.weight ?? 0) >= 2 && e.options.length > 1)
+const decisions = log.map((e, i) => ({ e, i })).filter(({ e }) => inEpisode(e) && e.type === 'choice' && e.kind !== 'focus' && (e.weight ?? 0) >= 2 && e.options.length > 1)
   .sort((a, b) => b.e.weight - a.e.weight).slice(0, MAX_DECISIONS)
   .map(({ e, i }) => {
     // The picked answer and the most different other one, in the order the game offered them.
@@ -136,7 +155,11 @@ const decisions = log.map((e, i) => ({ e, i })).filter(({ e }) => e.type === 'ch
     const pair = [e.picked, other].sort((a, b) => a - b).map(k => strip(e.options[k]));
     const written = saved?.captions?.[`decision-e${i}`];
     draft.captions[`decision-e${i}`] = `${pair[0]} Or ${pair[1]}`;
-    return { t: e.t, question: written ?? null, options: written ? null : pair };
+    // What tempts it about each side: "Pure cheek... or Mum will like it?"
+    const wa = e.whys?.[e.picked];
+    const wb = e.whys?.[other];
+    const thought = wa && wb && wa !== wb ? `${cap(wb)}... or ${wa}?` : null;
+    return { t: e.t, weight: e.weight, question: written ?? null, options: written ? null : pair, thought: saved?.captions?.[`thought-e${i}`] ?? thought };
   }).sort((a, b) => a.t - b.t);
 
 // ---------- Building the edit ----------
@@ -160,11 +183,20 @@ const addCaption = (at, text, dur) => {
 // short decision card just before the answer is said.
 function addClip(from, to) {
   if (to - from < 0.3) return;
+  // Someone important appears for the first time: freeze for a moment with their name
+  const intro = introsIn(from, to);
+  if (intro) {
+    introduced.add(intro.id);
+    addClip(from, intro.t);
+    addCard('intro', 1.6, { freeze: +toFootage(intro.t).toFixed(3), name: intro.name, line: intro.line });
+    addClip(intro.t, to);
+    return;
+  }
   const decision = decisions.find(d => d.t > from + 0.2 && d.t < to - 0.2 && !d.used);
   if (decision) {
     decision.used = true;
     addClip(from, decision.t);
-    addCard('decision', 2.4, { question: decision.question, options: decision.options });
+    addCard('decision', decision.thought ? 3.2 : 2.4, { question: decision.question, options: decision.options, thought: decision.thought });
     addClip(decision.t, to);
     return;
   }
@@ -179,6 +211,24 @@ function addClip(from, to) {
     if (e.type === 'card' || e.type === 'place') sfx.push({ at: o, kind: 'whoosh' });
   }
   cursor += to - from;
+}
+
+// The first time each important person appears (in this series, so far): a talk with them a moment
+// in, or the man in the green coat when he's first seen
+const introduced = new Set(log.filter(e => e.t < startSim && e.type === 'talk').map(e => e.id).filter(Boolean));
+if (log.some(e => e.t < startSim && e.type === 'toast' && /green coat/.test(e.text))) introduced.add('corin');
+function introsIn(from, to) {
+  for (const e of log) {
+    if (e.t < from || e.t >= to - 1.2) continue;
+    let who = null;
+    if (e.type === 'talk' && intros[e.id]) who = e.id;
+    if (e.type === 'toast' && /green coat/.test(e.text)) who = 'corin';
+    if (!who || introduced.has(who)) continue;
+    const t = e.type === 'toast' ? e.t + 1.2 : e.t + 0.9;
+    if (t <= from + 0.2 || t >= to - 0.2) continue;
+    return { id: who, t, name: intros[who][0], line: intros[who][1] };
+  }
+  return null;
 }
 
 // "A year passed. Ada spent it with family." and anything else that happened, told about her
@@ -213,25 +263,61 @@ function addCard(kind, dur, data) {
   cursor += dur;
 }
 
+const NUMBER_WORDS = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve'];
+const titleOf = dayId => storyData.days.find(d => d.id === dayId)?.title ?? dayId;
+
+// 0. Cold open: the episode's peak, cut just before the big answer (a flash-forward)
+const corinTalk = log.find(e => inEpisode(e) && e.type === 'talk' && e.id === 'corin');
+const peak = [...decisions].sort((x, y) => y.weight - x.weight)[0];
+const coldTalk = corinTalk ?? (peak ? [...log].reverse().find(e => e.type === 'talk' && e.t <= peak.t) : null);
+let coldAge = null;
+if (coldTalk && !args.noColdOpen) {
+  const inside = decisions.filter(d => d.t > coldTalk.t).sort((x, y) => x.t - y.t)[0];
+  const done = log.find(e => e.type === 'talk-end' && e.t > coldTalk.t);
+  const stop = Math.min(inside?.t ?? Infinity, done?.t ?? Infinity, coldTalk.t + 14);
+  const savedDecisions = decisions.map(d => d.used);
+  const savedIntro = new Set(introduced);
+  decisions.forEach(d => { d.used = true; });           // no cards inside the cold open
+  ['mum', 'gran', 'nico', 'pell', 'ambrose', 'juno', 'hale', 'corin'].forEach(p => introduced.add(p)); // and no freeze-frames
+  addClip(coldTalk.t - 1.2, stop);
+  decisions.forEach((d, i) => { d.used = savedDecisions[i]; });
+  introduced.clear(); savedIntro.forEach(p => introduced.add(p));
+  coldAge = coldTalk.age;
+}
+
 // 1. Title card, then one line of premise
-addCard('title', 4, { name, profile: film.profile, about: film.about, world: film.world, game: film.game });
+addCard('title', 3.6, { name, profile: film.profile, about: film.about, world: film.world, game: film.game, episode: args.episode ?? null });
 addCard('premise', 3, { text: captionFor('premise', 'An AI lives one life in my game. Every choice is its own.') });
 
-// 2. The prologue: the game's own captions tell it (the family's answers are told as captions too)
-chapters.push({ at: cursor, title: chapterTitle('prologue', 'Before the first memory') });
-addCard('chapter', 2.6, { title: chapterTitle('prologue', 'Before the first memory'), sub: 'Birth to age 4' });
-const prologueEnd = firstMemory?.t ?? end;
-const beats = log.filter(e => e.t >= (firstScene?.t ?? 0) && e.t < prologueEnd && ['caption', 'prologue-scene'].includes(e.type));
-beats.forEach((b, i) => {
-  const next = beats[i + 1]?.t ?? prologueEnd;
-  if (b.type === 'prologue-scene') return addClip(b.t + 0.2, Math.min(next, b.t + 1.0));
-  return addClip(b.t, Math.min(next, b.t + b.text.length * 0.028 + 2.9));
-});
+// 1b. Previously: the closing lines of the episodes before, and the biggest decisions in them
+if (fromClosing) {
+  const before = log.filter(e => e.t < startSim && e.type === 'closing').slice(-3);
+  addCard('quote', 1.6, { text: 'Previously...', small: true });
+  for (const c of before) addCard('quote', Math.min(5, 2 + c.text.length * 0.035), { text: c.text });
+}
 
-// 3. The played days. Each stage of life (child, teen, adult, elder) gets its days with something new
-// in them shown in full (a chapter per age), then one ordinary day so we see the character at that
-// age, then the time jumps where something happened, each as a short caption card over a glimpse of
-// the next morning.
+// 2. "Seven years earlier...", then the prologue (only in the episode that starts at birth)
+const startAge = fromClosing ? (days[0]?.age ?? 0) : 0;
+if (coldAge !== null && coldAge > startAge) {
+  const years = coldAge - startAge;
+  addCard('quote', 2.2, { text: `${NUMBER_WORDS[years] ?? years} year${years === 1 ? '' : 's'} earlier...` });
+}
+if (!fromClosing) {
+  chapters.push({ at: cursor, title: chapterTitle('prologue', 'Before the first memory') });
+  addCard('chapter', 2.6, { title: chapterTitle('prologue', 'Before the first memory'), sub: 'Birth to age 4' });
+  const prologueEnd = firstMemory?.t ?? end;
+  const beats = log.filter(e => e.t >= (firstScene?.t ?? 0) && e.t < prologueEnd && ['caption', 'prologue-scene'].includes(e.type));
+  beats.forEach((b, i) => {
+    const next = beats[i + 1]?.t ?? prologueEnd;
+    if (b.type === 'prologue-scene') return addClip(b.t + 0.2, Math.min(next, b.t + 1.0));
+    return addClip(b.t, Math.min(next, b.t + b.text.length * 0.028 + 2.9));
+  });
+}
+
+// 3. The played days, in the order they happened. A day with something new in it (a big day, someone
+// new to talk to) is shown in full, with a chapter card when the age changes. Quiet days in between are
+// summed up as time-jump cards over a glimpse of the next morning; a long quiet stretch also gets a
+// chapter card and one ordinary day, so we see who the character has become.
 const STAGE_NAMES = { child: 'childhood', teen: 'the teenage years', adult: 'grown up', elder: 'the grey years' };
 const addJump = day => {
   const card = jumpCard(day);
@@ -245,47 +331,53 @@ const playDay = (day, chapter) => {
     addClip(day.card.t, day.card.t + 1.9); // the game's own "Day 12 of Bloom" card
   }
   for (const r of keepRanges(day, { quiet: false })) addClip(r.from, r.to);
-  addJump(day);
+  if (day !== days[days.length - 1] || !untilClosing) addJump(day);
 };
 let lastAge = null;
-for (const stage of ['child', 'teen', 'adult', 'elder']) {
-  const inStage = days.filter(d => d.stage === stage);
-  if (!inStage.length) continue;
-  for (const day of inStage.filter(d => d.interesting)) {
-    const key = `age-${day.age}`;
-    const first = day.memories[0]?.text;
-    const chapter = day.age !== lastAge ? { title: `Age ${day.age}: ${chapterTitle(key, first ? shorten(first) : STAGE_NAMES[stage])}`, sub: '' } : null;
-    playDay(day, chapter);
-    lastAge = day.age;
+let quiet = [];
+const flushQuiet = () => {
+  if (!quiet.length) return;
+  const run = quiet;
+  quiet = [];
+  const long = run.length >= 5;
+  if (long) {
+    const from = run[0].age;
+    const to = run[run.length - 1].age;
+    const stage = run[0].stage;
+    const span = from === to ? `Age ${from}` : `Ages ${from} to ${to}`;
+    const title = `${span}: ${chapterTitle(`stage-${stage}-${from}`, STAGE_NAMES[stage])}`;
+    chapters.push({ at: cursor, title });
+    addCard('chapter', 2.4, { title, sub: '' });
+    lastAge = to;
   }
-  const rest = inStage.filter(d => !d.interesting);
-  if (!rest.length) continue;
-  const from = rest[0].age;
-  const to = inStage[inStage.length - 1].age;
-  const key = `stage-${stage}`;
-  const span = from === to ? `Age ${from}` : `Ages ${from} to ${to}`;
-  const title = `${span}: ${chapterTitle(key, STAGE_NAMES[stage])}`;
-  // One ordinary day, to see who they've become: the one with the most talking
-  const showcase = [...rest].sort((a, b) => b.talks.length - a.talks.length || a.card.t - b.card.t)[0];
-  chapters.push({ at: cursor, title });
-  addCard('chapter', showcase.talks.length ? 2.6 : 2.4, { title, sub: '' });
-  // The time jumps where something happened, briefly, all in the order they happened
-  const others = rest.filter(d => d !== showcase);
-  const eventful = others.filter(d => (jumpCard(d)?.events.length ?? 0) > 0);
-  const brief = new Set((eventful.length ? eventful : others).slice(0, stage === 'adult' ? 6 : 4));
-  for (const d of rest) {
+  const showcase = long ? [...run].sort((x, y) => y.talks.length - x.talks.length || x.card.t - y.card.t)[0] : null;
+  const eventful = run.filter(d => d !== showcase && (jumpCard(d)?.events.length ?? 0) > 0);
+  const brief = new Set((eventful.length ? eventful : run.filter(d => d !== showcase)).slice(0, long ? 6 : 3));
+  for (const d of run) {
     if (d === showcase && showcase.talks.length) {
       for (const r of keepRanges(d, { quiet: false })) addClip(r.from, r.to);
       addJump(d);
-    } else if (brief.has(d) || d === showcase) {
+    } else if (brief.has(d)) {
       for (const r of keepRanges(d, { quiet: true })) addClip(r.from, r.to);
       addJump(d);
     }
   }
+};
+for (const day of days) {
+  if (!day.interesting) { quiet.push(day); continue; }
+  flushQuiet();
+  const key = day.bigDay ? `day-${day.bigDay}` : `age-${day.age}`;
+  const first = day.memories[0]?.text;
+  const name = day.bigDay ? titleOf(day.bigDay) : first ? shorten(first) : STAGE_NAMES[day.stage];
+  const chapter = day.bigDay || day.age !== lastAge ? { title: `Age ${day.age}: ${chapterTitle(key, name)}`, sub: '' } : null;
+  playDay(day, chapter);
+  lastAge = day.age;
 }
+flushQuiet();
 
-// 4. The end: our end card, with the numbers taken from the log
-if (story) {
+// 4. The end of the episode: the end of the life, or a cliffhanger
+const storyInEpisode = story && story.t < endSim && story.t >= startSim;
+if (storyInEpisode) {
   chapters.push({ at: cursor, title: 'The end of a life' });
   addCard('quote', 2.6, { text: captionFor('end1', 'And then, one day...') });
   const choices = log.filter(e => e.type === 'choice');
@@ -300,6 +392,12 @@ if (story) {
     story, moments, question: captionFor('end-question', 'What would YOU have done differently?'),
     stats: { choices: choices.length, conversations: log.filter(e => e.type === 'talk').length, people: people.size, playedDays: days.length, profile: film.profile }
   });
+} else {
+  // To be continued, and the episode's biggest decision put to the viewer
+  const big = peak;
+  const picked = big ? log.find(e => e.type === 'choice' && e.t === big.t) : null;
+  const question = captionFor('tbc-question', picked ? `Would YOU have said "${strip(picked.text)}"?` : 'What would YOU have done?');
+  addCard('tbc', 6, { text: 'To be continued', question });
 }
 
 // The facts for the YouTube text, straight from the log, so the description never gets a number wrong

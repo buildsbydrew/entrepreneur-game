@@ -2,7 +2,7 @@
 // time-jump captions, a few decision cards, and the end card, over the soundtrack made by audio.mjs.
 import React from 'react';
 import { AbsoluteFill, Audio, Sequence, staticFile, useVideoConfig } from 'remotion';
-import { Caption, Clip, TitleCard, ChapterCard, EndCard, LineCard, JumpCard, DecisionCard, C, sec } from './parts';
+import { Caption, Clip, TitleCard, ChapterCard, EndCard, LineCard, JumpCard, DecisionCard, IntroCard, TbcCard, C, sec } from './parts';
 
 export const Episode: React.FC<{ id: string; plan: any }> = ({ plan }) => {
   const { fps } = useVideoConfig();
@@ -18,7 +18,9 @@ export const Episode: React.FC<{ id: string; plan: any }> = ({ plan }) => {
             {item.kind === 'title' && <TitleCard item={item} />}
             {item.kind === 'chapter' && <ChapterCard item={item} length={length} />}
             {item.kind === 'end' && <EndCard item={item} length={length} />}
-            {(item.kind === 'premise' || item.kind === 'quote') && <LineCard text={item.text} length={length} />}
+            {(item.kind === 'premise' || item.kind === 'quote') && <LineCard text={item.text} length={length} small={item.small} />}
+            {item.kind === 'intro' && <IntroCard item={item} src={plan.footage} length={length} />}
+            {item.kind === 'tbc' && <TbcCard item={item} length={length} />}
             {item.kind === 'jump' && <JumpCard item={item} length={length} />}
             {item.kind === 'decision' && <DecisionCard item={item} length={length} />}
           </Sequence>

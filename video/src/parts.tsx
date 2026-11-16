@@ -2,7 +2,7 @@
 // time-jump, decision and end cards. The look matches the game's own interface: cream paper, dark brown ink,
 // orange and teal.
 import React from 'react';
-import { AbsoluteFill, Easing, interpolate, OffthreadVideo, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, Easing, Freeze, interpolate, OffthreadVideo, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import { loadFont as loadTitleFont } from '@remotion/google-fonts/Fredoka';
 import { loadFont as loadTextFont } from '@remotion/google-fonts/Nunito';
 
@@ -109,7 +109,7 @@ export const TitleCard: React.FC<{ item: any; vertical?: boolean }> = ({ item, v
         <div style={{ fontSize: 56 * s, fontWeight: 600, color: C.orange, WebkitTextStroke: `2px ${C.ink}`, marginTop: 10 }}>in my game</div>
       </div>
       <div style={{ position: 'absolute', bottom: vertical ? 380 : 90, opacity: sub, transform: `translateY(${(1 - sub) * 30}px)`, fontFamily: TEXT, fontWeight: 800, fontSize: 40 * s, color: C.ink, background: C.paper, border: `4px solid ${C.ink}`, borderRadius: 18, padding: '10px 28px', boxShadow: `0 6px 0 ${C.ink}` }}>
-        {item.name} · personality: {String(item.profile).toLowerCase()}
+        {item.episode ? `Episode ${item.episode} · ` : ''}{item.name} · personality: {String(item.profile).toLowerCase()}
       </div>
     </AbsoluteFill>
   );
@@ -181,12 +181,12 @@ export const EndCard: React.FC<{ item: any; length: number; vertical?: boolean }
 };
 
 // One line on a dark screen: the premise, or "And then, one day..."
-export const LineCard: React.FC<{ text: string; length: number; vertical?: boolean }> = ({ text, length, vertical }) => {
+export const LineCard: React.FC<{ text: string; length: number; vertical?: boolean; small?: boolean }> = ({ text, length, vertical, small }) => {
   const frame = useCurrentFrame();
   const o = interpolate(frame, [0, 10, length - 10, length], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
   return (
     <AbsoluteFill style={{ background: C.night, alignItems: 'center', justifyContent: 'center', padding: vertical ? 90 : 200 }}>
-      <div style={{ opacity: o, fontFamily: TITLE, fontWeight: 600, fontSize: vertical ? 70 : 64, color: C.cream, textAlign: 'center', lineHeight: 1.25 }}>{text}</div>
+      <div style={{ opacity: o, fontFamily: TITLE, fontWeight: 600, fontSize: (vertical ? 70 : 64) * (small ? 0.7 : 1), color: small ? C.orange : C.cream, textAlign: 'center', lineHeight: 1.25, letterSpacing: small ? 3 : 0 }}>{text}</div>
     </AbsoluteFill>
   );
 };
@@ -223,6 +223,7 @@ export const DecisionCard: React.FC<{ item: any; length: number; vertical?: bool
     <AbsoluteFill style={{ background: `radial-gradient(circle at 50% 45%, #43304a 0%, ${C.night} 70%)`, alignItems: 'center', justifyContent: 'center', opacity: o }}>
       <div style={{ transform: `scale(${pop * push})`, textAlign: 'center', padding: vertical ? '0 70px' : '0 180px' }}>
         <div style={{ fontFamily: TEXT, fontWeight: 800, fontSize: vertical ? 40 : 34, color: C.orange, letterSpacing: 6 }}>DECISION</div>
+        {item.thought ? <div style={{ fontFamily: TEXT, fontWeight: 700, fontStyle: 'italic', fontSize: vertical ? 40 : 34, color: C.cream, opacity: 0.75, marginTop: 10 }}>{item.thought}</div> : null}
         {item.question ? <div style={{ fontFamily: TITLE, fontWeight: 700, fontSize: vertical ? 78 : 76, color: C.cream, lineHeight: 1.15, marginTop: 12 }}>{item.question}</div> : (item.options ?? []).map((o: string, i: number) => (
           <React.Fragment key={i}>
             {i > 0 ? <div style={{ fontFamily: TEXT, fontWeight: 800, fontSize: vertical ? 44 : 38, color: C.orange, margin: '10px 0' }}>or</div> : null}
@@ -230,6 +231,43 @@ export const DecisionCard: React.FC<{ item: any; length: number; vertical?: bool
           </React.Fragment>
         ))}
       </div>
+    </AbsoluteFill>
+  );
+};
+
+// The first time someone important appears: the picture holds for a moment with their name and a line
+export const IntroCard: React.FC<{ item: any; src: string; length: number; vertical?: boolean }> = ({ item, src, length, vertical }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const inn = spring({ frame, fps, config: { damping: 16, stiffness: 160 } });
+  const out = interpolate(frame, [length - 6, length], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const s = vertical ? 1.2 : 1;
+  return (
+    <AbsoluteFill>
+      <Freeze frame={0}>
+        <OffthreadVideo src={staticFile(src)} startFrom={sec(item.freeze, fps)} muted style={{ width: '100%', height: '100%' }} />
+      </Freeze>
+      <AbsoluteFill style={{ background: `rgba(20, 14, 24, ${0.28 * inn * out})` }} />
+      <div style={{ position: 'absolute', left: vertical ? 70 : 140, top: vertical ? 560 : 300, opacity: out, transform: `translateX(${(1 - inn) * -60}px)` }}>
+        <div style={{ fontFamily: TITLE, fontWeight: 700, fontSize: 96 * s, color: C.cream, letterSpacing: 4, textShadow: `0 6px 0 ${C.ink}` }}>{item.name}</div>
+        {item.line ? <div style={{ fontFamily: TEXT, fontWeight: 800, fontSize: 40 * s, color: C.cream, marginTop: 4, textShadow: `0 4px 0 ${C.ink}` }}>{item.line}</div> : null}
+        <div style={{ height: 6, width: 220 * s * inn, background: C.orange, marginTop: 14, borderRadius: 3 }} />
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+// The end of an episode: "To be continued", and the big decision put to the viewer
+export const TbcCard: React.FC<{ item: any; length: number; vertical?: boolean }> = ({ item, length, vertical }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const a = interpolate(frame, [0, 18], [0, 1], { extrapolateRight: 'clamp' });
+  const q = spring({ frame: frame - 45, fps, config: { damping: 15 } });
+  const out = interpolate(frame, [length - 12, length], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  return (
+    <AbsoluteFill style={{ background: C.night, alignItems: 'center', justifyContent: 'center', opacity: out, padding: vertical ? 80 : 160 }}>
+      <div style={{ opacity: a, fontFamily: TITLE, fontWeight: 600, fontSize: vertical ? 84 : 76, color: C.cream, letterSpacing: 2 }}>{item.text}...</div>
+      {item.question ? <div style={{ opacity: q, transform: `translateY(${(1 - q) * 30}px)`, marginTop: 40, fontFamily: TEXT, fontWeight: 800, fontSize: vertical ? 50 : 44, color: C.orange, textAlign: 'center' }}>{item.question}<div style={{ fontSize: vertical ? 36 : 30, color: C.cream, opacity: 0.75, marginTop: 10 }}>Tell me in the comments</div></div> : null}
     </AbsoluteFill>
   );
 };

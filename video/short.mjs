@@ -20,7 +20,12 @@ const args = Object.fromEntries(process.argv.slice(2).reduce((acc, a, i, all) =>
 }, []));
 const id = args.id ?? 'ep01';
 const epDir = path.join(here, 'episodes', id);
-const log = JSON.parse(fs.readFileSync(path.join(epDir, 'log-probe.json'), 'utf8')); // the whole life, from the test run
+const whole = JSON.parse(fs.readFileSync(path.join(epDir, 'log-probe.json'), 'utf8')); // the whole life, from the test run
+// Only this episode's stretch of the life (see plan.mjs --from / --until)
+const closingOf = dayId => whole.find(e => e.type === 'closing' && e.bigDay === dayId);
+const startSim = args.from ? (closingOf(args.from)?.sim ?? 0) + 4 : 0;
+const endSim = args.until ? (closingOf(args.until)?.sim ?? Infinity) + 6 : Infinity;
+const log = whole.filter(e => e.type === 'film' || (e.sim >= startSim && e.sim < endSim));
 const film = log.find(e => e.type === 'film');
 const name = film.name;
 const strip = s => String(s ?? '').replace(/\s*\(.*?\)\s*$/, '');

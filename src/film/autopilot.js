@@ -89,12 +89,12 @@ export function createAutopilot({ game, film, ui, profile, options, random, peop
   ui.dialogue.choose = async (speaker, prompt, choices) => {
     const partner = game.filmTalkPartner;
     const who = id => (id ? nameOf(id) : partner?.name ?? 'They');
-    const { index, reason } = pickOption(profile, choices, choice => {
+    const { index, reason, whys } = pickOption(profile, choices, choice => {
       const { now, next } = choiceEffects(choice);
       return [...scoreEffects(profile, now, who), ...scoreEffects(profile, next, who, 0.8)];
     }, random);
     const choice = choices[index];
-    film.add('choice', { kind: 'talk', with: partner?.name, prompt, options: choices.map(c => spoken(c.text)), picked: index, text: spoken(choice.text), reason, weight: decisionWeight(choices) });
+    film.add('choice', { kind: 'talk', with: partner?.name, prompt, options: choices.map(c => spoken(c.text)), picked: index, text: spoken(choice.text), reason, whys, weight: decisionWeight(choices) });
     await wait(500);
     ui.onChoose?.();
     // A stage direction before the words, like (Whisper to Nico) "Show-off.", leaves just the words
@@ -148,9 +148,9 @@ export function createAutopilot({ game, film, ui, profile, options, random, peop
   };
   // Prologue questions: no menu; the family's answer is told as one more caption
   ui.cinema.choose = async (prompt, choiceOptions) => {
-    const { index, reason } = pickOption(profile, choiceOptions, o => scoreEffects(profile, o.effects, id => (id ? nameOf(id) : 'Family')), random);
+    const { index, reason, whys } = pickOption(profile, choiceOptions, o => scoreEffects(profile, o.effects, id => (id ? nameOf(id) : 'Family')), random);
     const option = choiceOptions[index];
-    film.add('choice', { kind: 'prologue', prompt, options: choiceOptions.map(o => o.text), picked: index, text: option.text, reason, weight: decisionWeight(choiceOptions) });
+    film.add('choice', { kind: 'prologue', prompt, options: choiceOptions.map(o => o.text), picked: index, text: option.text, reason, whys, weight: decisionWeight(choiceOptions) });
     const answer = option.text.replace(/^"|"$/g, '');
     // "...they'll tell you that you were... a quiet baby." (names keep their capitals)
     const small = /^(A|An|The|Some|Always|Very)\b/.test(answer) ? answer.charAt(0).toLowerCase() + answer.slice(1) : answer;

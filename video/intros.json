@@ -1,0 +1,11 @@
+{
+  "_about": "The freeze-frame introduction the first time someone important appears in the series: their name and one short line about who they are on the surface. Never give away a secret. Keyed by person id from src/data/people.json.",
+  "mum": ["MUM", "Works double shifts."],
+  "gran": ["GRAN", "Has an opinion about everything."],
+  "nico": ["NICO", "Best friend. Never stops talking."],
+  "pell": ["MRS PELL", "The neighbour. Sees everything."],
+  "ambrose": ["MR AMBROSE", "The corner shop."],
+  "juno": ["JUNO", "Top of the class. Knows it."],
+  "hale": ["MR HALE", "The teacher."],
+  "corin": ["???", ""]
+}
