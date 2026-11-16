@@ -3,7 +3,7 @@
 import React from 'react';
 import { Composition, Still, staticFile } from 'remotion';
 import { Episode } from './Episode';
-import { Thumbnail } from './Thumbnail';
+import { ShortThumbnail, Thumbnail } from './Thumbnail';
 import { Short } from './Short';
 
 const loadPlan = async (file: string) => {
@@ -33,6 +33,13 @@ export const Root: React.FC = () => (
       width={1280}
       height={720}
       defaultProps={{ image: 'thumb/remy1.jpg', big: 'WHO IS HE?', small: 'An AI lives a whole life in my game', tag: 'EPISODE 1' }}
+    />
+    <Still
+      id="ShortThumbnail"
+      component={ShortThumbnail}
+      width={1080}
+      height={1920}
+      defaultProps={{ image: 'thumb/remy1-short.jpg', big: 'AN AI IS LIVING HIS WHOLE LIFE', small: 'Every choice is its own.', tag: 'EPISODE 1' }}
     />
     <Composition
       id="Short"
