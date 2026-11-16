@@ -1,7 +1,7 @@
 // One person in the world: their body, where they stand, which way they face, and how they walk.
 // The player is a Person too. Other people can be sent walking along a list of points.
 import * as THREE from 'three';
-import { buildBody, poseBody, disposeBody, STAGES } from './body.js';
+import { buildBody, poseBody, poseFace, disposeBody, STAGES } from './body.js';
 import { moveWithCollision, addPerson, removePerson } from '../world/collision.js';
 
 export default class Person {
@@ -20,6 +20,8 @@ export default class Person {
     this.pace = 0;              // 0 standing still, 1 walking at full speed
     this.route = [];            // points to walk through: [{ x, z }]
     this.wait = 0;              // seconds stood still because someone is in the way
+    this.mood = 'calm';         // how they feel right now, shown on their face
+    this.talkingFor = 0;        // seconds of talking left (the mouth moves)
     this.setStage(stage);
     addPerson(space, this);
     this.place();
@@ -112,7 +114,15 @@ export default class Person {
     this.breath += dt;
     if (this.pace < 0.02) this.pace = 0;
     poseBody(this.body, this.phase, this.pace, this.breath);
+    this.talkingFor = Math.max(0, this.talkingFor - dt);
+    poseFace(this.body, this.breath, Math.min(1, this.talkingFor * 3), this.mood);
     this.place();
+  }
+
+  // Says a line: the mouth moves for that long, and the face shows the feeling
+  say(seconds, mood = 'calm') {
+    this.talkingFor = seconds;
+    this.mood = mood;
   }
 
   // Slows to a stop when nothing is moving them

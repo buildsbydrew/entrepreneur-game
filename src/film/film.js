@@ -18,6 +18,7 @@ import { playerAge, playerStage } from '../core/life.js';
 import { QUALITY } from '../render/quality.js';
 import { installVirtualTime, seededRandom } from './vclock.js';
 import { createFilmCamera } from './camera.js';
+import { createFilmLook } from './look.js';
 import { createAutopilot } from './autopilot.js';
 import { PROFILES } from './personality.js';
 
@@ -90,10 +91,9 @@ export function startFilm(createGame, params) {
 
   // The recorder calls this once per video frame
   if (clock) {
-    const draw = game.renderer.render.bind(game.renderer);
     const realRender = (scene, camera) => {
       Math.random = drawRandom;
-      try { draw(scene, camera); } finally { Math.random = lifeRandom; }
+      try { look.render(scene, camera); } finally { Math.random = lifeRandom; }
     };
     film.step = async (ms = 1000 / 30) => {
       // Frames that won't be kept don't need drawing
@@ -111,8 +111,12 @@ export function startFilm(createGame, params) {
     };
   }
 
-  // ---------- Camera ----------
+  // ---------- Camera and the film look ----------
   const camera = createFilmCamera(game);
+  const look = createFilmLook(game, camera);
+  film.camera = camera;
+  game.film = film;
+  if (!clock) game.renderer.render = (scene, cam) => look.render(scene, cam);
   game.followCamera = dt => camera.update(dt);
   const cinematicFrame = game.cinematicFrame.bind(game);
   game.cinematicFrame = dt => { cinematicFrame(dt); camera.adjustPrologue(); };

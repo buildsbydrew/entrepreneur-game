@@ -68,7 +68,7 @@ export function buildBody(look, stage) {
   head.position.y = s.torso + s.head * 0.95;
   upper.add(head);
   head.add(ball(s.head, look.skin, 14, 10));
-  for (const side of [-1, 1]) head.add(at(ball(s.head * 0.14, '#1a1a1a', 6, 4), side * s.head * 0.36, s.head * 0.1, s.head * 0.9));
+  const face = buildFace(head, s.head, look, hairColor);
   head.add(at(ball(s.head * 0.17, look.skin, 6, 4), 0, -s.head * 0.15, s.head * 0.96)); // nose
   addHair(head, look, stage, hairColor, s.head);
 
@@ -76,7 +76,90 @@ export function buildBody(look, stage) {
 
   // Rough height, for placing things above someone's head
   const height = hipY + s.torso + s.head * 2;
-  return { root, upper, legs, arms, head, height, stage };
+  return { root, upper, legs, arms, head, face, height, stage };
+}
+
+// ---------- The face ----------
+// Two eyes that blink, eyebrows that show how someone feels, and a mouth that smiles, frowns, or moves
+// while they talk. Simple shapes, so they suit the toy look but still read in a close-up.
+const MOUTH = '#4a2219';
+function buildFace(head, r, look, hairColor) {
+  const eyes = [];
+  const brows = [];
+  for (const side of [-1, 1]) {
+    const eye = at(ball(r * 0.14, '#1a1a1a', 6, 4), side * r * 0.36, r * 0.1, r * 0.9);
+    head.add(eye);
+    eyes.push(eye);
+    // The eyebrow turns about its middle; side tells which end is the inner one
+    const brow = new THREE.Group();
+    brow.position.set(side * r * 0.37, r * 0.29, r * 0.93);
+    brow.add(rbox(r * 0.34, r * 0.07, r * 0.07, look.body === 'girl' ? '#2b1d16' : hairColor === '#d8d4cc' ? '#bdb7ad' : '#1f1611', 0.01));
+    brow.userData.side = side;
+    head.add(brow);
+    brows.push(brow);
+  }
+  // The mouth: a curve (a smile turned up, a frown turned down) and an opening for talking
+  const mouth = new THREE.Group();
+  mouth.position.set(0, -r * 0.45, r * 0.88);
+  const curve = mesh(new THREE.TorusGeometry(r * 0.17, r * 0.035, 4, 10, Math.PI), MOUTH);
+  curve.castShadow = false;
+  mouth.add(curve);
+  const open = ball(r * 0.15, MOUTH, 8, 6);
+  open.castShadow = false;
+  open.scale.set(1, 0.3, 0.45);
+  open.visible = false;
+  mouth.add(open);
+  head.add(mouth);
+  return { eyes, brows, mouth, curve, open, blinkAt: 1 + Math.random() * 3 };
+}
+
+// How the eyebrows sit for each feeling: raised (up) and the inner ends lifted (+) or pulled down (-)
+const BROWS = {
+  calm: { up: 0, inner: 0 },
+  happy: { up: 0.03, inner: -0.12 },
+  sad: { up: 0.01, inner: 0.45 },
+  worried: { up: 0.04, inner: 0.35 },
+  scared: { up: 0.06, inner: 0.4 },
+  angry: { up: -0.04, inner: -0.55 },
+  surprised: { up: 0.09, inner: 0.05 },
+  tired: { up: -0.02, inner: 0.15 }
+};
+// The mouth's curve when quiet: 1 a smile, 0 straight, -1 a frown
+const SMILE = { calm: 0.35, happy: 1, sad: -1, worried: -0.5, scared: -0.6, angry: -0.8, surprised: 0, tired: -0.2 };
+
+// Each frame: blink now and then, eyebrows ease toward the feeling, and the mouth talks while speaking.
+// time: seconds (any running clock); talking: 0..1; mood: one of the feelings above.
+export function poseFace(body, time, talking, mood = 'calm') {
+  const f = body.face;
+  if (!f) return;
+  const r = STAGES[body.stage].head;
+  // Blink: about every four seconds, for a tenth of a second
+  if (time > f.blinkAt + 0.11) f.blinkAt = time + 2.5 + ((Math.sin(time * 12.9898) * 43758.5453) % 1 + 1) % 1 * 3;
+  const shut = time > f.blinkAt;
+  f.eyes.forEach(e => { e.scale.y = shut ? 0.12 : mood === 'surprised' ? 1.25 : 1; });
+  // Eyebrows
+  const b = BROWS[mood] ?? BROWS.calm;
+  f.brows.forEach(brow => {
+    brow.position.y += (r * (0.29 + b.up) - brow.position.y) * 0.2;
+    const target = -brow.userData.side * b.inner;
+    brow.rotation.z += (target - brow.rotation.z) * 0.2;
+  });
+  // Mouth: open and closing with the words, or a smile or frown when quiet
+  if (talking > 0) {
+    const open = 0.25 + 0.75 * Math.abs(Math.sin(time * 14)) * Math.abs(Math.sin(time * 5.3 + 1));
+    f.open.visible = true;
+    f.open.scale.y = 0.15 + open * 0.75 * talking;
+    f.curve.visible = false;
+  } else {
+    f.open.visible = mood === 'surprised';
+    f.open.scale.y = 0.6;
+    f.curve.visible = mood !== 'surprised';
+    const smile = SMILE[mood] ?? 0.3;
+    // The arc is a frown by default; turned over it's a smile, and flattened it's a straight line
+    f.curve.rotation.z = smile >= 0 ? Math.PI : 0;
+    f.curve.scale.y = Math.max(0.15, Math.abs(smile));
+    f.curve.position.y = smile >= 0 ? r * 0.12 : -r * 0.05;
+  }
 }
 
 function addHair(head, look, stage, color, r) {

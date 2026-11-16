@@ -23,10 +23,20 @@ import Person from '../people/Person.js';
 import { pickConversation, conditionsMet, fillText } from '../story/conversation.js';
 import { runConversation } from '../story/talk.js';
 import { playPrologue } from '../story/prologue.js';
-import { speak, stopSpeaking, voiceFor } from '../audio/voice.js';
+import { speak, stopSpeaking, voiceFor, feelingOf } from '../audio/voice.js';
 import { initAudio, play, footstep, talkBlip, setMusicTime, setIndoors, soundSettings, setSound } from '../audio/sound.js';
 
 const deg = d => THREE.MathUtils.degToRad(d ?? 0);
+
+// The feeling a line shows on the speaker's face (the voice's own guess, plus surprise and worry)
+function moodOfLine(text) {
+  const t = String(text ?? '');
+  if (/\?!|!\?|^(what|really|wait)\b/i.test(t)) return 'surprised';
+  if (/\b(what if|scared|afraid|worried|nobody likes)\b/i.test(t)) return 'worried';
+  const f = feelingOf(t);
+  if (f === 'calm' && /!/.test(t)) return 'happy';
+  return f;
+}
 const TALK_RANGE = 1.9;   // how close the player must be to talk or use something
 const AUTOSAVE_MS = 10000;
 const NUMBER_WORDS = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
@@ -61,8 +71,14 @@ export default class Game {
 
     // Sound: people say their lines out loud in Urlivani (the English shows in the box), a click when choosing
     initAudio();
-    this.ui.onSay = (speaker, isYou, text) => speak(text, this.voiceOf(speaker, isYou));
-    this.ui.onSayEnd = () => stopSpeaking();
+    this.ui.onSay = (speaker, isYou, text) => {
+      const seconds = speak(text, this.voiceOf(speaker, isYou));
+      this.showSpeaking(speaker, isYou, text, seconds);
+    };
+    this.ui.onSayEnd = () => {
+      stopSpeaking();
+      [...this.people, this.player].forEach(p => { if (p) p.talkingFor = 0; });
+    };
     this.ui.onChoose = () => play('choose');
 
     this.mode = 'title';   // 'title', 'cinematic' (the prologue), 'play', 'talk', 'menu', 'people', 'busy' (fading or between days)
@@ -120,6 +136,17 @@ export default class Game {
     if (!person) return voiceFor({ seed: name });
     const stage = stageForAge(ageOf(person.born, this.clockNow(), world));
     return voiceFor({ body: person.look.body, stage, seed: person.id });
+  }
+
+  // Faces: whoever is speaking moves their mouth for as long as the line lasts and shows its feeling;
+  // the person they're talking to softens toward the same feeling
+  showSpeaking(speaker, isYou, text, seconds) {
+    const who = isYou ? this.player : this.people.find(p => p.name === speaker);
+    const mood = moodOfLine(text);
+    const length = Math.max(seconds || 0, Math.min(6, 0.6 + text.length * 0.055));
+    if (who) who.say(length, mood);
+    const listener = isYou ? this.people.find(p => p.talking) : this.player;
+    if (listener && listener !== who) listener.mood = mood === 'angry' ? 'worried' : mood === 'happy' ? 'happy' : mood === 'sad' ? 'sad' : listener.mood;
   }
 
   // A person as they are in this life: your little brother or sister gets the name you chose for them

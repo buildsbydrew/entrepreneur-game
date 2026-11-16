@@ -201,3 +201,12 @@ body.film.tall .dialogue { bottom: 27vh; width: calc(100% - 80px); }
 body.film.tall .dialogue .text { font-size: 24px; }
 body.film.tall .cinema .caption-box { bottom: calc(27vh + 18px); }
 body.film.tall .toasts { top: 14vh; }
+
+/* Film look: thin letterbox bars on the 16:9 episodes, with the subtitles sitting just above them */
+body.film:not(.tall) #app::before, body.film:not(.tall) #app::after { content: ''; position: fixed; left: 0; right: 0; height: 5.5vh;
+  background: #000; z-index: 3; pointer-events: none; }
+body.film:not(.tall) #app::before { top: 0; }
+body.film:not(.tall) #app::after { bottom: 0; }
+body.film:not(.tall) .dialogue { bottom: calc(5.5vh + 12px); }
+body.film:not(.tall) .toasts { top: calc(5.5vh + 16px); }
+body.film #world canvas { transition: filter 1.2s; }

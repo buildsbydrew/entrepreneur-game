@@ -68,6 +68,7 @@ export function createAutopilot({ game, film, ui, profile, options, random, peop
   ui.dialogue.say = (speaker, text, isYou = false) => {
     film.add('line', { speaker, text, isYou });
     const shown = say(speaker, text, isYou);
+    film.camera?.onLine(speaker, isYou);
     let finished = false;
     shown.then(() => { finished = true; });
     (async () => {
