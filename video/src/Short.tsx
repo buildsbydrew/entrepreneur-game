@@ -1,8 +1,8 @@
-// The 60-second vertical Short. Text stays inside the part of the screen that YouTube, TikTok and
+// The vertical Short, ending on a big decision (a cliffhanger for the full episode). Text stays inside the part of the screen that YouTube, TikTok and
 // Instagram don't cover with their buttons.
 import React from 'react';
 import { AbsoluteFill, Audio, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
-import { Caption, Chip, Clip, TitleCard, Bot, C, FONTS, sec } from './parts';
+import { Caption, Clip, TitleCard, LineCard, DecisionCard, Bot, C, FONTS, sec } from './parts';
 
 const BigAge: React.FC<{ text: string; length: number }> = ({ text, length }) => {
   const frame = useCurrentFrame();
@@ -24,8 +24,8 @@ const Outro: React.FC<{ name: string }> = ({ name }) => {
     <AbsoluteFill style={{ background: C.night, alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ transform: `scale(${pop})`, textAlign: 'center', fontFamily: FONTS.TITLE, color: C.cream, padding: '0 80px' }}>
         <div style={{ display: 'flex', justifyContent: 'center' }}><Bot size={170} /></div>
-        <div style={{ fontSize: 76, fontWeight: 700, marginTop: 20, lineHeight: 1.1 }}>{name}'s whole life</div>
-        <div style={{ fontSize: 54, fontWeight: 600, color: C.orange }}>is on the channel</div>
+        <div style={{ fontSize: 76, fontWeight: 700, marginTop: 20, lineHeight: 1.1 }}>What did {name} choose?</div>
+        <div style={{ fontSize: 54, fontWeight: 600, color: C.orange }}>Full episode on the channel</div>
       </div>
     </AbsoluteFill>
   );
@@ -44,15 +44,8 @@ export const Short: React.FC<{ id: string; plan: any }> = ({ plan }) => {
           <Sequence key={i} from={from} durationInFrames={length}>
             {item.kind === 'title' && <TitleCard item={item} vertical />}
             {item.kind === 'outro' && <Outro name={item.name} />}
-          </Sequence>
-        );
-      })}
-      {plan.chips.map((c: any, i: number) => {
-        const from = sec(c.at, fps);
-        const length = sec(c.dur, fps);
-        return (
-          <Sequence key={`chip${i}`} from={from} durationInFrames={length}>
-            <Chip label="AI picks" text={c.pick} why={c.why} length={length} scale={1.35} style={{ right: 70, left: 70, width: 'auto', bottom: 'auto', top: 520, transformOrigin: 'center top' }} />
+            {item.kind === 'premise' && <LineCard text={item.text} length={length} vertical />}
+            {item.kind === 'decision' && <DecisionCard item={item} length={length} vertical />}
           </Sequence>
         );
       })}

@@ -129,9 +129,26 @@ function effect(out, { at, kind, pitch = 1 }) {
   }
 }
 
-export function makeSoundtrack(file, duration, sfx, { cards = [] } = {}) {
+// The music steps back while people talk (room for their voices) and almost drops out on the big
+// decision cards, so those moments land in near silence
+function musicLevel(duration, cards, lines) {
+  const STEP = 0.05;
+  const level = new Float32Array(Math.ceil(duration / STEP) + 2).fill(1);
+  const lower = (at, dur, to) => {
+    for (let k = Math.floor(at / STEP); k <= Math.ceil((at + dur) / STEP) && k < level.length; k++) if (k >= 0) level[k] = Math.min(level[k], to);
+  };
+  for (const l of lines) lower(l.at, l.dur, 0.5);
+  for (const c of cards) if (c.kind === 'decision' || c.kind === 'quote') lower(c.at - 0.3, (c.dur ?? 2) + 0.3, 0.15);
+  // Smooth it so the changes are gentle (about a third of a second)
+  for (let pass = 0; pass < 2; pass++) for (let k = 1; k < level.length; k++) level[k] = level[k - 1] + (level[k] - level[k - 1]) * 0.3;
+  return t => level[Math.min(level.length - 1, Math.floor(t / STEP))];
+}
+
+export function makeSoundtrack(file, duration, sfx, { cards = [], lines = [] } = {}) {
   const out = new Float32Array(Math.ceil((duration + 0.2) * RATE));
   music(out, duration, cards);
+  const level = musicLevel(duration, cards, lines);
+  for (let i = 0; i < out.length; i++) out[i] *= level(i / RATE);
   for (const e of sfx) effect(out, e);
   // Gentle limiter so nothing clips
   let peak = 0;

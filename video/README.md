@@ -2,7 +2,13 @@
 
 Everything for the YouTube series lives in this folder. The game plays a whole life by itself (film
 mode), a script records it, and the edit is built in code with Remotion. No voiceover: the story is told
-by captions, the game's own dialogue, chapter cards and music.
+by the game's own dialogue, chapter cards, short time-jump captions and music.
+
+It plays like a film: no menus, answer lists, prompts or readouts ever appear. When the AI chooses, its
+answer is simply said out loud as the character's line. Time jumps become one short caption ("A year
+passed. Ada spent it with family."). Only the few biggest decisions of a life (4 by default) get a
+two-second "decision" card in the edit. The music steps back whenever someone speaks, to leave room for
+the characters' voices.
 
 ## One-time setup
 
@@ -34,8 +40,10 @@ The finished videos land in `video/out/`: `ep02-episode.mp4` (16:9) and `ep02-sh
 
 ## Polishing the words before the final render
 
-After the `edit` step, `episodes/<id>/script.draft.json` holds every chapter title and caption the
-pipeline wrote. To change any of them, copy it to `script.json` in the same folder, edit the words,
+After the `edit` step, `episodes/<id>/script.draft.json` holds every chapter title, caption and decision
+card the pipeline wrote (a decision card can be given a hand-written question, e.g. "Keep the money, or
+give it back?", under its `decision-e...` key). The life's real numbers (age at death, choices,
+conversations, days played) are in `episodes/<id>/facts.json`: use those in the YouTube text. To change any of them, copy it to `script.json` in the same folder, edit the words,
 and run `node make.mjs --id <id> --from edit`. Your words are kept every time you re-run.
 
 The YouTube chapter list is written to `episodes/<id>/chapters.txt`, ready to paste into the description.

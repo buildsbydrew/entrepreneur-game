@@ -8,7 +8,7 @@ import conversationsData from '../data/conversations.json';
 import { state } from '../core/state.js';
 import { playerStage, drainEnergy } from '../core/life.js';
 import { scheduleNow, isPresent } from '../core/schedule.js';
-import { pickConversation } from '../story/conversation.js';
+import { pickConversation, fillText } from '../story/conversation.js';
 import { buildGrid, findPath } from './nav.js';
 import { scoreEffects, pickOption } from './personality.js';
 
@@ -31,39 +31,25 @@ export function createAutopilot({ game, film, ui, profile, options, random, peop
   let decideTimer = 0;
   const grids = new Map();
 
-  // ---------- Starting a life from the title screen ----------
+  // ---------- Starting a life ----------
+  // Straight in: no title screen or name form on camera
   async function beginLife() {
     film.add('title', { title: world.gameTitle });
-    await wait(2600);
-    $('.screen [data-new]')?.click();
-    await wait(900);
-    const input = $('#life-name');
-    if (input) {
-      for (const ch of options.name) {
-        input.value += ch;
-        input.dispatchEvent(new Event('input'));
-        await wait(140);
-      }
-    }
-    await wait(500);
-    $(`[data-body] [data-v="${options.body}"]`)?.click();
-    await wait(450);
-    $$('[data-skin] button')[options.skin - 1]?.click();
-    await wait(900);
+    await wait(200);
     film.add('born', { name: options.name, body: options.body });
-    $('[data-start]')?.click();
+    game.startNewLife({ name: options.name, body: options.body, skin: peopleData.skins[options.skin - 1] ?? peopleData.skins[2] });
   }
   if (game.mode === 'title') setTimeout(beginLife, 0);
 
   // ---------- Choosing ----------
-  // Highlights the option the way arrow keys would, then picks it
-  async function press(button) {
-    if (!button) return;
-    $$('.selected').forEach(b => b.classList.remove('selected'));
-    button.classList.add('selected');
-    await wait(650);
-    button.click();
-  }
+  // How big a decision is: how differently its options would shape the life (for the edit's decision cards)
+  const sizeOf = e => !e ? 0 : Math.abs(e.bond ?? 0) + Math.abs(e.money ?? 0) / 2 + Math.abs(e.happiness ?? 0) / 4
+    + Object.values(e.traits ?? {}).reduce((a, v) => a + Math.abs(v), 0) + Object.values(e.bondWith ?? {}).reduce((a, v) => a + Math.abs(v), 0)
+    + (e.remember ? 2 : 0) + (e.setFlag ? 1 : 0);
+  const decisionWeight = options => {
+    const sizes = options.map(o => sizeOf(o.effects) + sizeOf(pilot.convo?.nodes?.[o.next]?.effects));
+    return options.length < 2 ? 0 : Math.round((Math.max(...sizes) + (Math.max(...sizes) - Math.min(...sizes))) * 10) / 10;
+  };
 
   // The effects of a conversation choice, including what it leads to next
   const choiceEffects = choice => {
@@ -90,21 +76,22 @@ export function createAutopilot({ game, film, ui, profile, options, random, peop
     return shown;
   };
 
-  const choose = ui.dialogue.choose.bind(ui.dialogue);
-  ui.dialogue.choose = (speaker, prompt, choices, isYou = false) => {
-    const picked = choose(speaker, prompt, choices, isYou);
-    (async () => {
-      const partner = game.filmTalkPartner;
-      const who = id => (id ? nameOf(id) : partner?.name ?? 'They');
-      const { index, reason } = pickOption(profile, choices, choice => {
-        const { now, next } = choiceEffects(choice);
-        return [...scoreEffects(profile, now, who), ...scoreEffects(profile, next, who, 0.8)];
-      }, random);
-      film.add('choice', { kind: 'talk', with: partner?.name, prompt, options: choices.map(c => c.text), picked: index, text: choices[index].text, reason });
-      await wait(1500 + choices.length * 350);
-      await press($$('.dialogue .choice')[index]);
-    })();
-    return picked;
+  // In the film there are no menus: the AI decides, and the answer is simply said out loud,
+  // as the player's own line, so the scene plays on like a film
+  const spoken = text => fillText(String(text).replace(/\s*\((?=[^)]*\{currency\}|[^)]*\d)[^)]*\)\s*$/, ''), { currency: world.currency.plural });
+  ui.dialogue.choose = async (speaker, prompt, choices) => {
+    const partner = game.filmTalkPartner;
+    const who = id => (id ? nameOf(id) : partner?.name ?? 'They');
+    const { index, reason } = pickOption(profile, choices, choice => {
+      const { now, next } = choiceEffects(choice);
+      return [...scoreEffects(profile, now, who), ...scoreEffects(profile, next, who, 0.8)];
+    }, random);
+    const choice = choices[index];
+    film.add('choice', { kind: 'talk', with: partner?.name, prompt, options: choices.map(c => spoken(c.text)), picked: index, text: spoken(choice.text), reason, weight: decisionWeight(choices) });
+    await wait(500);
+    ui.onChoose?.();
+    await ui.dialogue.say(state.life?.name ?? 'You', spoken(choice.text), true);
+    return choice;
   };
 
   const talkTo = game.talkTo.bind(game);
@@ -142,46 +129,40 @@ export function createAutopilot({ game, film, ui, profile, options, random, peop
     })();
     return shown;
   };
-  const cinemaChoose = ui.cinema.choose.bind(ui.cinema);
-  ui.cinema.choose = (prompt, choiceOptions) => {
-    const picked = cinemaChoose(prompt, choiceOptions);
-    (async () => {
-      const { index, reason } = pickOption(profile, choiceOptions, o => scoreEffects(profile, o.effects, id => (id ? nameOf(id) : 'Family')), random);
-      film.add('choice', { kind: 'prologue', prompt, options: choiceOptions.map(o => o.text), picked: index, text: choiceOptions[index].text, reason });
-      await wait(2200 + choiceOptions.length * 350);
-      await press($$('.caption-choices .choice')[index]);
-    })();
-    return picked;
+  // Prologue questions: no menu; the family's answer is told as one more caption
+  ui.cinema.choose = async (prompt, choiceOptions) => {
+    const { index, reason } = pickOption(profile, choiceOptions, o => scoreEffects(profile, o.effects, id => (id ? nameOf(id) : 'Family')), random);
+    const option = choiceOptions[index];
+    film.add('choice', { kind: 'prologue', prompt, options: choiceOptions.map(o => o.text), picked: index, text: option.text, reason, weight: decisionWeight(choiceOptions) });
+    const answer = option.text.replace(/^"|"$/g, '');
+    // "...they'll tell you that you were... a quiet baby." (names keep their capitals)
+    const small = /^(A|An|The|Some|Always|Very)\b/.test(answer) ? answer.charAt(0).toLowerCase() + answer.slice(1) : answer;
+    const end = /[.!?"]$/.test(answer) ? '' : '.';
+    const told = /\.\.\.\s*$/.test(prompt)
+      ? `${prompt.trim()} ${/^"/.test(option.text) ? option.text : small}${end}`
+      : `${/^"/.test(option.text) ? option.text : answer}${end}`;
+    await ui.cinema.caption(told);
+    return option;
   };
 
   // ---------- Time jumps ----------
-  const chooseFocus = ui.chooseFocus.bind(ui);
-  ui.chooseFocus = args => {
-    const picked = chooseFocus(args);
-    (async () => {
-      const { index, reason } = pickOption(profile, args.choices, c => {
-        const parts = scoreEffects(profile, c.effects, () => 'Family');
-        if (c.id === lastFocus) parts.push({ score: -0.6, why: 'something new' });
-        return parts;
-      }, random, 3.2);
-      lastFocus = args.choices[index].id;
-      film.add('choice', { kind: 'focus', prompt: args.sub, options: args.choices.map(c => c.label), picked: index, text: args.choices[index].label, focus: args.choices[index].id, reason });
-      await wait(2400);
-      await press($$('.screen [data-i]')[index]);
-    })();
-    return picked;
+  // Time jumps: no screens. The AI picks a focus straight away; what happened goes in the log,
+  // and the edit turns it into a short caption ("A year passed. Ada spent it with family.")
+  ui.chooseFocus = async args => {
+    const { index, reason } = pickOption(profile, args.choices, c => {
+      const parts = scoreEffects(profile, c.effects, () => 'Family');
+      if (c.id === lastFocus) parts.push({ score: -0.6, why: 'something new' });
+      return parts;
+    }, random, 3.2);
+    lastFocus = args.choices[index].id;
+    film.add('choice', { kind: 'focus', prompt: args.sub, options: args.choices.map(c => c.label), picked: index, text: args.choices[index].label, focus: args.choices[index].id, reason });
+    await wait(300);
+    return args.choices[index];
   };
 
-  const showSummary = ui.showSummary.bind(ui);
-  ui.showSummary = args => {
+  ui.showSummary = async args => {
     film.add('jump', { heading: args.heading, sub: args.sub, lines: args.lines });
-    const done = showSummary(args);
-    (async () => {
-      const letters = args.lines.join(' ').length;
-      await wait(Math.min(9000, 1400 + args.lines.length * 450 + letters * 38));
-      $('.screen [data-go]')?.click();
-    })();
-    return done;
+    await wait(900);
   };
 
   const sleep = game.sleep.bind(game);

@@ -191,8 +191,10 @@ body.is-touch .focus-list .choice small { margin-left: 0; }
 .caption-choices .choice { width: min(480px, 100%); }
 
 /* ---------- Film mode (?film): the game plays itself for the videos ---------- */
-body.film .dev, body.film .touch-pad, body.film .prompt, body.film .cinema .skip,
-body.film .hud .icon-btn, body.film .dialogue .next, body.film .caption-next { display: none !important; }
+/* Like a film: no menus, choice lists, prompts, readouts or pop-ups. The AI's answers are spoken lines. */
+body.film .dev, body.film .touch-pad, body.film .prompt, body.film .cinema .skip, body.film .hud, body.film .screen,
+body.film .feeling, body.film .choice, body.film .choices, body.film .caption-choices, body.film .goals,
+body.film .dialogue .next, body.film .caption-next { display: none !important; }
 body.film { cursor: none; }
 /* Vertical videos: lift the boxes clear of the buttons that phones' video apps put along the bottom */
 body.film.tall .dialogue { bottom: 27vh; width: calc(100% - 80px); }

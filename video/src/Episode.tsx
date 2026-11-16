@@ -1,8 +1,8 @@
 // The full episode, 16:9: title card, footage clips with the dull bits cut, chapter cards per age,
-// captions, the AI's reasons, and the end card, over the soundtrack made by audio.mjs.
+// time-jump captions, a few decision cards, and the end card, over the soundtrack made by audio.mjs.
 import React from 'react';
 import { AbsoluteFill, Audio, Sequence, staticFile, useVideoConfig } from 'remotion';
-import { Caption, Chip, Clip, TitleCard, ChapterCard, EndCard, C, sec } from './parts';
+import { Caption, Clip, TitleCard, ChapterCard, EndCard, LineCard, JumpCard, DecisionCard, C, sec } from './parts';
 
 export const Episode: React.FC<{ id: string; plan: any }> = ({ plan }) => {
   const { fps } = useVideoConfig();
@@ -18,13 +18,11 @@ export const Episode: React.FC<{ id: string; plan: any }> = ({ plan }) => {
             {item.kind === 'title' && <TitleCard item={item} />}
             {item.kind === 'chapter' && <ChapterCard item={item} length={length} />}
             {item.kind === 'end' && <EndCard item={item} length={length} />}
+            {(item.kind === 'premise' || item.kind === 'quote') && <LineCard text={item.text} length={length} />}
+            {item.kind === 'jump' && <JumpCard item={item} length={length} />}
+            {item.kind === 'decision' && <DecisionCard item={item} length={length} />}
           </Sequence>
         );
-      })}
-      {plan.chips.map((c: any, i: number) => {
-        const from = sec(c.at, fps);
-        const length = sec(c.dur, fps);
-        return <Sequence key={`chip${i}`} from={from} durationInFrames={length}><Chip label="AI picks" text={c.pick} why={c.why} length={length} /></Sequence>;
       })}
       {plan.captions.map((c: any, i: number) => {
         const from = sec(c.at, fps);

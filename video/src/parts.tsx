@@ -1,5 +1,5 @@
-// The pieces both videos are built from: footage clips, captions, the AI's reason chip, the title,
-// chapter and end cards. The look matches the game's own interface: cream paper, dark brown ink,
+// The pieces both videos are built from: footage clips, captions, the title, premise, chapter,
+// time-jump, decision and end cards. The look matches the game's own interface: cream paper, dark brown ink,
 // orange and teal.
 import React from 'react';
 import { AbsoluteFill, Easing, interpolate, OffthreadVideo, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
@@ -74,28 +74,6 @@ export const Bot: React.FC<{ size: number; blink?: boolean }> = ({ size, blink }
     </>}
   </svg>
 );
-
-// What the AI picked and why
-export const Chip: React.FC<{ label: string; text: string; why?: string; length: number; scale?: number; style?: React.CSSProperties }> = ({ label, text, why, length, scale = 1, style }) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const o = useInOut(length, 6);
-  const pop = spring({ frame, fps, config: { damping: 14, stiffness: 160 } });
-  return (
-    <div style={{
-      position: 'absolute', right: 54, bottom: 480, width: 470 * scale, opacity: o, transform: `scale(${0.85 + pop * 0.15})`, transformOrigin: 'right bottom',
-      display: 'flex', gap: 16 * scale, alignItems: 'center', background: C.paper, border: `4px solid ${C.ink}`, borderRadius: 20 * scale,
-      boxShadow: `0 6px 0 ${C.ink}`, padding: `${14 * scale}px ${18 * scale}px`, fontFamily: TEXT, color: C.ink, ...style
-    }}>
-      <Bot size={64 * scale} blink={frame % 70 > 64} />
-      <div>
-        <div style={{ fontSize: 22 * scale, fontWeight: 800, color: C.teal, textTransform: 'uppercase', letterSpacing: 1 }}>{label}</div>
-        <div style={{ fontSize: 30 * scale, fontWeight: 800, lineHeight: 1.2 }}>{text}</div>
-        {why ? <div style={{ fontSize: 24 * scale, fontWeight: 700, lineHeight: 1.25, opacity: 0.7, marginTop: 4 }}>because {why}</div> : null}
-      </div>
-    </div>
-  );
-};
 
 // Soft paper clouds drifting over a sky, for the title and end cards
 export const Sky: React.FC<{ tint?: string }> = ({ tint = C.sky }) => {
@@ -193,12 +171,65 @@ export const EndCard: React.FC<{ item: any; length: number; vertical?: boolean }
         </div>
       </AbsoluteFill>
       <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', opacity: teaser }}>
-        <div style={{ textAlign: 'center', fontFamily: TITLE, color: C.ink }}>
-          <div style={{ display: 'flex', justifyContent: 'center' }}><Bot size={130 * s} blink={frame % 60 > 55} /></div>
-          <div style={{ fontSize: 84 * s, fontWeight: 700, marginTop: 16 }}>Next life:</div>
-          <div style={{ fontSize: 60 * s, fontWeight: 600, color: C.orange, WebkitTextStroke: `2px ${C.ink}` }}>a new personality</div>
+        <div style={{ textAlign: 'center', fontFamily: TITLE, color: C.ink, padding: '0 80px' }}>
+          <div style={{ fontSize: 84 * s, fontWeight: 700 }}>{item.question ?? 'What would YOU have done?'}</div>
+          <div style={{ fontSize: 50 * s, fontWeight: 600, color: C.orange, WebkitTextStroke: `2px ${C.ink}`, marginTop: 12 }}>Tell me in the comments</div>
         </div>
       </AbsoluteFill>
+    </AbsoluteFill>
+  );
+};
+
+// One line on a dark screen: the premise, or "And then, one day..."
+export const LineCard: React.FC<{ text: string; length: number; vertical?: boolean }> = ({ text, length, vertical }) => {
+  const frame = useCurrentFrame();
+  const o = interpolate(frame, [0, 10, length - 10, length], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  return (
+    <AbsoluteFill style={{ background: C.night, alignItems: 'center', justifyContent: 'center', padding: vertical ? 90 : 200 }}>
+      <div style={{ opacity: o, fontFamily: TITLE, fontWeight: 600, fontSize: vertical ? 70 : 64, color: C.cream, textAlign: 'center', lineHeight: 1.25 }}>{text}</div>
+    </AbsoluteFill>
+  );
+};
+
+// A time jump, told in a sentence or two: "A year passed. Ada spent it with family."
+export const JumpCard: React.FC<{ item: any; length: number; vertical?: boolean }> = ({ item, length, vertical }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const o = interpolate(frame, [0, 8, length - 8, length], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const rise = spring({ frame, fps, config: { damping: 18 } });
+  const s = vertical ? 1.05 : 1;
+  return (
+    <AbsoluteFill style={{ background: C.night, alignItems: 'center', justifyContent: 'center', padding: vertical ? 80 : 160 }}>
+      <div style={{ opacity: o, transform: `translateY(${(1 - rise) * 24}px)`, textAlign: 'center', color: C.cream, fontFamily: TEXT }}>
+        {item.age !== undefined ? <div style={{ fontFamily: TITLE, fontWeight: 700, fontSize: 40 * s, color: C.orange, letterSpacing: 2 }}>AGE {item.age}</div> : null}
+        <div style={{ fontFamily: TITLE, fontWeight: 600, fontSize: 78 * s, lineHeight: 1.1, marginTop: 6 }}>{item.title}</div>
+        {item.text ? <div style={{ fontWeight: 800, fontSize: 44 * s, marginTop: 14, opacity: 0.92 }}>{item.text}</div> : null}
+        {(item.events ?? []).map((e: string, i: number) => (
+          <div key={i} style={{ fontWeight: 700, fontSize: 36 * s, marginTop: 10, opacity: interpolate(frame, [14 + i * 10, 24 + i * 10], [0, 0.8], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }) }}>{e}</div>
+        ))}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+// One of the few big decisions of the life: the question, in the edit's own style (never the game's menu)
+export const DecisionCard: React.FC<{ item: any; length: number; vertical?: boolean }> = ({ item, length, vertical }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const pop = spring({ frame, fps, config: { damping: 11, stiffness: 150 } });
+  const o = interpolate(frame, [length - 6, length], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const push = interpolate(frame, [0, length], [1, 1.06]);
+  return (
+    <AbsoluteFill style={{ background: `radial-gradient(circle at 50% 45%, #43304a 0%, ${C.night} 70%)`, alignItems: 'center', justifyContent: 'center', opacity: o }}>
+      <div style={{ transform: `scale(${pop * push})`, textAlign: 'center', padding: vertical ? '0 70px' : '0 180px' }}>
+        <div style={{ fontFamily: TEXT, fontWeight: 800, fontSize: vertical ? 40 : 34, color: C.orange, letterSpacing: 6 }}>DECISION</div>
+        {item.question ? <div style={{ fontFamily: TITLE, fontWeight: 700, fontSize: vertical ? 78 : 76, color: C.cream, lineHeight: 1.15, marginTop: 12 }}>{item.question}</div> : (item.options ?? []).map((o: string, i: number) => (
+          <React.Fragment key={i}>
+            {i > 0 ? <div style={{ fontFamily: TEXT, fontWeight: 800, fontSize: vertical ? 44 : 38, color: C.orange, margin: '10px 0' }}>or</div> : null}
+            <div style={{ fontFamily: TITLE, fontWeight: 700, fontSize: vertical ? 66 : 62, color: C.cream, lineHeight: 1.15, marginTop: i ? 0 : 14 }}>{o}</div>
+          </React.Fragment>
+        ))}
+      </div>
     </AbsoluteFill>
   );
 };

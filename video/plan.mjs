@@ -22,8 +22,15 @@ const args = Object.fromEntries(process.argv.slice(2).reduce((acc, a, i, all) =>
 }, []));
 const id = args.id ?? 'ep01';
 const epDir = path.join(here, 'episodes', id);
-const logFile = fs.existsSync(path.join(epDir, 'log.json')) && !args.windows ? 'log.json' : 'log-probe.json';
-const log = JSON.parse(fs.readFileSync(path.join(epDir, logFile), 'utf8'));
+// The whole life comes from the test run's log. A recording plays exactly the same life but stops at
+// the last moment it needs, so its log only has to match the test run's as far as it goes.
+const log = JSON.parse(fs.readFileSync(path.join(epDir, 'log-probe.json'), 'utf8'));
+if (!args.windows && fs.existsSync(path.join(epDir, 'log.json'))) {
+  const recorded = JSON.parse(fs.readFileSync(path.join(epDir, 'log.json'), 'utf8'));
+  const key = e => `${e.type}|${Math.round(e.sim * 100)}|${e.text ?? ''}`;
+  const differs = recorded.findIndex((e, i) => !log[i] || key(e) !== key(log[i]));
+  if (differs >= 0) console.warn(`Warning: the recording drifted from the test run at ${recorded[differs].sim}s (${recorded[differs].type}). Re-record before rendering.`);
+}
 log.forEach(e => { e.t = e.sim; });
 // Fill in the money's name wherever the game left it as {currency}
 const fillMoney = v => typeof v === 'string' ? v.replace(/{currency}/g, 'livs') : Array.isArray(v) ? v.map(fillMoney) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, fillMoney(x)])) : v;
@@ -73,8 +80,6 @@ function keepRanges(day, { quiet }) {
   const add = (from, to, what) => { if (to > from) ranges.push({ from: Math.max(day.card.t, from), to: Math.min(day.until, to), what }); };
   const ev = day.events;
   const sleep = ev.find(e => e.type === 'sleep');
-  const focus = ev.find(e => e.type === 'choice' && e.kind === 'focus');
-  const jump = ev.find(e => e.type === 'jump');
   if (!quiet) {
     add(day.card.t + 0.4, day.card.t + 4.5, 'morning');
     for (const talk of day.talks) {
@@ -86,12 +91,7 @@ function keepRanges(day, { quiet }) {
     for (const place of ev.filter(e => e.type === 'place')) add(place.t - 0.2, place.t + 1.2, 'arrive');
     if (sleep) add(sleep.t - 1.2, sleep.t + 0.5, 'bed');
   }
-  if (focus) add(focus.t + (quiet ? 0.8 : 0.2), focus.t + 3.4, 'focus');
-  if (jump) {
-    const next = ev.find(e => e.t > jump.t && e.type === 'card')?.t ?? day.until;
-    const full = Math.min(next, jump.t + 1.4 + jump.lines.length * 0.45 + jump.lines.join(' ').length * 0.038);
-    add(jump.t + 0.1, quiet ? Math.min(full, jump.t + 4.6) : full, 'jump');
-  }
+  if (quiet) add(day.card.t + 0.4, day.card.t + 2.6, 'morning');
   // Merge stretches that are close together, so short gaps aren't choppy
   ranges.sort((a, b) => a.from - b.from);
   const merged = [];
@@ -124,18 +124,25 @@ const shorten = text => {
   return words.length > 8 ? `${words.slice(0, 8).join(' ')}...` : t;
 };
 
-const TALK_NEW = ['First, {who}.', 'Next stop: {who}.', 'Off to see {who}.', '{who} has something to say.', 'Time for {who}.'];
-const TALK_AGAIN = ['{who} again. Same as ever.', 'A quick chat with {who}.', 'Checking in on {who}.'];
-const LAPSE = ['Nothing happening. Fast-forward.', 'A quiet afternoon. Skip.', 'The hours roll by.', 'Waiting for the day to happen.'];
-const BED = ['Bedtime.', 'Lights out.', 'And that was the day.'];
-const FOCUS = ['Now the years skip ahead. The AI decides what matters most.', 'Time to jump ahead. What will it focus on?', 'Another leap in time.'];
-const MONEY_UP = ['+{n} livs. Rich!', '+{n} livs. Saving it, probably.', 'Payday: {n} livs.'];
-const MONEY_DOWN = ['{n} livs, gone. Worth it.', 'Spent {n} livs. No regrets.'];
+
+// ---------- The few big decisions that get a card ----------
+const MAX_DECISIONS = Number(args.decisions ?? 4);
+const decisions = log.map((e, i) => ({ e, i })).filter(({ e }) => e.type === 'choice' && e.kind !== 'focus' && (e.weight ?? 0) >= 2 && e.options.length > 1)
+  .sort((a, b) => b.e.weight - a.e.weight).slice(0, MAX_DECISIONS)
+  .map(({ e, i }) => {
+    // The picked answer and the most different other one, in the order the game offered them.
+    // A polished question can be written in script.json under "decision-e<number>" (e.g. "Keep the money, or give it back?").
+    const other = e.options.findIndex((o, k) => k !== e.picked);
+    const pair = [e.picked, other].sort((a, b) => a - b).map(k => strip(e.options[k]));
+    const written = saved?.captions?.[`decision-e${i}`];
+    draft.captions[`decision-e${i}`] = `${pair[0]} Or ${pair[1]}`;
+    return { t: e.t, question: written ?? null, options: written ? null : pair };
+  }).sort((a, b) => a.t - b.t);
 
 // ---------- Building the edit ----------
 const items = [];      // what plays, in order: title, clip, card, end
 const captions = [];   // { at, dur, text } on screen, in output seconds
-const chips = [];      // { at, dur, label, text } the AI's reasons
+const lines = [];      // { at, dur } when someone is speaking (the music steps back for voices)
 const chapters = [];   // { at, title } for the YouTube description
 const sfx = [];        // { at, kind, pitch } sound effects, in output seconds
 let cursor = 0;
@@ -149,37 +156,50 @@ const addCaption = (at, text, dur) => {
   captions.push({ at: +start.toFixed(3), dur: +d.toFixed(3), text });
 };
 
-// Plays a stretch of footage and places captions, chips and sounds for what happens in it
-function addClip(from, to, { quietCaptions = false } = {}) {
+// Plays a stretch of footage, with sounds for what happens in it. A big decision inside it gets a
+// short decision card just before the answer is said.
+function addClip(from, to) {
   if (to - from < 0.3) return;
+  const decision = decisions.find(d => d.t > from + 0.2 && d.t < to - 0.2 && !d.used);
+  if (decision) {
+    decision.used = true;
+    addClip(from, decision.t);
+    addCard('decision', 2.4, { question: decision.question, options: decision.options });
+    addClip(decision.t, to);
+    return;
+  }
   const at = cursor;
   items.push({ kind: 'clip', at: +at.toFixed(3), dur: +(to - from).toFixed(3), from: +toFootage(from).toFixed(3), sim: +from.toFixed(3) });
   const out = t => at + (t - from);
-  log.forEach((e, i) => {
-    if (e.t < from || e.t >= to) return;
+  for (const e of log) {
+    if (e.t < from || e.t >= to) continue;
     const o = out(e.t);
-    if (e.type === 'line') sfx.push({ at: o, kind: 'voice', pitch: e.isYou ? 1.35 : 0.9 + ((e.speaker.length * 7) % 5) * 0.12 });
-    if (e.type === 'choice') {
-      const shown = e.kind === 'focus' ? 2.6 : e.kind === 'prologue' ? 2.8 : 2.2;
-      chips.push({ at: +(o + 0.5).toFixed(3), dur: shown, pick: strip(e.text), why: e.reason.replace(/^\w+: /, '') });
-      sfx.push({ at: o + shown + 0.4, kind: 'choose' });
-    }
-    if (quietCaptions) return;
-    if (e.type === 'talk') addCaption(o - 1.2, captionFor(`e${i}`, pick(e.isNew ? TALK_NEW : TALK_AGAIN).replace('{who}', e.with)));
-    if (e.type === 'timelapse') addCaption(o, captionFor(`e${i}`, pick(LAPSE)));
-    if (e.type === 'sleep') addCaption(o - 0.8, captionFor(`e${i}`, pick(BED)));
-    if (e.type === 'feeling') {
-      const m = e.text.match(/^([+-]?\d+) livs/);
-      if (m) {
-        const n = Math.abs(Number(m[1]));
-        addCaption(o, captionFor(`e${i}`, pick(Number(m[1]) > 0 ? MONEY_UP : MONEY_DOWN).replace('{n}', n)));
-        sfx.push({ at: o, kind: Number(m[1]) > 0 ? 'coin' : 'spend' });
-      } else sfx.push({ at: o, kind: /didn't/.test(e.text) ? 'cold' : 'warm' });
-    }
-    if (e.type === 'jump') sfx.push({ at: o, kind: 'page' });
+    if (e.type === 'line') { sfx.push({ at: o, kind: 'voice', pitch: e.isYou ? 1.35 : 0.9 + ((e.speaker.length * 7) % 5) * 0.12 }); lines.push({ at: o, dur: Math.min(6.5, 0.9 + e.text.length * 0.05 + e.text.length * 0.016) }); }
+    if (e.type === 'feeling') sfx.push({ at: o, kind: /livs/.test(e.text) ? (/^-/.test(e.text) ? 'spend' : 'coin') : /didn't/.test(e.text) ? 'cold' : 'warm' });
     if (e.type === 'card' || e.type === 'place') sfx.push({ at: o, kind: 'whoosh' });
-  });
+  }
   cursor += to - from;
+}
+
+// "A year passed. Ada spent it with family." and anything else that happened, told about her
+const FOCUS_WORDS = { family: 'with family', friends: 'with friends', school: 'studying hard', outside: 'playing outside', hustle: 'earning money',
+  make: 'making things', rest: 'resting and getting well', work: 'working', explore: 'exploring everything', cuddles: 'close to family', noise: 'being loud' };
+const she = film.body === 'boy' ? ['he', 'him', 'his'] : ['she', 'her', 'her'];
+const aboutThem = text => text
+  .replace(/^You were /, `${name} was `).replace(/^You are /, `${name} is `).replace(/^You /, `${name} `)
+  .replace(/\byou were\b/g, `${she[0]} was`).replace(/\bYour\b/g, she[2].replace(/^./, c => c.toUpperCase())).replace(/\byour\b/g, she[2])
+  .replace(/\byou\b/g, she[1]);
+function jumpCard(day) {
+  const jump = day.events.find(e => e.type === 'jump');
+  const focus = day.events.find(e => e.type === 'choice' && e.kind === 'focus');
+  if (!jump) return null;
+  const passed = jump.heading.replace(/\bpasses\b/, 'passed').replace(/\bpass\b/, 'passed');
+  const one = /^A /.test(jump.heading);
+  const spent = focus && FOCUS_WORDS[focus.focus] ? `${name} spent ${one ? 'it' : 'them'} ${FOCUS_WORDS[focus.focus]}.` : '';
+  const known = new Set([jump.lines[0]]);
+  const events = jump.lines.filter(l => !known.has(l) && !/^You turned \d+/.test(l) && !/^You('re| are) (a |an )?(teenager|adult)|^The years have caught up|^You're not a baby/.test(l)).map(aboutThem);
+  const age = day.events.find(e => e.type === 'age')?.now ?? jump.age;
+  return { title: `${passed}.`, text: spent, events: events.slice(0, 2), age: jump.age ?? age };
 }
 
 function addCard(kind, dur, data) {
@@ -193,47 +213,45 @@ function addCard(kind, dur, data) {
   cursor += dur;
 }
 
-// 1. Title card
-addCard('title', 4.5, { name, profile: film.profile, about: film.about, world: film.world, game: film.game });
+// 1. Title card, then one line of premise
+addCard('title', 4, { name, profile: film.profile, about: film.about, world: film.world, game: film.game });
+addCard('premise', 3, { text: captionFor('premise', 'An AI lives one life in my game. Every choice is its own.') });
 
-// 2. Being born: the title screen and typing the name
-const born = log.find(e => e.type === 'born');
-const title = log.find(e => e.type === 'title');
-addClip((title?.t ?? 0) + 2.2, (born?.t ?? 6) + 0.9, { quietCaptions: true });
-addCaption(4.55, captionFor('intro1', `Meet ${name}. An AI is about to live ${film.body === 'boy' ? 'his' : 'her'} whole life.`), 2.1);
-addCaption(6.75, captionFor('intro2', `Its personality? ${film.profile}.`), 2.0);
-
-// 3. The prologue: the game's own captions tell it; keep each one long enough to read
+// 2. The prologue: the game's own captions tell it (the family's answers are told as captions too)
 chapters.push({ at: cursor, title: chapterTitle('prologue', 'Before the first memory') });
 addCard('chapter', 2.6, { title: chapterTitle('prologue', 'Before the first memory'), sub: 'Birth to age 4' });
 const prologueEnd = firstMemory?.t ?? end;
-const beats = log.filter(e => e.t >= (firstScene?.t ?? 0) && e.t < prologueEnd && ['caption', 'choice', 'prologue-scene'].includes(e.type));
+const beats = log.filter(e => e.t >= (firstScene?.t ?? 0) && e.t < prologueEnd && ['caption', 'prologue-scene'].includes(e.type));
 beats.forEach((b, i) => {
   const next = beats[i + 1]?.t ?? prologueEnd;
   if (b.type === 'prologue-scene') return addClip(b.t + 0.2, Math.min(next, b.t + 1.0));
-  if (b.type === 'caption') return addClip(b.t, Math.min(next, b.t + b.text.length * 0.028 + 2.9));
-  if (b.type === 'choice') return addClip(b.t, Math.min(next, b.t + 2.2 + b.options.length * 0.35 + 1.3));
+  return addClip(b.t, Math.min(next, b.t + b.text.length * 0.028 + 2.9));
 });
 
-// 4. The played days. Each stage of life (child, teen, adult, elder) gets its days with something new
+// 3. The played days. Each stage of life (child, teen, adult, elder) gets its days with something new
 // in them shown in full (a chapter per age), then one ordinary day so we see the character at that
-// age, then the time jumps where something happened, briefly.
+// age, then the time jumps where something happened, each as a short caption card over a glimpse of
+// the next morning.
 const STAGE_NAMES = { child: 'childhood', teen: 'the teenage years', adult: 'grown up', elder: 'the grey years' };
+const addJump = day => {
+  const card = jumpCard(day);
+  if (card) addCard('jump', card.events.length ? 3.4 : 2.6, card);
+};
 const playDay = (day, chapter) => {
   if (chapter) {
     chapters.push({ at: cursor, title: chapter.title });
     addCard('chapter', 2.6, chapter);
   } else {
-    addClip(day.card.t, day.card.t + 1.9, { quietCaptions: true }); // the game's own "Day 12 of Bloom" card
+    addClip(day.card.t, day.card.t + 1.9); // the game's own "Day 12 of Bloom" card
   }
   for (const r of keepRanges(day, { quiet: false })) addClip(r.from, r.to);
+  addJump(day);
 };
 let lastAge = null;
 for (const stage of ['child', 'teen', 'adult', 'elder']) {
   const inStage = days.filter(d => d.stage === stage);
   if (!inStage.length) continue;
-  const special = inStage.filter(d => d.interesting);
-  for (const day of special) {
+  for (const day of inStage.filter(d => d.interesting)) {
     const key = `age-${day.age}`;
     const first = day.memories[0]?.text;
     const chapter = day.age !== lastAge ? { title: `Age ${day.age}: ${chapterTitle(key, first ? shorten(first) : STAGE_NAMES[stage])}`, sub: '' } : null;
@@ -249,54 +267,49 @@ for (const stage of ['child', 'teen', 'adult', 'elder']) {
   const title = `${span}: ${chapterTitle(key, STAGE_NAMES[stage])}`;
   // One ordinary day, to see who they've become: the one with the most talking
   const showcase = [...rest].sort((a, b) => b.talks.length - a.talks.length || a.card.t - b.card.t)[0];
-  if (showcase.talks.length) {
-    playDay(showcase, { title, sub: '' });
-  } else {
-    chapters.push({ at: cursor, title });
-    addCard('chapter', 2.4, { title, sub: '' });
-  }
-  // What they chose to focus on, counted up
-  const focuses = rest.flatMap(d => d.events.filter(e => e.type === 'choice' && e.kind === 'focus').map(e => strip(e.text)));
-  const counts = Object.entries(focuses.reduce((m, f) => ({ ...m, [f]: (m[f] ?? 0) + 1 }), {})).sort((a, b) => b[1] - a[1]);
-  if (rest.length > 2 && counts.length) {
-    const top = counts.slice(0, 2).map(([f, n]) => `${f} ${n === 1 ? 'once' : n === 2 ? 'twice' : `${n} times`}`).join(', ');
-    addCaption(cursor, captionFor(`${key}-count`, `${rest.length} time jumps. The AI chose ${top}.`), 3.4);
-  }
-  // The jumps where something happened (more than the usual line or two), briefly
+  chapters.push({ at: cursor, title });
+  addCard('chapter', showcase.talks.length ? 2.6 : 2.4, { title, sub: '' });
+  // The time jumps where something happened, briefly, all in the order they happened
   const others = rest.filter(d => d !== showcase);
-  const eventful = others.filter(d => (d.events.find(e => e.type === 'jump')?.lines.length ?? 0) > 2);
-  const chosen = (eventful.length ? eventful : others).slice(0, stage === 'adult' ? 7 : 5);
-  for (const d of chosen) for (const r of keepRanges(d, { quiet: true })) addClip(r.from, r.to, { quietCaptions: true });
+  const eventful = others.filter(d => (jumpCard(d)?.events.length ?? 0) > 0);
+  const brief = new Set((eventful.length ? eventful : others).slice(0, stage === 'adult' ? 6 : 4));
+  for (const d of rest) {
+    if (d === showcase && showcase.talks.length) {
+      for (const r of keepRanges(d, { quiet: false })) addClip(r.from, r.to);
+      addJump(d);
+    } else if (brief.has(d) || d === showcase) {
+      for (const r of keepRanges(d, { quiet: true })) addClip(r.from, r.to);
+      addJump(d);
+    }
+  }
 }
 
-// 5. The end: the game's life story, then our end card
+// 4. The end: our end card, with the numbers taken from the log
 if (story) {
   chapters.push({ at: cursor, title: 'The end of a life' });
-  const lastJump = [...log].reverse().find(e => e.type === 'choice' && e.kind === 'focus');
-  if (lastJump && lastJump.t > (days[days.length - 1]?.card.t ?? 0)) addClip(lastJump.t + 0.5, lastJump.t + 3.4, { quietCaptions: true });
-  addCaption(cursor, captionFor('end1', 'And then, one day...'), 2.4);
-  addClip(story.t - 0.4, Math.min(end, story.t + 9), { quietCaptions: true });
+  addCard('quote', 2.6, { text: captionFor('end1', 'And then, one day...') });
   const choices = log.filter(e => e.type === 'choice');
   const people = new Set(log.filter(e => e.type === 'talk').map(e => e.with));
-  // Moments for the end card from the whole life: the first few, and how it ended, each once
+  // Moments for the end card from the whole life: one from each of the first few ages, then how it ended
   const seenMoments = new Set();
   const all = log.filter(e => e.type === 'memory' && e.memoryAge >= 5 && !/^Turned \d+/.test(e.text) && !seenMoments.has(e.text) && seenMoments.add(e.text))
     .map(e => ({ age: e.memoryAge, text: e.text }));
-  // one from each of the first few ages, then the last two
   const early = all.filter((m, i) => all.findIndex(x => x.age === m.age) === i).slice(0, 3);
   const moments = all.length > 5 ? [...early, ...all.slice(-2).filter(m => !early.includes(m))] : all;
   addCard('end', 14, {
-    story,
-    moments,
-    stats: {
-      choices: choices.length,
-      conversations: log.filter(e => e.type === 'talk').length,
-      people: people.size,
-      playedDays: days.length,
-      profile: film.profile
-    }
+    story, moments, question: captionFor('end-question', 'What would YOU have done differently?'),
+    stats: { choices: choices.length, conversations: log.filter(e => e.type === 'talk').length, people: people.size, playedDays: days.length, profile: film.profile }
   });
 }
+
+// The facts for the YouTube text, straight from the log, so the description never gets a number wrong
+const facts = {
+  name, personality: film.profile, livedTo: story?.age ?? null, years: story?.years ?? null, cause: story?.cause ?? null,
+  rememberedAs: story?.traits ?? [], closest: story?.closest ?? [], leftBehind: story?.money ?? null,
+  choices: log.filter(e => e.type === 'choice').length, conversations: log.filter(e => e.type === 'talk').length, playedDays: days.length,
+  people: [...new Set(log.filter(e => e.type === 'talk').map(e => e.with))]
+};
+fs.writeFileSync(path.join(epDir, 'facts.json'), JSON.stringify(facts, null, 1));
 
 const duration = cursor;
 fs.writeFileSync(path.join(epDir, 'script.draft.json'), JSON.stringify(draft, null, 1));
@@ -327,9 +340,9 @@ const footageDst = path.join(pubDir, 'footage-16x9.mp4');
 if (!fs.existsSync(footageDst) || fs.statSync(footageDst).size !== fs.statSync(footageSrc).size) {
   try { fs.rmSync(footageDst, { force: true }); fs.linkSync(footageSrc, footageDst); } catch { fs.copyFileSync(footageSrc, footageDst); }
 }
-const plan = { id, fps: FPS, width: 1920, height: 1080, duration, frames: Math.ceil(duration * FPS), footage: `episode/${id}/footage-16x9.mp4`, soundtrack: `episode/${id}/soundtrack.wav`, name, items, captions, chips, chapters };
+const plan = { id, fps: FPS, width: 1920, height: 1080, duration, frames: Math.ceil(duration * FPS), footage: `episode/${id}/footage-16x9.mp4`, soundtrack: `episode/${id}/soundtrack.wav`, name, items, captions, chips: [], lines, chapters };
 fs.writeFileSync(path.join(pubDir, 'plan.json'), JSON.stringify(plan, null, 1));
-makeSoundtrack(path.join(pubDir, 'soundtrack.wav'), duration, sfx, { cards: items.filter(i => i.kind !== 'clip').map(i => ({ at: i.at, kind: i.kind })) });
+makeSoundtrack(path.join(pubDir, 'soundtrack.wav'), duration, sfx, { cards: items.filter(i => i.kind !== 'clip').map(i => ({ at: i.at, kind: i.kind, dur: i.dur })), lines });
 
 if (!chapters.length || chapters[0].at > 0) chapters.unshift({ at: 0, title: `Meet ${name}` });
 fs.writeFileSync(path.join(epDir, 'chapters.txt'), chapters.map(c => `${mmss(c.at)} ${c.title}`).join('\n'));
