@@ -7,7 +7,8 @@ import world from '../data/world.json';
 import conversationsData from '../data/conversations.json';
 import { state } from '../core/state.js';
 import { playerStage, drainEnergy } from '../core/life.js';
-import { scheduleNow, isPresent } from '../core/schedule.js';
+import { scheduleNow, scheduleOf, isPresent } from '../core/schedule.js';
+import { bigDayToday, bigDayNeed, bedHour, nextMomentElsewhere, nextMomentHere, nextPlaceToward, noteGoals } from './bigdays.js';
 import { pickConversation, fillText } from '../story/conversation.js';
 import { buildGrid, findPath } from './nav.js';
 import { scoreEffects, pickOption } from './personality.js';
@@ -19,7 +20,7 @@ const lineTime = text => Math.min(6500, 900 + text.length * 50);
 
 export function createAutopilot({ game, film, ui, profile, options, random, peopleData }) {
   const conversations = conversationsData.conversations;
-  const nameOf = id => peopleData.people.find(p => p.id === id)?.name ?? id;
+  const nameOf = id => game.nameOf?.(id) ?? peopleData.people.find(p => p.id === id)?.name ?? id;
   const pilot = { convo: null };
   let task = null;
   let dayKey = '';
@@ -29,6 +30,9 @@ export function createAutopilot({ game, film, ui, profile, options, random, peop
   let lastFocus = null;
   let storyShown = false;
   let decideTimer = 0;
+  let closing = false; // between going to sleep and the next morning: a caption then is the day's closing line
+  let lastBigDay = null;
+  let achieved = new Set(); // today's big-day goals already done
   const grids = new Map();
 
   // ---------- Starting a life ----------
@@ -90,18 +94,26 @@ export function createAutopilot({ game, film, ui, profile, options, random, peop
     film.add('choice', { kind: 'talk', with: partner?.name, prompt, options: choices.map(c => spoken(c.text)), picked: index, text: spoken(choice.text), reason, weight: decisionWeight(choices) });
     await wait(500);
     ui.onChoose?.();
-    await ui.dialogue.say(state.life?.name ?? 'You', spoken(choice.text), true);
+    // A stage direction before the words, like (Whisper to Nico) "Show-off.", leaves just the words
+    let said = spoken(choice.text);
+    const direction = said.match(/^\(([^)]*)\)\s*(.+)$/);
+    if (direction) {
+      film.add('action', { text: `(${direction[1]})` });
+      said = direction[2].replace(/^"(.*)"$/, '$1');
+    }
+    if (/^\(.*\)$/.test(said.trim())) { film.add('action', { text: said }); await wait(1400); }
+    else await ui.dialogue.say(state.life?.name ?? 'You', said, true);
     return choice;
   };
 
   const talkTo = game.talkTo.bind(game);
-  game.talkTo = async person => {
-    const convo = pickConversation(person.data, conversations);
-    if (!convo) return;
+  game.talkTo = async (person, chosen) => {
+    const convo = chosen ?? pickConversation(person.data, conversations);
+    if (!convo || game.mode === 'talk') return;
     pilot.convo = convo;
     game.filmTalkPartner = person;
-    film.add('talk', { with: person.name, id: person.id, convo: convo.id, isNew: !state.flags[`talked:${convo.id}`], place: game.place?.id });
-    await talkTo(person);
+    film.add('talk', { with: person.name, id: person.id, convo: convo.id, isNew: !state.flags[`talked:${convo.id}`], place: game.place?.id, bigDay: state.flags.today ?? null, moment: Boolean(chosen) });
+    await talkTo(person, convo);
     film.add('talk-end', { with: person.name, id: person.id });
     game.filmTalkPartner = null;
     pilot.convo = null;
@@ -116,7 +128,8 @@ export function createAutopilot({ game, film, ui, profile, options, random, peop
   const cinemaEl = $('.cinema');
   const caption = ui.cinema.caption.bind(ui.cinema);
   ui.cinema.caption = text => {
-    film.add('caption', { text });
+    if (closing) film.add('closing', { text, day: lastBigDay });
+    else film.add('caption', { text });
     const shown = caption(text);
     let finished = false;
     shown.then(() => { finished = true; });
@@ -149,6 +162,7 @@ export function createAutopilot({ game, film, ui, profile, options, random, peop
   // Time jumps: no screens. The AI picks a focus straight away; what happened goes in the log,
   // and the edit turns it into a short caption ("A year passed. Ada spent it with family.")
   ui.chooseFocus = async args => {
+    closing = false;
     const { index, reason } = pickOption(profile, args.choices, c => {
       const parts = scoreEffects(profile, c.effects, () => 'Family');
       if (c.id === lastFocus) parts.push({ score: -0.6, why: 'something new' });
@@ -167,7 +181,9 @@ export function createAutopilot({ game, film, ui, profile, options, random, peop
 
   const sleep = game.sleep.bind(game);
   game.sleep = tooLate => {
-    if (game.mode !== 'busy') film.add('sleep', { tooLate, place: game.place?.id });
+    if (game.mode !== 'busy') film.add('sleep', { tooLate, place: game.place?.id, bigDay: state.flags.today ?? null });
+    lastBigDay = state.flags.today ?? null;
+    closing = true;
     task = null;
     return sleep(tooLate);
   };
@@ -175,6 +191,8 @@ export function createAutopilot({ game, film, ui, profile, options, random, peop
   const enterPlace = game.enterPlace.bind(game);
   game.enterPlace = async (id, entry, cardTitle, cardSubtitle) => {
     task = null;
+    closing = false;
+    if (state.flags.today && cardTitle) film.add('big-day', { id: state.flags.today, title: cardTitle });
     await enterPlace(id, entry, cardTitle, cardSubtitle);
     film.add('place', { id, name: game.place?.data?.name ?? id });
   };
@@ -202,20 +220,24 @@ export function createAutopilot({ game, film, ui, profile, options, random, peop
   function candidates() {
     const list = [];
     const here = game.place.id;
+    const day = bigDayToday();
+    const allowed = day ? new Set(['home', here, day.place, ...(day.goals ?? []).map(g => g.done?.place), ...(day.moments ?? []).map(m => m.place)].filter(Boolean)) : null;
     for (const p of peopleData.people) {
       if (talkedToday.has(p.id)) continue;
+      if (p.born && p.born.year * 1000 + p.born.day > state.clock.year * 1000 + state.clock.day) continue; // not born yet
       const convo = pickConversation(p, conversations);
       if (!convo) continue;
       const plan = scheduleNow(p, state.clock.minutes);
       if (!plan.place || !isPresent(p, plan.place, state.clock, world)) continue;
+      if (allowed && !allowed.has(plan.place)) continue;
       const isNew = !state.flags[`talked:${convo.id}`];
       if (!isNew) {
         // Old news: only now and then, and at most once a day
         if (repeatsToday >= 1 || random() > profile.chatty * 0.6) { talkedToday.add(p.id); continue; }
       }
-      const later = p.schedule.find(e => e.from > hour());
+      const later = scheduleOf(p).find(e => e.from > hour());
       const leavingSoon = later && later.from - hour() < 1.5 && later.place !== plan.place;
-      list.push({ kind: 'talk', id: p.id, name: p.name, place: plan.place, spot: plan.spot, isNew, score: (isNew ? 10 : 3) - (plan.place !== here ? 2 : 0) + (leavingSoon ? 2 : 0) + random() });
+      list.push({ kind: 'talk', id: p.id, name: nameOf(p.id), place: plan.place, spot: plan.spot, isNew, score: (isNew ? 10 : 3) - (plan.place !== here ? 2 : 0) + (leavingSoon ? 2 : 0) + random() });
     }
     if (thingsToday < 1) {
       for (const thing of game.place.interactables) {
@@ -229,7 +251,41 @@ export function createAutopilot({ game, film, ui, profile, options, random, peop
     return list.sort((a, b) => b.score - a.score);
   }
 
+  // Where someone is right now (their place today), or null
+  const whereIs = id => {
+    if (game.people.some(x => x.id === id && !x.leaving)) return game.place.id;
+    const p = peopleData.people.find(x => x.id === id);
+    if (!p) return null;
+    const plan = scheduleNow(p, state.clock.minutes);
+    return plan.place && isPresent(p, plan.place, state.clock, world) ? plan.place : null;
+  };
+  const canTalk = id => {
+    const p = peopleData.people.find(x => x.id === id);
+    return Boolean(p && pickConversation(p, conversations)) && !talkedToday.has(id);
+  };
+  const talkTask = (id, place) => {
+    const p = peopleData.people.find(x => x.id === id);
+    const convo = p && pickConversation(p, conversations);
+    return { kind: 'talk', id, name: nameOf(id), place, spot: p && scheduleNow(p, state.clock.minutes).spot, isNew: Boolean(convo && !state.flags['talked:' + convo.id]) };
+  };
+
   function decide() {
+    const day = bigDayToday();
+    if (day) {
+      // A big day: its goals and moments come first, and bed waits until the day is done
+      const here = game.place.id;
+      const need = bigDayNeed(day, { here, hour: hour(), isPresentAt: whereIs, canTalk, achieved });
+      if (need?.kind === 'talk') return talkTask(need.id, need.place);
+      if (need?.kind === 'go') return { kind: 'go', place: need.place };
+      if (need?.kind === 'wait') return { kind: 'wait', place: need.place, until: need.until, near: need.near };
+      const best = candidates()[0];
+      if (best) return best;
+      const later = nextMomentElsewhere(day, here, hour());
+      if (later) return { kind: 'go', place: later.place };
+      if (hour() >= bedHour(day)) return { kind: 'bed', place: 'home' };
+      if (here !== 'home') return { kind: 'home', place: 'home' };
+      return { kind: 'wait', until: Math.min(bedHour(day), nextMomentHere(day, here, hour()) ?? 99), near: here === 'home' ? 'gran' : null };
+    }
     if (hour() >= 18) return { kind: 'bed', place: 'home' };
     const best = candidates()[0];
     if (best) return best;
@@ -237,10 +293,11 @@ export function createAutopilot({ game, film, ui, profile, options, random, peop
     return { kind: 'wait' };
   }
 
-  // The way out of this place toward another
+  // The way out of this place toward another, however many places away it is
   function exitToward(placeId) {
     const exits = game.place.data.exits ?? [];
-    return exits.find(e => e.to === placeId) ?? exits[0];
+    const step = nextPlaceToward(game.place.id, placeId);
+    return exits.find(e => e.to === step) ?? exits.find(e => e.to === placeId) ?? null;
   }
 
   // Walks toward a point; true once within reach
@@ -325,6 +382,8 @@ export function createAutopilot({ game, film, ui, profile, options, random, peop
     if (task.kind === 'thing') film.add('go', { to: task.label, thing: task.thing.id });
     if (task.kind === 'bed') film.add('go', { to: 'bed' });
     if (task.kind === 'home') film.add('go', { to: 'home' });
+    if (task.kind === 'go') film.add('go', { to: task.place });
+    if (task.kind === 'wait' && task.until !== undefined) film.add('wait', { until: task.until, near: task.near ?? null, place: task.place ?? game.place.id });
   }
 
   function endTask() {
@@ -346,7 +405,29 @@ export function createAutopilot({ game, film, ui, profile, options, random, peop
       const exit = exitToward(task.place);
       if (!exit) { task.failed = true; return; }
       const b = game.place.bounds;
-      const mid = (exit.min + exit.max) / 2;
+      // Aim for the clearest part of the way out (someone may be standing in the gate)
+      const alongEdge = exit.edge === 'west' || exit.edge === 'east' ? 'z' : 'x';
+      const edgeLine = { west: b.minX, east: b.maxX, north: b.minZ, south: b.maxZ }[exit.edge];
+      const blockers = game.people.filter(p => Math.abs((alongEdge === 'z' ? p.pos.x : p.pos.z) - edgeLine) < 2.5);
+      let mid = (exit.min + exit.max) / 2;
+      if (blockers.length) {
+        let best = -1;
+        for (let a = exit.min + 0.5; a <= exit.max - 0.5; a += 0.25) {
+          const room = Math.min(...blockers.map(p => Math.abs((alongEdge === 'z' ? p.pos.z : p.pos.x) - a)));
+          if (room > best) { best = room; mid = a; }
+        }
+      }
+      task.exitStuck = (task.exitStuck ?? 0) + dt;
+      if (task.exitStuck > 2 && blockers.length && !task.askedAside) {
+        // Still not through: whoever is in the gate steps aside
+        task.askedAside = true;
+        for (const p of blockers) {
+          if (p.talking) continue;
+          const side = (alongEdge === 'z' ? p.pos.z : p.pos.x) < mid ? -1.4 : 1.4;
+          const inward = { west: [1.2, 0], east: [-1.2, 0], north: [0, 1.2], south: [0, -1.2] }[exit.edge];
+          p.walkTo([{ x: p.pos.x + inward[0] + (alongEdge === 'x' ? side : 0), z: p.pos.z + inward[1] + (alongEdge === 'z' ? side : 0) }]);
+        }
+      }
       const edge = { west: { x: b.minX + 0.4, z: mid }, east: { x: b.maxX - 0.4, z: mid }, north: { x: mid, z: b.minZ + 0.4 }, south: { x: mid, z: b.maxZ - 0.4 } }[exit.edge];
       if (walk(edge, 0.9, dt)) {
         const out = { west: [-1, 0], east: [1, 0], north: [0, -1], south: [0, 1] }[exit.edge];
@@ -384,6 +465,7 @@ export function createAutopilot({ game, film, ui, profile, options, random, peop
       }
       return;
     }
+    if (task.kind === 'go') { endTask(); return; } // arrived
     if (task.kind === 'bed' || task.kind === 'home') {
       const stage = game.player.stage;
       const bed = game.place.interactables.find(t => t.kind === 'sleep' && (!t.stages || t.stages.includes(stage)));
@@ -391,22 +473,49 @@ export function createAutopilot({ game, film, ui, profile, options, random, peop
       if (walk(bed, 1.4, dt)) {
         setMove(0, 0);
         if (task.kind === 'home') { endTask(); return; }
-        if (hour() >= 18) { endTask(); game.useThing(bed); }
+        if (hour() >= bedHour(bigDayToday())) { endTask(); game.useThing(bed); }
+        else if (task.kind === 'bed') { endTask(); startTask({ kind: 'wait', until: bedHour(bigDayToday()), near: 'gran' }); }
       }
       return;
     }
     if (task.kind === 'wait') {
       // Nothing to do right now: let the hours pass quickly, until someone turns up or it's evening
       setMove(0, 0);
-      if (!task.lapse) { task.lapse = true; film.add('timelapse', { from: Math.round(hour() * 10) / 10 }); }
+      // Beside the person the next moment is with (Gran, waiting for news)
+      const near = task.near && game.people.find(p => p.id === task.near && !p.leaving);
+      if (near && !task.settled) {
+        if (!walk(near.pos, 1.9, dt)) return;
+        task.settled = true;
+      }
+      const day = bigDayToday();
+      const until = Math.min(task.until ?? 18, day ? bedHour(day) : 18, day ? (nextMomentHere(day, game.place.id, hour()) ?? 99) : 99);
+      if (hour() >= until) {
+        // Due now: give the game a moment to play it, then think again. If nothing comes of it after a
+        // while (a moment that can't happen), let time move on a little.
+        task.overdue = (task.overdue ?? 0) + dt;
+        if (task.overdue > 25) {
+          film.add('gave-up', { kind: 'wait', to: `until ${task.until}` });
+          task.until = (task.until ?? 18) + 0.5;
+          task.overdue = 0;
+          task.lapse = false;
+        }
+        decideTimer -= dt;
+        if (decideTimer <= 0) {
+          decideTimer = 0.5;
+          const next = decide();
+          if (next.kind !== 'wait' || next.until !== task.until) { endTask(); startTask(next); }
+        }
+        return;
+      }
+      if (!task.lapse) { task.lapse = true; film.add('timelapse', { from: Math.round(hour() * 10) / 10, until }); }
       const before = state.clock.minutes;
-      state.clock.minutes = Math.min(18 * 60 + 1, state.clock.minutes + dt * 240);
+      state.clock.minutes = Math.min(until * 60 + (day ? 0 : 1), state.clock.minutes + dt * 240);
       drainEnergy(state.clock.minutes - before, world);
       decideTimer -= dt;
       if (decideTimer <= 0) {
         decideTimer = 0.25;
         const next = decide();
-        if (next.kind !== 'wait') { endTask(); startTask(next); }
+        if (next.kind !== 'wait' || (next.until ?? 18) !== (task.until ?? 18)) { endTask(); startTask(next); }
       }
     }
   }
@@ -423,9 +532,13 @@ export function createAutopilot({ game, film, ui, profile, options, random, peop
         talkedToday = new Set();
         thingsToday = 0;
         repeatsToday = 0;
+        achieved = new Set();
         task = null;
         film.add('day', { stage: playerStage(world), place: game.place.id });
       }
+      const today = bigDayToday();
+      if (today) noteGoals(today, achieved, { place: game.place.id, hour: hour() });
+      if (game.runningMoment) { setMove(0, 0); game.input.move.x = 0; game.input.move.z = 0; return; }
       if (task && task.placeId !== game.place.id && task.kind !== 'wait') task.placeId = game.place.id;
       if (!task) startTask(decide());
       runTask(dt);

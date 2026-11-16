@@ -19,14 +19,14 @@ await page.waitForFunction(() => window.film && window.film.step);
 const [traceFrom, traceTo] = String(args.trace ?? '-1--1').split('-').map(Number);
 const until = Number(args.until ?? 100000);
 const started = Date.now();
-const result = await page.evaluate(async ({ until, traceFrom, traceTo, render }) => {
+const result = await page.evaluate(async ({ until, traceFrom, traceTo, render, stopAfter }) => {
   const film = window.film;
   const game = window.game;
   film.capture = render;
   const trace = [];
   let sim = 0;
   let i = 0;
-  while (!film.done && sim < until) {
+  while (!film.done && sim < until && !(stopAfter && film.log.some(e => e.type === 'closing' && e.day === stopAfter))) {
     const r = await film.step();
     sim = r.sim;
     if (sim >= traceFrom && sim <= traceTo && i++ % 10 === 0 && game.player) {
@@ -35,11 +35,11 @@ const result = await page.evaluate(async ({ until, traceFrom, traceTo, render })
     }
   }
   return { log: film.log, trace, done: film.done, sim };
-}, { until, traceFrom, traceTo, render: Boolean(args.render) });
+}, { until, traceFrom, traceTo, render: Boolean(args.render), stopAfter: args.stopAfter ?? null });
 const skip = new Set(['memory', 'feeling', 'line', 'caption', 'timelapse-end', 'place']);
 for (const e of result.log) {
   if (skip.has(e.type) && !args.all) continue;
-  console.log(`${String(Math.round(e.sim)).padStart(5)}s age ${String(e.age ?? '-').padStart(2)} ${String(e.hour ?? '').padStart(4)}h  ${e.type.padEnd(12)} ${e.text ?? e.to ?? e.with ?? e.title ?? e.heading ?? ''} ${e.reason ? `(${e.reason})` : ''}${e.lines ? ` | ${e.lines.join(' | ')}` : ''}`);
+  console.log(`${String(Math.round(e.sim)).padStart(5)}s age ${String(e.age ?? '-').padStart(2)} ${String(e.hour ?? '').padStart(4)}h  ${e.type.padEnd(12)} ${e.text ?? e.to ?? e.with ?? e.title ?? e.heading ?? ''}${e.convo ? ` [${e.convo}${e.moment ? ', moment' : ''}]` : ''}${e.until !== undefined ? ` until ${e.until}${e.near ? ' near ' + e.near : ''}` : ''} ${e.reason ? `(${e.reason})` : ''}${e.lines ? ` | ${e.lines.join(' | ')}` : ''}`);
 }
 for (const t of result.trace) console.log('trace', JSON.stringify(t));
 if (args.id) {
