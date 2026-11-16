@@ -1,7 +1,9 @@
 // Controls: the keyboard on a computer, and on a phone a joystick under the left thumb
-// and a big action button under the right.
+// and a big action button under the right, with a small jump button beside it.
 //   Move: WASD or arrow keys, or the joystick
-//   Use / talk: E or Space, or the action button
+//   Run: hold Shift, or push the joystick all the way
+//   Jump: Space, or the jump button
+//   Use / talk / sit: E or Enter, or the action button
 //   Pause: Esc or P, or the pause button
 
 export function createInput(root) {
@@ -9,18 +11,22 @@ export function createInput(root) {
   const input = {
     move: { x: 0, z: 0 },   // -1 to 1 each way; z is "down the screen"
     action: false,          // pressed this frame
+    jump: false,            // pressed this frame
+    run: false,             // held
     pause: false,
     touch: matchMedia('(pointer: coarse)').matches,
     enabled: true
   };
   let actionQueued = false;
+  let jumpQueued = false;
   let pauseQueued = false;
 
   addEventListener('keydown', e => {
     if (e.target instanceof HTMLInputElement) return; // typing a name
     keys[e.code] = true;
     if (e.repeat) return;
-    if (e.code === 'KeyE' || e.code === 'Space') actionQueued = true;
+    if (e.code === 'KeyE' || e.code === 'Enter' || e.code === 'NumpadEnter') actionQueued = true;
+    if (e.code === 'Space') { jumpQueued = true; e.preventDefault(); }
     if (e.code === 'Escape' || e.code === 'KeyP') pauseQueued = true;
   });
   addEventListener('keyup', e => { keys[e.code] = false; });
@@ -29,11 +35,12 @@ export function createInput(root) {
   // ---------- Phone controls ----------
   const pad = document.createElement('div');
   pad.className = 'touch-pad';
-  pad.innerHTML = '<div class="stick-base"><div class="stick-knob"></div></div><button class="action-btn" aria-label="Use">●</button>';
+  pad.innerHTML = '<div class="stick-base"><div class="stick-knob"></div></div><button class="action-btn" aria-label="Use">●</button><button class="jump-btn" aria-label="Jump">Jump</button>';
   root.appendChild(pad);
   const base = pad.querySelector('.stick-base');
   const knob = pad.querySelector('.stick-knob');
   const actionBtn = pad.querySelector('.action-btn');
+  const jumpBtn = pad.querySelector('.jump-btn');
   let stick = null; // { id, x, y } where the thumb first touched
   const stickMove = { x: 0, z: 0 };
 
@@ -79,6 +86,8 @@ export function createInput(root) {
   addEventListener('touchcancel', endStick);
   actionBtn.addEventListener('touchstart', e => { e.preventDefault(); actionQueued = true; }, { passive: false });
   actionBtn.addEventListener('click', () => { actionQueued = true; });
+  jumpBtn.addEventListener('touchstart', e => { e.preventDefault(); jumpQueued = true; }, { passive: false });
+  jumpBtn.addEventListener('click', () => { jumpQueued = true; });
   if (input.touch) document.body.classList.add('is-touch');
 
   input.queuePause = () => { pauseQueued = true; };
@@ -89,12 +98,16 @@ export function createInput(root) {
     let z = (keys.KeyS || keys.ArrowDown ? 1 : 0) - (keys.KeyW || keys.ArrowUp ? 1 : 0);
     const len = Math.hypot(x, z);
     if (len > 0) { x /= len; z /= len; }
-    if (Math.hypot(stickMove.x, stickMove.z) > 0.15) { x = stickMove.x; z = stickMove.z; }
+    const stickPush = Math.hypot(stickMove.x, stickMove.z);
+    if (stickPush > 0.15) { x = stickMove.x; z = stickMove.z; }
     input.move.x = input.enabled ? x : 0;
     input.move.z = input.enabled ? z : 0;
     input.action = actionQueued && input.enabled;
+    input.jump = jumpQueued && input.enabled;
+    input.run = input.enabled && (Boolean(keys.ShiftLeft || keys.ShiftRight) || stickPush > 0.93);
     input.pause = pauseQueued;
     actionQueued = false;
+    jumpQueued = false;
     pauseQueued = false;
   };
 

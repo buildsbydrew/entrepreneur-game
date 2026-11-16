@@ -6,6 +6,7 @@
 // built: ctx.add(object), ctx.solid(x, z, w, d), ctx.lamp(...), ctx.house(...), ctx.interact(...).
 import * as THREE from 'three';
 import { mesh, rbox, box, cyl, ball, at, flat, mat, textTexture } from '../render/shapes.js';
+import { addSpot } from './spots.js';
 
 // Rotations are in quarter turns (0, 90, 180, 270). A solid box turned a quarter swaps width and depth.
 function turned(p, w, d) {
@@ -193,6 +194,7 @@ export const PROPS = {
     g.add(at(rbox(0.7, 0.14, 0.35, '#ffffff', 0.06), 0, 0.6, -0.72));
     g.add(at(rbox(1.24, 0.75, 0.12, '#6e4219', 0.04), 0, 0.5, -1.05));
     ctx.solid(p.x, p.z, ...turned(p, 1.2, 2.1));
+    addSpot(ctx, p, 'lie', 0, 0.95, { height: 0.54, stand: [0.95, 0.3] }); // feet at the foot end, head on the pillow
   },
 
   // A small bed with raised sides, for a baby
@@ -219,6 +221,8 @@ export const PROPS = {
     g.add(at(cyl(0.16, 0.12, 0.05, '#fff4dc', 12), -w * 0.2, 0.83, 0));
     g.add(at(cyl(0.05, 0.05, 0.12, '#2f5fd0', 8), w * 0.25, 0.86, -0.1));
     ctx.solid(p.x, p.z, ...turned(p, w, d));
+    addSpot(ctx, p, 'lean', 0, d / 2 + 0.38, { turn: Math.PI, table: true });
+    addSpot(ctx, p, 'lean', 0, -d / 2 - 0.38, { table: true });
   },
 
   chair(p, ctx) {
@@ -227,6 +231,7 @@ export const PROPS = {
     g.add(at(rbox(0.45, 0.5, 0.06, '#8d5524', 0.02), 0, 0.72, -0.2));
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) g.add(at(rbox(0.05, 0.44, 0.05, '#6e4219', 0.01), sx * 0.18, 0.22, sz * 0.18));
     ctx.solid(p.x, p.z, 0.45, 0.45);
+    addSpot(ctx, p, 'sit', 0, 0.02, { height: 0.48, stand: [0, 0.6] });
   },
 
   // A sofa: { x, z, rot, color }
@@ -237,6 +242,7 @@ export const PROPS = {
     g.add(at(rbox(1.9, 0.55, 0.22, c, 0.1), 0, 0.65, -0.33));
     for (const sx of [-1, 1]) g.add(at(rbox(0.22, 0.5, 0.85, c, 0.08), sx * 0.95, 0.45, 0));
     ctx.solid(p.x, p.z, ...turned(p, 2.0, 0.9));
+    for (const sx of [-0.45, 0.45]) addSpot(ctx, p, 'sit', sx, 0.05, { height: 0.5, stand: [sx, 0.85] });
   },
 
   // A tall shelf with things on it, against a wall
@@ -257,6 +263,7 @@ export const PROPS = {
     g.add(at(cyl(0.18, 0.16, 0.2, '#6c6f73', 10), -0.18, 0.95, 0));
     g.add(at(cyl(0.1, 0.1, 0.04, '#3b2a20', 10), 0.22, 0.87, 0));
     ctx.solid(p.x, p.z, ...turned(p, 0.9, 0.6));
+    addSpot(ctx, p, 'cook', 0, 0.72, { turn: Math.PI });
   },
 
   // A woven rug, flat on the floor: { x, z, w, d, color }
@@ -272,6 +279,7 @@ export const PROPS = {
     g.add(at(ball(0.12, '#d6336c', 8, 6), -0.15, 0.48, 0));
     g.add(at(rbox(0.18, 0.18, 0.18, '#2f5fd0', 0.03), 0.15, 0.48, 0.05));
     ctx.solid(p.x, p.z, ...turned(p, 0.7, 0.45));
+    addSpot(ctx, p, 'play', 0, 0.75, { turn: Math.PI });
   },
 
   // A potted plant
@@ -337,6 +345,7 @@ export const PROPS = {
     g.add(at(rbox(1.6, 0.4, 0.06, '#b27436', 0.02), 0, 0.72, -0.2));
     for (const sx of [-0.65, 0.65]) g.add(at(rbox(0.08, 0.45, 0.4, '#3b2a20', 0.02), sx, 0.22, 0));
     ctx.solid(p.x, p.z, ...turned(p, 1.6, 0.45));
+    for (const sx of [-0.4, 0.4]) addSpot(ctx, p, 'sit', sx, 0.03, { height: 0.49, stand: [sx, 0.6] });
   },
 
   // A signpost with words on it, like the name of a street: { x, z, text }
@@ -361,6 +370,7 @@ export const PROPS = {
         ctx.add(at(mesh(new THREE.IcosahedronGeometry(0.09, 0), colors[i++ % colors.length]), p.x + x, 0.15, p.z + z));
       }
     }
+    for (let x = -w / 2 + 0.6; x <= w / 2 - 0.6; x += 1.2) addSpot(ctx, { x: p.x, z: p.z }, 'kneel', x, d / 2 + 0.55, { turn: Math.PI });
   },
 
   // A parked car, so the street feels lived in: { x, z, rot, color }

@@ -20,6 +20,8 @@ import { QUALITY, loadQuality, saveQuality } from '../render/quality.js';
 import { createDaylight } from '../render/daylight.js';
 import Place from '../world/Place.js';
 import Person from '../people/Person.js';
+import { ACTIVITIES } from '../people/actions.js';
+import { nearestSpot } from '../world/spots.js';
 import { pickConversation, conditionsMet, fillText } from '../story/conversation.js';
 import { runConversation } from '../story/talk.js';
 import { playPrologue } from '../story/prologue.js';
@@ -38,6 +40,8 @@ function moodOfLine(text) {
   return f;
 }
 const TALK_RANGE = 1.9;   // how close the player must be to talk or use something
+// What pressing E does at each kind of spot: [prompt, short label for the phone button]
+const SPOT_ACTIONS = { sit: ['Sit down', 'Sit'], kneel: ['Look at the flowers', 'Kneel'], cook: ['Stir the pot', 'Cook'], play: ['Play with the ball', 'Play'] };
 const AUTOSAVE_MS = 10000;
 const NUMBER_WORDS = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
 
@@ -422,12 +426,19 @@ export default class Game {
     }
     this.toastCooldown -= dt;
 
-    // Walking. Tired people walk slower.
+    // Walking. Tired people walk slower; running (Shift) is faster and tires you more.
     const { x, z } = this.input.move;
+    const moving = Math.hypot(x, z) >= 0.1;
+    // Sitting or lying: moving gets you up
+    if (this.player.activity && moving) this.player.stopActivity();
     const tiredness = 0.6 + 0.4 * Math.min(1, state.needs.energy / 40);
-    const speed = this.player.speed * tiredness;
-    this.player.moveBy(x * speed, z * speed, dt);
-    if (Math.hypot(x, z) < 0.1) this.player.rest(dt);
+    const canRun = this.input.run && this.player.stage !== 'baby' && state.needs.energy > 8 && !this.player.activity;
+    this.player.running = canRun && moving;
+    const speed = this.player.speed * tiredness * (this.player.running ? 1.75 : 1);
+    if (!this.player.activity) this.player.moveBy(x * speed, z * speed, dt);
+    if (!moving || this.player.activity) this.player.rest(dt);
+    if (this.player.running) state.needs.energy = Math.max(0, state.needs.energy - dt * 0.6);
+    if (this.input.jump && this.player.stage !== 'baby' && this.player.jump()) play('click');
     state.player = { x: this.player.pos.x, z: this.player.pos.z };
     this.footsteps();
 
@@ -568,6 +579,17 @@ export default class Game {
         best = { x: person.pos.x, z: person.pos.z, height: person.headHeight(), label: stage === 'baby' ? `Babble at ${person.name}` : `Talk to ${person.name}`, short: 'Talk', use: () => this.talkTo(person) };
       }
     }
+    if (stage !== 'baby' && !this.player.activity) {
+      for (const spot of this.place.spots ?? []) {
+        if (spot.taken || !SPOT_ACTIONS[spot.kind]) continue;
+        const d = Math.hypot(spot.x - p.x, spot.z - p.z) + 0.3; // people and things come first when it's close
+        if (d < bestD) {
+          bestD = d;
+          const [label, short] = SPOT_ACTIONS[spot.kind];
+          best = { x: spot.x, z: spot.z, height: 0.5, label, short, use: () => this.useSpot(spot) };
+        }
+      }
+    }
     for (const thing of this.place.interactables) {
       if (thing.stages && !thing.stages.includes(stage)) continue;
       const d = Math.hypot(thing.x - p.x, thing.z - p.z);
@@ -582,6 +604,15 @@ export default class Game {
       }
     }
     return best;
+  }
+
+  // Sits down (or kneels, cooks...) at a spot
+  useSpot(spot) {
+    const name = { sit: spot.table ? 'eat' : 'sit', lie: 'lie', cook: 'cook', kneel: 'kneel', play: 'play', lean: 'lean' }[spot.kind];
+    if (!name || spot.taken) return false;
+    this.player.startActivity(name, spot);
+    play('click');
+    return true;
   }
 
   thingLabel(thing) {
@@ -600,8 +631,11 @@ export default class Game {
         }
         return;
       }
-      if (state.clock.minutes >= 18 * 60) this.sleep(false);
-      else {
+      if (state.clock.minutes >= 18 * 60) {
+        const bed = nearestSpot(this.place.spots ?? [], 'lie', thing.x, thing.z, 3, this.player);
+        if (bed && this.player.stage !== 'baby') this.player.startActivity('lie', bed);
+        this.sleep(false);
+      } else {
         play('error');
         this.ui.toast("You're not tired yet.");
       }
@@ -687,10 +721,13 @@ export default class Game {
         person.rest(dt);
         const plan = person.plan;
         const near = this.player && Math.hypot(this.player.pos.x - person.pos.x, this.player.pos.z - person.pos.z) < 3;
+        // Their schedule can say what they're doing there: cooking, sewing on the sofa, kneeling at the flowers
+        if (plan?.activity && !person.activity && plan.spot && Math.hypot(plan.spot.x - person.pos.x, plan.spot.z - person.pos.z) < 0.6) this.startPlannedActivity(person, plan);
+        if (person.activity) { person.update(dt); continue; }
         if (near) person.faceToward(this.player.pos.x, this.player.pos.z, dt * 0.5);
         else if (plan?.spot) person.turnToward(deg(plan.spot.facing), dt * 0.3);
         person.idleFor -= dt;
-        if (person.idleFor <= 0 && !near && plan?.spot && plan.wander?.length) {
+        if (person.idleFor <= 0 && !near && plan?.spot && plan.wander?.length && !plan.activity) {
           const there = plan.wander[Math.floor(Math.random() * plan.wander.length)];
           person.walkTo([there, plan.spot]);
           person.idleFor = 5 + Math.random() * 9;
@@ -698,6 +735,15 @@ export default class Game {
       }
       person.update(dt);
     }
+  }
+
+  // Starts what someone's schedule says they're doing, at the nearest fitting spot (or where they stand)
+  startPlannedActivity(person, plan) {
+    const name = plan.activity;
+    const kind = { sit: 'sit', eat: 'sit', sew: 'sit', read: 'sit', lie: 'lie', cook: 'cook', kneel: 'kneel', lean: 'lean', play: 'play' }[name];
+    const spot = kind && nearestSpot(this.place.spots ?? [], kind, plan.spot.x, plan.spot.z, 1.6, person);
+    if (ACTIVITIES[name]?.seat === true && !spot) return;
+    person.startActivity(name, spot && (ACTIVITIES[name]?.seat || kind !== 'sit') ? spot : null);
   }
 
   // convo: a particular conversation (a big day's moment); otherwise whatever they want to talk about

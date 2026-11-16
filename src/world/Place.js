@@ -20,13 +20,15 @@ export default class Place {
     this.lamps = [];
     this.houses = [];
     this.interactables = [];
+    this.spots = [];            // places to sit, lie, cook, kneel... (see spots.js)
 
     this.buildGround();
     const ctx = {
       add: obj => this.group.add(obj),
       solid: (x, z, sw, sd) => addSolid(this.space, x, z, sw, sd),
       lamp: lamp => this.lamps.push(lamp),
-      house: house => this.houses.push({ ...house, open: 0 })
+      house: house => this.houses.push({ ...house, open: 0 }),
+      spot: spot => this.spots.push(spot)
     };
     (data.props ?? []).forEach(p => {
       const build = PROPS[p.type] ?? TOWN_PROPS[p.type];

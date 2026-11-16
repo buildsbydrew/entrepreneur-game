@@ -11,6 +11,7 @@ import { scheduleNow, scheduleOf, isPresent } from '../core/schedule.js';
 import { bigDayToday, bigDayNeed, bedHour, nextMomentElsewhere, nextMomentHere, nextPlaceToward, noteGoals } from './bigdays.js';
 import { pickConversation, fillText } from '../story/conversation.js';
 import { buildGrid, findPath } from './nav.js';
+import { nearestSpot } from '../world/spots.js';
 import { scoreEffects, pickOption } from './personality.js';
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -33,6 +34,7 @@ export function createAutopilot({ game, film, ui, profile, options, random, peop
   let closing = false; // between going to sleep and the next morning: a caption then is the day's closing line
   let lastBigDay = null;
   let achieved = new Set(); // today's big-day goals already done
+  let jumpNext = false;      // a jump for joy, after a happy moment
   const grids = new Map();
 
   // ---------- Starting a life ----------
@@ -115,6 +117,7 @@ export function createAutopilot({ game, film, ui, profile, options, random, peop
     game.filmTalkPartner = person;
     film.add('talk', { with: person.name, id: person.id, convo: convo.id, isNew: !state.flags[`talked:${convo.id}`], place: game.place?.id, bigDay: state.flags.today ?? null, moment: Boolean(chosen) });
     await talkTo(person, convo);
+    if (game.player?.mood === 'happy' && game.player.stage !== 'baby') jumpNext = true;
     film.add('talk-end', { with: person.name, id: person.id });
     game.filmTalkPartner = null;
     pilot.convo = null;
@@ -375,9 +378,12 @@ export function createAutopilot({ game, film, ui, profile, options, random, peop
   let move = { x: 0, z: 0 };
   const setMove = (x, z) => { move = { x, z }; };
 
+  const FRIENDS = new Set(['nico', 'juno', 'sibling']);
   function startTask(next) {
     task = next;
     task.since = 0;
+    const child = game.player?.stage === 'child' || game.player?.stage === 'teen';
+    task.run = (task.kind === 'talk' && FRIENDS.has(task.id)) || ((task.kind === 'go' || task.kind === 'home') && child && random() < 0.4);
     task.placeId = game.place.id;
     if (task.kind === 'talk') film.add('go', { to: task.name, id: task.id, isNew: task.isNew, place: task.place });
     if (task.kind === 'thing') film.add('go', { to: task.label, thing: task.thing.id });
@@ -488,6 +494,18 @@ export function createAutopilot({ game, film, ui, profile, options, random, peop
         if (!walk(near.pos, 1.9, dt)) return;
         task.settled = true;
       }
+      // A seat nearby: sit down to wait (on the sofa beside Gran, on the bench in the garden)
+      if (!task.seatChecked && !game.player.activity && game.player.stage !== 'baby') {
+        task.seatChecked = true;
+        const pos = game.player.pos;
+        task.seat = nearestSpot(game.place.spots ?? [], 'sit', pos.x, pos.z, 4.5, game.player);
+      }
+      if (task.seat && !game.player.activity) {
+        const stand = task.seat.stand ?? task.seat;
+        if (task.seat.taken && task.seat.taken !== game.player) task.seat = null;
+        else if (!walk(stand, 0.45, dt)) return;
+        else { setMove(0, 0); game.useSpot(task.seat); task.seat = null; }
+      }
       const day = bigDayToday();
       const until = Math.min(task.until ?? 18, day ? bedHour(day) : 18, day ? (nextMomentHere(day, game.place.id, hour()) ?? 99) : 99);
       if (hour() >= until) {
@@ -545,6 +563,9 @@ export function createAutopilot({ game, film, ui, profile, options, random, peop
       runTask(dt);
       game.input.move.x = move.x;
       game.input.move.z = move.z;
+      game.input.run = Boolean(task?.run) && Math.hypot(move.x, move.z) > 0.5;
+      game.input.jump = false;
+      if (jumpNext && !game.player.activity) { game.input.jump = true; jumpNext = false; film.add('hop'); }
     } else {
       move = { x: 0, z: 0 };
     }

@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { mesh, rbox, box, cyl, ball, at, flat, textTexture } from '../render/shapes.js';
 import { PROPS } from './props.js';
+import { addSpot } from './spots.js';
 
 // A solid box turned a quarter swaps width and depth
 function turned(p, w, d) {
@@ -34,6 +35,7 @@ export const TOWN_PROPS = {
     g.add(at(rbox(0.4, 0.05, 0.4, '#2f5fd0', 0.02), 0, 0.4, 0.55));       // the chair seat
     g.add(at(rbox(0.4, 0.4, 0.05, '#2f5fd0', 0.02), 0, 0.62, 0.75));
     ctx.solid(p.x, p.z + 0.25, ...turned(p, 0.9, 1.05));
+    addSpot(ctx, p, 'sit', 0, 0.5, { height: 0.42, turn: Math.PI, stand: [0.65, 0.5], table: true });
   },
 
   // The teacher's desk

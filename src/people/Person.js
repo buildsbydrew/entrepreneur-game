@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { buildBody, poseBody, poseFace, disposeBody, STAGES } from './body.js';
 import { moveWithCollision, addPerson, removePerson } from '../world/collision.js';
+import { poseAction, ACTIVITIES } from './actions.js';
 
 export default class Person {
   constructor(scene, space, { id = null, name = '', look, stage = 'adult', x = 0, z = 0, facing = 0 }) {
@@ -22,6 +23,12 @@ export default class Person {
     this.wait = 0;              // seconds stood still because someone is in the way
     this.mood = 'calm';         // how they feel right now, shown on their face
     this.talkingFor = 0;        // seconds of talking left (the mouth moves)
+    this.activity = null;       // what they're doing: { name, t, height, spot } (sitting, cooking...)
+    this.running = false;       // set each frame while running
+    this.jumpT = -1;            // 0..1 through a jump, -1 when not jumping
+    this.idleFor = this.idleFor ?? 0;
+    this.still = 0;             // seconds stood still, for the little things people do while waiting
+    this.fidget = null;         // { name, t, length }
     this.setStage(stage);
     addPerson(space, this);
     this.place();
@@ -66,8 +73,48 @@ export default class Person {
     return moved;
   }
 
+  // ---------- Everyday activities ----------
+
+  // Starts doing something: sit, eat, sew, read, lie, kneel, cook, sweep, play, lean, phone, wave.
+  // spot: where to do it ({ x, z, facing, height, stand }) for sitting, lying and so on.
+  startActivity(name, spot = null) {
+    if (!ACTIVITIES[name]) return;
+    if (this.activity) this.stopActivity();
+    if (spot) {
+      this.pos.x = spot.x;
+      this.pos.z = spot.z;
+      this.facing = spot.facing ?? this.facing;
+    }
+    this.route = [];
+    this.pace = 0;
+    this.activity = { name, t: 0, height: spot?.height, spot };
+    if (spot) spot.taken = this;
+  }
+
+  // Gets up (from a seat or a bed, back onto the floor beside it)
+  stopActivity() {
+    const a = this.activity;
+    if (!a) return;
+    if (a.spot) {
+      if (a.spot.taken === this) a.spot.taken = null;
+      if (a.spot.stand) { this.pos.x = a.spot.stand.x; this.pos.z = a.spot.stand.z; }
+    }
+    this.activity = null;
+  }
+
+  isSeated() {
+    return Boolean(this.activity && (ACTIVITIES[this.activity.name]?.seat === true || this.activity.height));
+  }
+
+  jump() {
+    if (this.activity || this.jumpT >= 0) return false;
+    this.jumpT = 0;
+    return true;
+  }
+
   // points: [{ x, z }]. A point marked door: true must be passed through (people never skip a doorway).
   walkTo(points) {
+    if (this.activity) this.stopActivity();
     this.route = points.map(p => ({ x: p.x, z: p.z, door: Boolean(p.door) }));
   }
 
@@ -110,12 +157,24 @@ export default class Person {
 
   // Each frame: animate the body
   update(dt) {
-    if (this.pace > 0.05) this.phase += dt * (5 + this.pace * 5) * (this.stage === 'baby' ? 0.8 : 1);
+    if (this.pace > 0.05) this.phase += dt * (5 + this.pace * 5) * (this.stage === 'baby' ? 0.8 : 1) * (this.running ? 1.45 : 1);
     this.breath += dt;
     if (this.pace < 0.02) this.pace = 0;
     poseBody(this.body, this.phase, this.pace, this.breath);
     this.talkingFor = Math.max(0, this.talkingFor - dt);
-    poseFace(this.body, this.breath, Math.min(1, this.talkingFor * 3), this.mood);
+    const talking = Math.min(1, this.talkingFor * 3);
+    poseFace(this.body, this.breath, talking, this.mood);
+    // Activities, jumps, running, and the small things people do while they wait
+    if (this.activity) this.activity.t += dt;
+    if (this.jumpT >= 0) { this.jumpT += dt / 0.75; if (this.jumpT >= 1) this.jumpT = -1; }
+    if (this.pace < 0.05 && !this.activity && talking <= 0) this.still += dt; else { this.still = 0; this.fidget = null; }
+    if (this.fidget) { this.fidget.t += dt; if (this.fidget.t > this.fidget.length) this.fidget = null; }
+    else if (this.still > 7 && Math.sin(this.breath * 0.37 + this.phase) > 0.995) {
+      const kinds = this.stage === 'adult' || this.stage === 'teen' ? ['look', 'stretch', 'scratch', 'phone', 'look'] : ['look', 'stretch', 'scratch', 'look'];
+      this.fidget = { name: kinds[Math.floor(Math.abs(Math.sin(this.breath * 12.9)) * kinds.length) % kinds.length], t: 0, length: 2.4 };
+      this.still = 0;
+    }
+    poseAction(this.body, this.activity, { running: this.running && this.pace > 0.3, jumpT: this.jumpT, talking, fidget: this.fidget }, this.breath);
     this.place();
   }
 

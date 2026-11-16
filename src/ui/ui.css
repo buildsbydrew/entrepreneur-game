@@ -113,6 +113,9 @@ body.is-touch .touch-pad { display: block; }
   background: var(--orange); border: 3px solid var(--ink); box-shadow: 0 5px 0 var(--ink); font-size: 15px; font-weight: bold;
   color: var(--ink); padding: 4px; line-height: 1.1; }
 .action-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--ink); }
+.jump-btn { position: fixed; right: 122px; bottom: 26px; width: 58px; height: 58px; border-radius: 50%;
+  background: var(--cream); border: 3px solid var(--ink); box-shadow: 0 4px 0 var(--ink); font-size: 13px; font-weight: bold; color: var(--ink); }
+.jump-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
 
 /* ---------- Testing panel (only with ?dev in the address) ---------- */
 .dev { position: fixed; left: 12px; bottom: 12px; background: var(--shade); color: var(--cream); border-radius: 12px; padding: 8px 10px;

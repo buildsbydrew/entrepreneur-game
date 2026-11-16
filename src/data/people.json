@@ -1,5 +1,5 @@
 {
-  "_about": "The people in the world. The cast of childhood (see docs/story/cast.md). fullName is who they really are; name is what you call them. born: their birth date (the player is born in year 1, day 1; a year is 120 days), so everyone ages as time passes. tags: groups used by focus choices (family, friends, neighbours). appearsFromAge: they only show up once they're this old. schedule: where they are through the day, from each hour onward (place null means away, off at work or elsewhere). spot facing is in degrees: 0 faces the camera, 90 faces east.",
+  "_about": "The people in the world. The cast of childhood (see docs/story/cast.md). fullName is who they really are; name is what you call them. born: their birth date (the player is born in year 1, day 1; a year is 120 days), so everyone ages as time passes. tags: groups used by focus choices (family, friends, neighbours). appearsFromAge: they only show up once they're this old. schedule: where they are through the day, from each hour onward (place null means away, off at work or elsewhere). spot facing is in degrees: 0 faces the camera, 90 faces east. activity: what they do there (sit, eat, sew, read, lie, kneel, cook, sweep, play, lean, phone, wave); sitting, lying, cooking, kneeling and leaning use the nearest seat, bed, stove, flower bed or counter.",
   "people": [
     {
       "id": "mum",
@@ -23,9 +23,10 @@
         {
           "from": 0,
           "place": "home",
+          "activity": "cook",
           "spot": {
-            "x": 2,
-            "z": -3.6,
+            "x": 2.6,
+            "z": -3.98,
             "facing": 180
           },
           "wander": [
@@ -46,9 +47,10 @@
         {
           "from": 17,
           "place": "home",
+          "activity": "cook",
           "spot": {
-            "x": -1.8,
-            "z": -0.4,
+            "x": 2.6,
+            "z": -3.98,
             "facing": 0
           },
           "wander": [
@@ -96,9 +98,10 @@
         {
           "from": 0,
           "place": "home",
+          "activity": "sew",
           "spot": {
-            "x": 0.9,
-            "z": -3.1,
+            "x": 0.45,
+            "z": -3.55,
             "facing": 0
           },
           "wander": [
@@ -115,9 +118,10 @@
         {
           "from": 15,
           "place": "home",
+          "activity": "sit",
           "spot": {
-            "x": 6.5,
-            "z": 0.8,
+            "x": 6.1,
+            "z": 0.6,
             "facing": 0
           },
           "wander": [
@@ -134,9 +138,10 @@
         {
           "from": 19,
           "place": "home",
+          "activity": "read",
           "spot": {
-            "x": 0.9,
-            "z": -3.1,
+            "x": 0.45,
+            "z": -3.55,
             "facing": 0
           }
         }
@@ -179,6 +184,7 @@
         {
           "from": 8,
           "place": "lane",
+          "activity": "play",
           "spot": {
             "x": -1,
             "z": 10.4,
@@ -242,9 +248,10 @@
         {
           "from": 7,
           "place": "lane",
+          "activity": "kneel",
           "spot": {
-            "x": -12,
-            "z": -1.2,
+            "x": -12.7,
+            "z": -1.05,
             "facing": 0
           },
           "wander": [
@@ -299,9 +306,10 @@
         {
           "from": 7,
           "place": "lane",
+          "activity": "lean",
           "spot": {
             "x": 3,
-            "z": -6.4,
+            "z": -6.18,
             "facing": 0
           }
         },
@@ -345,6 +353,7 @@
         {
           "from": 9,
           "place": "kestrel-park",
+          "activity": "read",
           "spot": {
             "x": 13.4,
             "z": 8.6,
