@@ -11,6 +11,7 @@
 // - The feeling comes from the line: questions rise at the end, exclamations are louder and higher, "..."
 //   trails off, and laughs ("ha ha") sound like laughing. A line can also be marked happy, sad, angry or scared.
 import { voiceOutput } from './sound.js';
+import { cosmetic } from '../core/dice.js';
 
 // ---------- The sound of Urlivani ----------
 
@@ -153,12 +154,12 @@ export function speak(text, voice, { feeling, maxSeconds = 6 } = {}) {
     const osc = ctx.createOscillator();
     osc.type = 'sawtooth';
     osc.frequency.setValueAtTime(pitch, at);
-    osc.frequency.linearRampToValueAtTime(pitch * (0.97 + Math.random() * 0.04), at + dur);
+    osc.frequency.linearRampToValueAtTime(pitch * (0.97 + cosmetic() * 0.04), at + dur);
     // A little natural wobble, more for elders and the scared
     if (voice.shake || mood.shaky) {
       const lfo = ctx.createOscillator();
       const depth = ctx.createGain();
-      lfo.frequency.value = 5.5 + Math.random() * 1.5;
+      lfo.frequency.value = 5.5 + cosmetic() * 1.5;
       depth.gain.value = pitch * (voice.shake + (mood.shaky ? 0.025 : 0));
       lfo.connect(depth).connect(osc.frequency);
       lfo.start(at);
@@ -205,7 +206,7 @@ export function speak(text, voice, { feeling, maxSeconds = 6 } = {}) {
     env.gain.linearRampToValueAtTime(0.05 * loud, at + dur * 0.3);
     env.gain.linearRampToValueAtTime(0, at + dur);
     src.connect(band).connect(env).connect(bus);
-    src.start(at, Math.random() * 0.5);
+    src.start(at, cosmetic() * 0.5);
     src.stop(at + dur + 0.02);
     nodes.push(src);
   };
@@ -234,7 +235,7 @@ export function speak(text, voice, { feeling, maxSeconds = 6 } = {}) {
       if (exclaim) contour *= 1.08;
       const stress = index % 3 === 0 ? 1.05 : 0.98; // a little rhythm
       const pitch = voice.pitch * mood.pitch * (1 + (contour - 1) * mood.range) * stress;
-      const loud = mood.loud * (exclaim ? 1.2 : 1) * (0.9 + Math.random() * 0.2);
+      const loud = mood.loud * (exclaim ? 1.2 : 1) * (0.9 + cosmetic() * 0.2);
 
       const c = CONSONANTS[syl.c];
       if (c) {

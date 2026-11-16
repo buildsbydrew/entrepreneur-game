@@ -4,6 +4,7 @@
 // The front of the body faces +z. Arms and legs swing from the shoulders and hips.
 import * as THREE from 'three';
 import { mesh, rbox, cyl, ball, at } from '../render/shapes.js';
+import { cosmetic } from '../core/dice.js';
 
 // Sizes in metres for each stage of life
 export const STAGES = {
@@ -110,7 +111,7 @@ function buildFace(head, r, look, hairColor) {
   open.visible = false;
   mouth.add(open);
   head.add(mouth);
-  return { eyes, brows, mouth, curve, open, blinkAt: 1 + Math.random() * 3 };
+  return { eyes, brows, mouth, curve, open, blinkAt: 1 + cosmetic() * 3 };
 }
 
 // How the eyebrows sit for each feeling: raised (up) and the inner ends lifted (+) or pulled down (-)

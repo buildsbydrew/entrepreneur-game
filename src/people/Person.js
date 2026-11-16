@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { buildBody, poseBody, poseFace, disposeBody, STAGES } from './body.js';
 import { moveWithCollision, addPerson, removePerson } from '../world/collision.js';
 import { poseAction, ACTIVITIES } from './actions.js';
+import { cosmetic } from '../core/dice.js';
 
 export default class Person {
   constructor(scene, space, { id = null, name = '', look, stage = 'adult', x = 0, z = 0, facing = 0 }) {
@@ -16,8 +17,8 @@ export default class Person {
     scene.add(this.group);
     this.pos = { x, z };
     this.facing = facing;       // angle around the vertical axis; 0 faces south (toward the camera)
-    this.phase = Math.random() * 6;
-    this.breath = Math.random() * 6;
+    this.phase = cosmetic() * 6;
+    this.breath = cosmetic() * 6;
     this.pace = 0;              // 0 standing still, 1 walking at full speed
     this.route = [];            // points to walk through: [{ x, z }]
     this.wait = 0;              // seconds stood still because someone is in the way

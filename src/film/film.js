@@ -17,6 +17,7 @@ import { state } from '../core/state.js';
 import { playerAge, playerStage } from '../core/life.js';
 import { QUALITY } from '../render/quality.js';
 import { installVirtualTime, seededRandom } from './vclock.js';
+import { setCosmeticDice } from '../core/dice.js';
 import { createFilmCamera } from './camera.js';
 import { createFilmLook } from './look.js';
 import { createAutopilot } from './autopilot.js';
@@ -54,6 +55,7 @@ export function startFilm(createGame, params) {
   const lifeRandom = seededRandom(options.seed);
   const drawRandom = seededRandom(options.seed + 99991);
   Math.random = lifeRandom;
+  setCosmeticDice(seededRandom(options.seed + 31337)); // looks and sounds: their own dice, so they never shift the story
 
   const clock = options.step ? installVirtualTime() : null;
   document.body.classList.add('film');

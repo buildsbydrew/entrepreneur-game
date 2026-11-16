@@ -22,6 +22,7 @@ import Place from '../world/Place.js';
 import Person from '../people/Person.js';
 import { ACTIVITIES } from '../people/actions.js';
 import { nearestSpot } from '../world/spots.js';
+import { cosmetic } from './dice.js';
 import { pickConversation, conditionsMet, fillText } from '../story/conversation.js';
 import { runConversation } from '../story/talk.js';
 import { playPrologue } from '../story/prologue.js';
@@ -313,7 +314,7 @@ export default class Game {
     });
     person.data = p;
     person.plan = scheduleNow(p, clock.minutes);
-    person.idleFor = 2 + Math.random() * 6;
+    person.idleFor = 2 + cosmetic() * 6;
     this.people.push(person);
     return person;
   }
@@ -728,9 +729,9 @@ export default class Game {
         else if (plan?.spot) person.turnToward(deg(plan.spot.facing), dt * 0.3);
         person.idleFor -= dt;
         if (person.idleFor <= 0 && !near && plan?.spot && plan.wander?.length && !plan.activity) {
-          const there = plan.wander[Math.floor(Math.random() * plan.wander.length)];
+          const there = plan.wander[Math.floor(cosmetic() * plan.wander.length)];
           person.walkTo([there, plan.spot]);
-          person.idleFor = 5 + Math.random() * 9;
+          person.idleFor = 5 + cosmetic() * 9;
         }
       }
       person.update(dt);

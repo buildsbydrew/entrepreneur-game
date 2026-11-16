@@ -3,6 +3,7 @@
 // (birds by day, crickets at night). There is no background chatter.
 // Browsers only allow sound after the player clicks or presses a key, so everything waits for that.
 // The settings (effects, music, ambience) live only in the pause menu.
+import { cosmetic } from '../core/dice.js';
 
 const KEY = 'lifegame.sound';
 const settings = { sfx: true, music: true, ambience: true, voices: true };
@@ -57,7 +58,7 @@ export function initAudio() {
       [sfxBus, musicBus, ambienceBus, voiceBus].forEach(bus => { bus.gain.value = 0; bus.connect(master); });
       noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
       const data = noise.getChannelData(0);
-      for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+      for (let i = 0; i < data.length; i++) data[i] = cosmetic() * 2 - 1;
       applyVolumes();
       startSchedulers();
     }
@@ -89,7 +90,7 @@ function hiss({ start = 0, dur = 0.08, gain = 0.05, filter = 'lowpass', freq = 9
   const t = ctx.currentTime + start;
   const src = ctx.createBufferSource();
   src.buffer = noise;
-  src.playbackRate.value = 0.8 + Math.random() * 0.4;
+  src.playbackRate.value = 0.8 + cosmetic() * 0.4;
   const f = ctx.createBiquadFilter();
   f.type = filter;
   f.frequency.setValueAtTime(freq, t);
@@ -100,7 +101,7 @@ function hiss({ start = 0, dur = 0.08, gain = 0.05, filter = 'lowpass', freq = 9
   g.gain.exponentialRampToValueAtTime(gain, t + 0.01);
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   src.connect(f).connect(g).connect(bus);
-  src.start(t, Math.random() * 0.5);
+  src.start(t, cosmetic() * 0.5);
   src.stop(t + dur + 0.05);
 }
 
@@ -110,16 +111,16 @@ function hiss({ start = 0, dur = 0.08, gain = 0.05, filter = 'lowpass', freq = 9
 export function footstep(surface = 'ground', light = false) {
   const g = light ? 0.025 : 0.045;
   if (surface === 'floor') {
-    hiss({ dur: 0.05, gain: g, filter: 'bandpass', freq: 1800 + Math.random() * 400, q: 1.5 });
-    tone({ freq: 140 + Math.random() * 30, dur: 0.05, gain: g * 0.8 });
+    hiss({ dur: 0.05, gain: g, filter: 'bandpass', freq: 1800 + cosmetic() * 400, q: 1.5 });
+    tone({ freq: 140 + cosmetic() * 30, dur: 0.05, gain: g * 0.8 });
   } else {
-    hiss({ dur: 0.09, gain: g * 1.2, filter: 'lowpass', freq: 650 + Math.random() * 300 });
+    hiss({ dur: 0.09, gain: g * 1.2, filter: 'lowpass', freq: 650 + cosmetic() * 300 });
   }
 }
 
 // A voice "blip" for a character speaking; each person gets their own pitch
 export function talkBlip(pitch = 1) {
-  tone({ freq: 220 * pitch * (0.92 + Math.random() * 0.16), type: 'triangle', dur: 0.07, gain: 0.03 });
+  tone({ freq: 220 * pitch * (0.92 + cosmetic() * 0.16), type: 'triangle', dur: 0.07, gain: 0.03 });
 }
 
 const RECIPES = {
@@ -175,8 +176,8 @@ function scheduleMusic() {
     }
     // a light plucked melody, sparser at night
     const playChance = mood.night ? 0.28 : 0.55;
-    if (step % 2 === 0 && Math.random() < playChance) {
-      const s = SCALE[Math.floor(Math.random() * SCALE.length)] + (Math.random() < 0.3 ? 12 : 0);
+    if (step % 2 === 0 && cosmetic() < playChance) {
+      const s = SCALE[Math.floor(cosmetic() * SCALE.length)] + (cosmetic() < 0.3 ? 12 : 0);
       tone({ freq: note(s, root), start: Math.max(0, t), dur: beatLen * 1.6, gain: mood.night ? 0.02 : 0.03, bus: musicBus });
     }
     beat += 1;
@@ -200,17 +201,17 @@ function scheduleAmbience() {
   const h = mood.minutes / 60;
   if (h >= 5.5 && h < 19) {
     // a bird: two or three quick rising chirps
-    const base = 2200 + Math.random() * 1600;
-    const chirps = 2 + Math.floor(Math.random() * 3);
+    const base = 2200 + cosmetic() * 1600;
+    const chirps = 2 + Math.floor(cosmetic() * 3);
     for (let i = 0; i < chirps; i++) {
-      tone({ freq: base, slideTo: base * (1.2 + Math.random() * 0.3), start: i * 0.11, dur: 0.08, gain: 0.025, bus: ambienceBus });
+      tone({ freq: base, slideTo: base * (1.2 + cosmetic() * 0.3), start: i * 0.11, dur: 0.08, gain: 0.025, bus: ambienceBus });
     }
-    nextAmbience = ctx.currentTime + 2 + Math.random() * 5;
+    nextAmbience = ctx.currentTime + 2 + cosmetic() * 5;
   } else {
     // crickets: a fast pulse of high notes
-    const f = 4200 + Math.random() * 600;
+    const f = 4200 + cosmetic() * 600;
     for (let i = 0; i < 6; i++) tone({ freq: f, start: i * 0.045, dur: 0.03, gain: 0.012, bus: ambienceBus });
-    nextAmbience = ctx.currentTime + 0.6 + Math.random() * 1.4;
+    nextAmbience = ctx.currentTime + 0.6 + cosmetic() * 1.4;
   }
 }
 

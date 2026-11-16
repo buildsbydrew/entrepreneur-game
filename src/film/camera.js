@@ -127,8 +127,8 @@ export function createFilmCamera(game) {
     let fov = 32;
     if (type === 'two') {
       const mid = ha.clone().add(hb).multiplyScalar(0.5);
-      pos = mid.clone().addScaledVector(side, (3.4 + apart) * portrait()).setY(mid.y + 1.3);
-      look = mid.clone().setY(mid.y - 0.35);
+      pos = mid.clone().addScaledVector(side, (2.3 + apart * 0.9) * portrait()).setY(mid.y + 0.9);
+      look = mid.clone().setY(mid.y - 0.25);
       fov = 36;
     } else if (type === 'ots') {
       // Over the shoulder of the listener (b), onto the speaker (a)
@@ -184,7 +184,9 @@ export function createFilmCamera(game) {
     const axis = v3(pl.pos.x - partner.pos.x, 0, pl.pos.z - partner.pos.z).normalize();
     talkSide = -axis.x >= 0 ? 1 : -1;
     lastLine = null;
-    newShot('two', { a: partner, b: pl });
+    const acrossWall = game.place.insideHouse(pl.pos.x, pl.pos.z) !== game.place.insideHouse(partner.pos.x, partner.pos.z);
+    if (acrossWall) newShot('ots', { a: partner, b: pl, door: true });
+    else newShot('two', { a: partner, b: pl });
   }
 
   // A line is said: cut to whoever is speaking (after a line with feeling, first a beat on the listener)
@@ -197,7 +199,7 @@ export function createFilmCamera(game) {
     const b = a === game.player ? partner : game.player;
     const felt = Boolean(FELT[a.mood]) || UNSETTLING.has(a.id);
     let type;
-    if (!lastLine) type = 'two';
+    if (!lastLine) type = shot?.door ? 'ots' : 'two';
     else if (felt) type = 'close';
     else type = lastLine.isYou !== isYou ? 'ots' : (roll() < 0.35 ? 'close' : 'ots');
     if (lastLine?.felt && lastLine.isYou !== isYou) {
@@ -236,11 +238,24 @@ export function createFilmCamera(game) {
       const far = dir.length();
       ray.set(want.pos, dir.normalize());
       ray.far = Math.max(0.1, far - 0.35);
-      for (let tries = 0; tries < 4 && ray.intersectObjects(others, true).length; tries++) {
-        want.pos.y += 0.45;
-        const d2 = want.look.clone().sub(want.pos);
-        ray.set(want.pos, d2.normalize());
+      const blockedFrom = from => {
+        const d2 = want.look.clone().sub(from);
+        ray.set(from, d2.clone().normalize());
         ray.far = Math.max(0.1, d2.length() - 0.35);
+        return ray.intersectObjects(others, true).length > 0;
+      };
+      if (blockedFrom(want.pos)) {
+        const start = want.pos.clone();
+        let fixed = false;
+        for (const k of [0.75, 0.55, 0.4]) {
+          const closer = want.look.clone().lerp(start, k);
+          closer.y = Math.max(closer.y, want.look.y);
+          if (!blockedFrom(closer)) { want.pos.copy(closer); fixed = true; break; }
+        }
+        for (let tries = 0; !fixed && tries < 2; tries++) {
+          want.pos.y += 0.4;
+          fixed = !blockedFrom(want.pos);
+        }
       }
     }
 
