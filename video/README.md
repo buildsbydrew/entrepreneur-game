@@ -33,7 +33,8 @@ node make.mjs --id ep02 --name Remy --body boy --skin 5 --personality troublemak
 - `--seed`: any number. The same seed plays out exactly the same life, so you can re-record it.
 
 It takes a while on this laptop: a few minutes to test-play the life, then an hour or two to record the
-chosen moments, then a while to render. Leave it running. If it stops part way, run the same command
+chosen moments, then a while to render. Leave it running, plugged in, with the lid open: the scripts keep
+Windows from going to sleep while they run (a closed lid still sleeps). If it stops part way, run the same command
 again with `--from record` (or `--from edit`, `--from render`) to carry on.
 
 The finished videos land in `video/out/`: `ep02-episode.mp4` (16:9) and `ep02-short.mp4` (9:16, 60 s).
@@ -56,7 +57,7 @@ A life is told as a serial, one stretch of life per episode, each ending on a bi
 
 ```
 node make.mjs --id remy1 --episode 1 --until the-baby --name Remy --body boy --skin 5 --personality troublemaker --seed 3
-node make.mjs --id remy2 --episode 2 --from the-baby --until scholarship --name Remy --body boy --skin 5 --personality troublemaker --seed 3
+node make.mjs --id remy2 --episode 2 --after the-baby --until scholarship --name Remy --body boy --skin 5 --personality troublemaker --seed 3
 ```
 
 Each episode opens cold on its most dramatic moment (cut just before the answer), then the title, one

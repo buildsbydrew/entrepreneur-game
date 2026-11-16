@@ -4,7 +4,7 @@
 //
 // A life told as a serial (one stretch of life per episode):
 //   node make.mjs --id remy1 --episode 1 --until the-baby ...         ends on the night the baby came
-//   node make.mjs --id remy2 --episode 2 --from the-baby --until ... starts with a "Previously" recap
+//   node make.mjs --id remy2 --episode 2 --after the-baby --until ... starts with a "Previously" recap
 //
 //   1. test   plays the life quickly without drawing it, to learn what happens (a few minutes)
 //   2. plan   picks the moments for the episode and the Short
@@ -17,6 +17,9 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { keepAwake } from './keepawake.mjs';
+
+keepAwake(); // the laptop mustn't sleep part way through (that stalls the render)
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2);
@@ -27,7 +30,9 @@ const args = Object.fromEntries(argv.reduce((acc, a, i, all) => {
 const id = args.id ?? 'ep01';
 const STEPS = ['test', 'plan', 'record', 'edit', 'render'];
 const from = Math.max(0, STEPS.indexOf(args.from ?? 'test'));
-const range = ['until', 'from', 'episode'].filter(k => args[k]).flatMap(k => [`--${k}`, String(args[k])]);
+// The episode's stretch of the life: --after <big day> (start after it) and --until <big day> (end on it).
+// (--from is for carrying on from a step, so the episode's start is called --after here.)
+const range = [['until', 'until'], ['after', 'from'], ['episode', 'episode']].filter(([k]) => args[k]).flatMap(([k, to]) => [`--${to}`, String(args[k])]);
 const life = ['--name', args.name ?? 'Ada', '--body', args.body ?? 'girl', '--skin', String(args.skin ?? 3), '--personality', args.personality ?? 'kind', '--seed', String(args.seed ?? 7)];
 const node = (...list) => {
   console.log(`\n> node ${list.join(' ')}`);

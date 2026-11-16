@@ -15,6 +15,9 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { keepAwake } from './keepawake.mjs';
+
+keepAwake(); // the laptop mustn't sleep part way through (that stalls the render)
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const args = Object.fromEntries(process.argv.slice(2).reduce((acc, a, i, all) => {
