@@ -247,7 +247,7 @@ export function createFilmCamera(game) {
       if (blockedFrom(want.pos)) {
         const start = want.pos.clone();
         let fixed = false;
-        for (const k of [0.75, 0.55, 0.4]) {
+        for (const k of [0.8, 0.65]) {
           const closer = want.look.clone().lerp(start, k);
           closer.y = Math.max(closer.y, want.look.y);
           if (!blockedFrom(closer)) { want.pos.copy(closer); fixed = true; break; }
