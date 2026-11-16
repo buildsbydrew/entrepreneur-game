@@ -10,7 +10,7 @@ const args = Object.fromEntries(process.argv.slice(2).reduce((acc, a, i, all) =>
   return acc;
 }, []));
 const query = new URLSearchParams({ name: args.name ?? 'Ada', body: args.body ?? 'girl', skin: String(args.skin ?? 3), personality: args.personality ?? 'kind', seed: String(args.seed ?? 7), quality: args.render ? 'high' : 'low' });
-const snapshot = args.url ? null : await serveGameSnapshot();
+const snapshot = args.url ? null : await serveGameSnapshot({ build: !args.reuseBuild });
 const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--mute-audio', '--use-angle=d3d11', '--enable-unsafe-swiftshader'] });
 const page = await (await browser.newContext({ viewport: { width: 960, height: 540 } })).newPage();
 page.on('pageerror', err => console.log('[game error]', err.message));
