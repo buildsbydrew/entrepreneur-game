@@ -26,7 +26,7 @@ const result = await page.evaluate(async ({ until, traceFrom, traceTo, render, s
   const trace = [];
   let sim = 0;
   let i = 0;
-  while (!film.done && sim < until && !(stopAfter && film.log.some(e => e.type === 'closing' && e.day === stopAfter))) {
+  while (!film.done && sim < until && !(stopAfter && film.log.some(e => e.type === 'closing' && e.bigDay === stopAfter))) {
     const r = await film.step();
     sim = r.sim;
     if (sim >= traceFrom && sim <= traceTo && i++ % 10 === 0 && game.player) {

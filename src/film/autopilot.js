@@ -129,7 +129,7 @@ export function createAutopilot({ game, film, ui, profile, options, random, peop
   const cinemaEl = $('.cinema');
   const caption = ui.cinema.caption.bind(ui.cinema);
   ui.cinema.caption = text => {
-    if (closing) film.add('closing', { text, day: lastBigDay });
+    if (closing) film.add('closing', { text, bigDay: lastBigDay });
     else film.add('caption', { text });
     const shown = caption(text);
     let finished = false;

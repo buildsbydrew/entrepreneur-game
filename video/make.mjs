@@ -1,6 +1,6 @@
 // Makes a whole episode, start to finish:
 //
-//   node make.mjs --id ep02 --name Kofi --body boy --skin 5 --personality troublemaker --seed 42
+//   node make.mjs --id ep02 --name Remy --body boy --skin 5 --personality troublemaker --seed 42
 //
 //   1. test   plays the life quickly without drawing it, to learn what happens (a few minutes)
 //   2. plan   picks the moments for the episode and the Short

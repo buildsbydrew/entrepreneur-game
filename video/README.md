@@ -24,7 +24,7 @@ life in the game is never touched).
 
 ```
 cd video
-node make.mjs --id ep02 --name Kofi --body boy --skin 5 --personality troublemaker --seed 42
+node make.mjs --id ep02 --name Remy --body boy --skin 5 --personality troublemaker --seed 42
 ```
 
 - `--id`: the episode's folder name (`episodes/ep02`).
