@@ -109,6 +109,33 @@ export function createUI(root) {
     toasts.append(t);
     setTimeout(() => t.remove(), 3800);
   };
+  // ---------- Today's goals (on a big day) ----------
+  // A small list under the time, ticking off as you do things. Styled here so it travels with this file.
+  const goalStyle = document.createElement('style');
+  goalStyle.textContent = `
+    .goals { position: fixed; left: 16px; top: 112px; max-width: min(320px, calc(100vw - 32px)); padding: 10px 14px;
+      background: rgba(30, 22, 16, 0.62); color: #fbf3e4; border-radius: 12px; font-size: 14px; line-height: 1.35;
+      pointer-events: none; z-index: 4; backdrop-filter: blur(4px); }
+    .goals.hidden { display: none; }
+    .goals .goals-title { font-weight: 700; letter-spacing: 0.02em; margin-bottom: 4px; color: #f6c026; }
+    .goals .goal { display: flex; gap: 8px; align-items: baseline; }
+    .goals .goal .tick { width: 14px; flex: none; text-align: center; opacity: 0.8; }
+    .goals .goal.done { opacity: 0.55; text-decoration: line-through; }
+    @media (max-width: 600px) { .goals { top: 96px; font-size: 13px; } }`;
+  document.head.append(goalStyle);
+  const goalsEl = el('<div class="goals hidden"></div>');
+  root.append(goalsEl);
+  let goalsHtml = '';
+  ui.goals = {
+    show(title, goals) {
+      const html = `<div class="goals-title">${escapeHtml(title)}</div>` + goals.map(g =>
+        `<div class="goal${g.done ? ' done' : ''}"><span class="tick">${g.done ? '✓' : '○'}</span><span>${escapeHtml(g.text)}</span></div>`).join('');
+      if (html !== goalsHtml) { goalsEl.innerHTML = html; goalsHtml = html; }
+      goalsEl.classList.toggle('hidden', !goals.length);
+    },
+    hide() { goalsEl.classList.add('hidden'); }
+  };
+
   // A small word floating up from a point on screen, like "Nico liked that"
   ui.feeling = (x, y, text) => {
     const f = el(`<div class="feeling">${escapeHtml(text)}</div>`);
@@ -408,6 +435,7 @@ export function createUI(root) {
     // skip: what to do when the player presses Skip
     open(skip) {
       onSkip = skip;
+      cinema.querySelector('[data-skip]').style.display = skip ? '' : 'none'; // nothing to skip for a single line
       cinema.classList.remove('hidden');
       cinema.classList.remove('dark');
       captionEl.textContent = '';

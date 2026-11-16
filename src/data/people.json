@@ -1,56 +1,501 @@
 {
-  "_about": "The people in the world. PLACEHOLDER CAST: these exist to show how people, talking and choices work; the real characters will be written together. born: their birth date (the player is born in year 1, day 1; a year is 120 days), so everyone ages as time passes. tags: groups used by focus choices (family, friends, neighbours). appearsFromAge: they only show up once they're this old. schedule: where they are through the day, from each hour onward (place null means away, off at work or elsewhere). spot facing is in degrees: 0 faces the camera, 90 faces east.",
+  "_about": "The people in the world. The cast of childhood (see docs/story/cast.md). fullName is who they really are; name is what you call them. born: their birth date (the player is born in year 1, day 1; a year is 120 days), so everyone ages as time passes. tags: groups used by focus choices (family, friends, neighbours). appearsFromAge: they only show up once they're this old. schedule: where they are through the day, from each hour onward (place null means away, off at work or elsewhere). spot facing is in degrees: 0 faces the camera, 90 faces east.",
   "people": [
     {
-      "id": "mum", "name": "Mum", "born": { "year": -27, "day": 50 }, "tags": ["family"],
-      "look": { "body": "girl", "skin": "#8d5a3b", "shirt": "#d6336c", "bottom": "#2f5fd0", "hair": "wrap", "accent": "#f6c026" },
-      "schedule": [
-        { "from": 0, "place": "home", "spot": { "x": 2.0, "z": -3.6, "facing": 180 }, "wander": [{ "x": 1.8, "z": -1.2 }, { "x": -0.6, "z": -1.6 }] },
-        { "from": 8, "place": null },
-        { "from": 17, "place": "home", "spot": { "x": -1.8, "z": -0.4, "facing": 0 }, "wander": [{ "x": 2.0, "z": -3.6 }, { "x": 0.4, "z": -2.0 }] }
+      "id": "mum",
+      "name": "Mum",
+      "born": {
+        "year": -27,
+        "day": 50
+      },
+      "tags": [
+        "family"
       ],
-      "conversations": ["mum-baby-morning", "mum-baby-again", "mum-first", "mum-money", "mum-again"]
+      "look": {
+        "body": "girl",
+        "skin": "#8d5a3b",
+        "shirt": "#d6336c",
+        "bottom": "#2f5fd0",
+        "hair": "wrap",
+        "accent": "#f6c026"
+      },
+      "schedule": [
+        {
+          "from": 0,
+          "place": "home",
+          "spot": {
+            "x": 2,
+            "z": -3.6,
+            "facing": 180
+          },
+          "wander": [
+            {
+              "x": 1.8,
+              "z": -1.2
+            },
+            {
+              "x": -0.6,
+              "z": -1.6
+            }
+          ]
+        },
+        {
+          "from": 8,
+          "place": null
+        },
+        {
+          "from": 17,
+          "place": "home",
+          "spot": {
+            "x": -1.8,
+            "z": -0.4,
+            "facing": 0
+          },
+          "wander": [
+            {
+              "x": 2,
+              "z": -3.6
+            },
+            {
+              "x": 0.4,
+              "z": -2
+            }
+          ]
+        }
+      ],
+      "conversations": [
+        "mum-green-coat",
+        "mum-tab",
+        "mum-school-morning",
+        "mum-baby-morning",
+        "mum-baby-again",
+        "mum-first",
+        "mum-money",
+        "mum-again"
+      ],
+      "fullName": "Lena Varell"
     },
     {
-      "id": "gran", "name": "Gran", "born": { "year": -66, "day": 3 }, "tags": ["family"],
-      "look": { "body": "girl", "skin": "#7a4a2a", "shirt": "#3a7d44", "bottom": "#5a4632", "hair": "short" },
-      "schedule": [
-        { "from": 0, "place": "home", "spot": { "x": 0.9, "z": -3.1, "facing": 0 }, "wander": [{ "x": -3.8, "z": -1.8 }, { "x": 1.4, "z": -2.6 }] },
-        { "from": 15, "place": "home", "spot": { "x": 6.5, "z": 0.8, "facing": 0 }, "wander": [{ "x": 4.6, "z": 4.6 }, { "x": -2, "z": 4.8 }] },
-        { "from": 19, "place": "home", "spot": { "x": 0.9, "z": -3.1, "facing": 0 } }
+      "id": "gran",
+      "name": "Gran",
+      "born": {
+        "year": -66,
+        "day": 3
+      },
+      "tags": [
+        "family"
       ],
-      "conversations": ["gran-baby", "gran-child", "gran-again"]
+      "look": {
+        "body": "girl",
+        "skin": "#7a4a2a",
+        "shirt": "#3a7d44",
+        "bottom": "#5a4632",
+        "hair": "short"
+      },
+      "schedule": [
+        {
+          "from": 0,
+          "place": "home",
+          "spot": {
+            "x": 0.9,
+            "z": -3.1,
+            "facing": 0
+          },
+          "wander": [
+            {
+              "x": -3.8,
+              "z": -1.8
+            },
+            {
+              "x": 1.4,
+              "z": -2.6
+            }
+          ]
+        },
+        {
+          "from": 15,
+          "place": "home",
+          "spot": {
+            "x": 6.5,
+            "z": 0.8,
+            "facing": 0
+          },
+          "wander": [
+            {
+              "x": 4.6,
+              "z": 4.6
+            },
+            {
+              "x": -2,
+              "z": 4.8
+            }
+          ]
+        },
+        {
+          "from": 19,
+          "place": "home",
+          "spot": {
+            "x": 0.9,
+            "z": -3.1,
+            "facing": 0
+          }
+        }
+      ],
+      "conversations": [
+        "gran-waiting",
+        "gran-baby-born-girl",
+        "gran-baby-born-boy",
+        "gran-tab",
+        "gran-baby",
+        "gran-child",
+        "gran-again"
+      ],
+      "fullName": "Ilsa Varell"
     },
     {
-      "id": "nico", "name": "Nico", "born": { "year": 1, "day": 70 }, "tags": ["friends"], "appearsFromAge": 4,
-      "look": { "body": "boy", "skin": "#c68a5e", "shirt": "#3a7d44", "bottom": "#3b2a20", "hair": "curls", "hairColor": "#3b2a20" },
-      "schedule": [
-        { "from": 0, "place": null },
-        { "from": 8, "place": "lane", "spot": { "x": -1, "z": 10.4, "facing": 0 }, "wander": [{ "x": 2.5, "z": 11 }, { "x": -4.2, "z": 7 }, { "x": 1.2, "z": 6.6 }] },
-        { "from": 18.5, "place": null }
+      "id": "nico",
+      "name": "Nico",
+      "born": {
+        "year": 1,
+        "day": 70
+      },
+      "tags": [
+        "friends"
       ],
-      "conversations": ["nico-first", "nico-friend", "nico-again"]
+      "appearsFromAge": 4,
+      "look": {
+        "body": "boy",
+        "skin": "#c68a5e",
+        "shirt": "#3a7d44",
+        "bottom": "#3b2a20",
+        "hair": "curls",
+        "hairColor": "#3b2a20"
+      },
+      "schedule": [
+        {
+          "from": 0,
+          "place": null
+        },
+        {
+          "from": 8,
+          "place": "lane",
+          "spot": {
+            "x": -1,
+            "z": 10.4,
+            "facing": 0
+          },
+          "wander": [
+            {
+              "x": 2.5,
+              "z": 11
+            },
+            {
+              "x": -4.2,
+              "z": 7
+            },
+            {
+              "x": 1.2,
+              "z": 6.6
+            }
+          ]
+        },
+        {
+          "from": 18.5,
+          "place": null
+        }
+      ],
+      "conversations": [
+        "nico-school",
+        "nico-first",
+        "nico-friend",
+        "nico-again"
+      ],
+      "fullName": "Nico Brask"
     },
     {
-      "id": "pell", "name": "Mrs Pell", "born": { "year": -70, "day": 88 }, "tags": ["neighbours"],
-      "look": { "body": "girl", "skin": "#e0b48c", "shirt": "#8e44ad", "bottom": "#5a4632", "hair": "bun" },
-      "schedule": [
-        { "from": 0, "place": "lane", "spot": { "x": -10.4, "z": -6.2, "facing": 0 } },
-        { "from": 7, "place": "lane", "spot": { "x": -12, "z": -1.2, "facing": 0 }, "wander": [{ "x": -9.6, "z": -1.4 }, { "x": -14, "z": -1.3 }] },
-        { "from": 19, "place": "lane", "spot": { "x": -10.4, "z": -6.2, "facing": 0 } }
+      "id": "pell",
+      "name": "Mrs Pell",
+      "born": {
+        "year": -70,
+        "day": 88
+      },
+      "tags": [
+        "neighbours"
       ],
-      "conversations": ["pell-first", "pell-again"]
+      "look": {
+        "body": "girl",
+        "skin": "#e0b48c",
+        "shirt": "#8e44ad",
+        "bottom": "#5a4632",
+        "hair": "bun"
+      },
+      "schedule": [
+        {
+          "from": 0,
+          "place": "lane",
+          "spot": {
+            "x": -10.4,
+            "z": -6.2,
+            "facing": 0
+          }
+        },
+        {
+          "from": 7,
+          "place": "lane",
+          "spot": {
+            "x": -12,
+            "z": -1.2,
+            "facing": 0
+          },
+          "wander": [
+            {
+              "x": -9.6,
+              "z": -1.4
+            },
+            {
+              "x": -14,
+              "z": -1.3
+            }
+          ]
+        },
+        {
+          "from": 19,
+          "place": "lane",
+          "spot": {
+            "x": -10.4,
+            "z": -6.2,
+            "facing": 0
+          }
+        }
+      ],
+      "conversations": [
+        "pell-first",
+        "pell-again"
+      ],
+      "fullName": "Edith Pell"
     },
     {
-      "id": "ambrose", "name": "Mr Ambrose", "born": { "year": -40, "day": 12 }, "tags": ["neighbours"],
-      "look": { "body": "boy", "skin": "#5a3620", "shirt": "#f6c026", "bottom": "#34495e", "hair": "short" },
-      "schedule": [
-        { "from": 0, "place": null },
-        { "from": 7, "place": "lane", "spot": { "x": 3, "z": -6.4, "facing": 0 } },
-        { "from": 21, "place": null }
+      "id": "ambrose",
+      "name": "Mr Ambrose",
+      "born": {
+        "year": -40,
+        "day": 12
+      },
+      "tags": [
+        "neighbours"
       ],
-      "conversations": ["ambrose-sweets"]
+      "look": {
+        "body": "boy",
+        "skin": "#5a3620",
+        "shirt": "#f6c026",
+        "bottom": "#34495e",
+        "hair": "short"
+      },
+      "schedule": [
+        {
+          "from": 0,
+          "place": null
+        },
+        {
+          "from": 7,
+          "place": "lane",
+          "spot": {
+            "x": 3,
+            "z": -6.4,
+            "facing": 0
+          }
+        },
+        {
+          "from": 21,
+          "place": null
+        }
+      ],
+      "conversations": [
+        "ambrose-tab",
+        "ambrose-sweets"
+      ],
+      "fullName": "Teo Ambrose"
+    },
+    {
+      "id": "juno",
+      "name": "Juno",
+      "fullName": "Juno Calder",
+      "born": {
+        "year": 1,
+        "day": 40
+      },
+      "tags": [
+        "school"
+      ],
+      "appearsFromAge": 4,
+      "look": {
+        "body": "girl",
+        "skin": "#e0b48c",
+        "shirt": "#2f5fd0",
+        "bottom": "#f4f4f0",
+        "hair": "bun",
+        "hairColor": "#2b1b12",
+        "accent": "#f6c026"
+      },
+      "schedule": [
+        {
+          "from": 0,
+          "place": null
+        },
+        {
+          "from": 9,
+          "place": "kestrel-park",
+          "spot": {
+            "x": 13.4,
+            "z": 8.6,
+            "facing": -90
+          },
+          "wander": [
+            {
+              "x": 8,
+              "z": 6.4
+            },
+            {
+              "x": 15,
+              "z": 7.6
+            }
+          ]
+        },
+        {
+          "from": 17,
+          "place": null
+        }
+      ],
+      "conversations": [
+        "juno-playtime",
+        "juno-again"
+      ]
+    },
+    {
+      "id": "hale",
+      "name": "Mr Hale",
+      "fullName": "Simon Hale",
+      "born": {
+        "year": -38,
+        "day": 100
+      },
+      "tags": [
+        "school"
+      ],
+      "look": {
+        "body": "boy",
+        "skin": "#a8714a",
+        "shirt": "#7a8b99",
+        "bottom": "#2c3e50",
+        "hair": "short"
+      },
+      "schedule": [
+        {
+          "from": 0,
+          "place": null
+        },
+        {
+          "from": 8,
+          "place": "school",
+          "spot": {
+            "x": 3.5,
+            "z": -7.6,
+            "facing": 0
+          },
+          "wander": [
+            {
+              "x": 0,
+              "z": -8.6
+            },
+            {
+              "x": -3,
+              "z": -8.4
+            }
+          ]
+        },
+        {
+          "from": 16,
+          "place": null
+        }
+      ],
+      "conversations": [
+        "hale-first-day",
+        "hale-again"
+      ]
+    },
+    {
+      "id": "corin",
+      "name": "The man in the green coat",
+      "fullName": "Corin Varell",
+      "born": {
+        "year": -36,
+        "day": 20
+      },
+      "tags": [],
+      "look": {
+        "body": "boy",
+        "skin": "#8d5a3b",
+        "shirt": "#2e6b3a",
+        "bottom": "#3b2a20",
+        "hair": "short"
+      },
+      "schedule": [
+        {
+          "from": 0,
+          "place": null
+        }
+      ],
+      "conversations": [
+        "corin-gift"
+      ]
+    },
+    {
+      "id": "sibling",
+      "name": "The baby",
+      "born": {
+        "year": 9,
+        "day": 10
+      },
+      "tags": [
+        "family"
+      ],
+      "appearsFromAge": 0,
+      "sibling": true,
+      "look": {
+        "body": "girl",
+        "skin": "#8d5a3b",
+        "shirt": "#f6e3c8",
+        "bottom": "#f6e3c8",
+        "hair": "short"
+      },
+      "schedule": [
+        {
+          "from": 0,
+          "place": "home",
+          "spot": {
+            "x": -3,
+            "z": -3.4,
+            "facing": 0
+          },
+          "wander": [
+            {
+              "x": -2.2,
+              "z": -2.6
+            }
+          ]
+        }
+      ],
+      "conversations": [
+        "sibling-baby"
+      ]
     }
   ],
-  "skins": ["#f1c9a5", "#e0b48c", "#c68a5e", "#a8714a", "#8d5a3b", "#5a3620"]
+  "skins": [
+    "#f1c9a5",
+    "#e0b48c",
+    "#c68a5e",
+    "#a8714a",
+    "#8d5a3b",
+    "#5a3620"
+  ]
 }

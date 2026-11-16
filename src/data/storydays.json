@@ -2,59 +2,540 @@
   "_about": "The big days of a life: always played, never skipped by a time jump. See src/story/storyDays.js for how they work, and docs/story/ for the story. Days marked draft are planned but need places or people that don't exist yet, so they're skipped for now.",
   "days": [
     {
-      "id": "first-day-out", "age": 5, "extraDays": 2, "hour": 7, "place": "home", "wake": "bed",
+      "id": "first-day-out",
+      "age": 5,
+      "extraDays": 2,
+      "hour": 7,
+      "place": "home",
+      "wake": "bed",
       "title": "The first day out alone",
       "goals": [
-        { "id": "morning", "text": "Say good morning to Mum", "done": { "talkedTo": "mum" } },
-        { "id": "out", "text": "Go out on Willow Lane", "done": { "place": "lane" } },
-        { "id": "sweets", "text": "Spend Gran's birthday livs at the shop", "done": { "flag": "bought-sweet" } },
-        { "id": "home", "text": "Be home before dark", "done": { "place": "home", "hourAtLeast": 18 } }
+        {
+          "id": "morning",
+          "text": "Say good morning to Mum",
+          "done": {
+            "talkedTo": "mum"
+          }
+        },
+        {
+          "id": "out",
+          "text": "Go out on Willow Lane",
+          "done": {
+            "place": "lane"
+          }
+        },
+        {
+          "id": "sweets",
+          "text": "Spend Gran's birthday livs at the shop",
+          "done": {
+            "flag": "bought-sweet"
+          }
+        },
+        {
+          "id": "home",
+          "text": "Be home before dark",
+          "done": {
+            "place": "home",
+            "hourAtLeast": 18
+          }
+        }
       ],
       "moments": [
-        { "id": "coat-appears", "hour": 17.2, "place": "lane", "do": [
-          { "appear": "corin", "x": 9.5, "z": 6.2, "facing": 200 },
-          { "toast": "A man in a green coat is standing across the lane, watching your house." },
-          { "setFlag": "saw-green-coat" },
-          { "camera": "look", "at": "corin" }
-        ] },
-        { "id": "coat-leaves", "hour": 18.3, "place": "lane", "do": [ { "leave": "corin", "walkTo": [{ "x": 22, "z": 6.2 }] } ] },
-        { "id": "whispers", "hour": 20.5, "place": "home", "if": { "flag": "saw-green-coat" }, "do": [
-          { "toast": "Through the wall, Mum and Gran are arguing in whispers." }
-        ] }
+        {
+          "id": "coat-appears",
+          "hour": 17.2,
+          "place": "lane",
+          "if": {
+            "notFlag": "saw-green-coat"
+          },
+          "do": [
+            {
+              "appear": "corin",
+              "x": 9.5,
+              "z": 6.2,
+              "facing": 200
+            },
+            {
+              "setFlag": "saw-green-coat"
+            },
+            {
+              "camera": "look",
+              "at": "corin",
+              "seconds": 4
+            },
+            {
+              "toast": "A man in a green coat is standing across the lane, watching your house."
+            }
+          ]
+        },
+        {
+          "id": "coat-at-gate",
+          "hour": 17.2,
+          "place": "home",
+          "if": {
+            "notFlag": "saw-green-coat"
+          },
+          "do": [
+            {
+              "appear": "corin",
+              "x": 11.6,
+              "z": 5.6,
+              "facing": -110
+            },
+            {
+              "setFlag": "saw-green-coat"
+            },
+            {
+              "camera": "look",
+              "at": "corin",
+              "seconds": 4
+            },
+            {
+              "toast": "A man in a green coat is standing by your gate, looking at the house."
+            }
+          ]
+        },
+        {
+          "id": "coat-leaves",
+          "hour": 18.3,
+          "do": [
+            {
+              "leave": "corin"
+            }
+          ]
+        },
+        {
+          "id": "whispers",
+          "hour": 20.5,
+          "place": "home",
+          "if": {
+            "flag": "saw-green-coat"
+          },
+          "do": [
+            {
+              "toast": "Through the wall, Mum and Gran are arguing in whispers."
+            }
+          ]
+        }
       ],
       "end": {
         "line": "That night, you heard Mum and Gran arguing in whispers. You only caught one word: Corin.",
         "remember": "The first time you saw the man in the green coat."
+      },
+      "bedFrom": 20.6
+    },
+    {
+      "id": "first-school-day",
+      "age": 5,
+      "extraDays": 40,
+      "hour": 7,
+      "place": "home",
+      "wake": "bed",
+      "title": "The first day at Sunhill Primary",
+      "goals": [
+        {
+          "id": "there",
+          "text": "Walk to Sunhill Primary (past the High Street)",
+          "done": {
+            "place": "school"
+          }
+        },
+        {
+          "id": "lesson",
+          "text": "Get through your first lesson",
+          "done": {
+            "flag": "first-lesson"
+          }
+        },
+        {
+          "id": "home",
+          "text": "Walk home after school",
+          "done": {
+            "flag": "first-lesson",
+            "place": "home"
+          }
+        }
+      ],
+      "schedules": {
+        "nico": [
+          {
+            "from": 0,
+            "place": null
+          },
+          {
+            "from": 8,
+            "place": "school",
+            "spot": {
+              "x": -1.5,
+              "z": -6.1,
+              "facing": 180
+            }
+          },
+          {
+            "from": 11,
+            "place": "school",
+            "spot": {
+              "x": -7,
+              "z": 6.6,
+              "facing": 0
+            },
+            "wander": [
+              {
+                "x": -5.4,
+                "z": 5
+              }
+            ]
+          },
+          {
+            "from": 12.5,
+            "place": "school",
+            "spot": {
+              "x": -1.5,
+              "z": -6.1,
+              "facing": 180
+            }
+          },
+          {
+            "from": 15.5,
+            "place": "lane",
+            "spot": {
+              "x": -1,
+              "z": 10.4,
+              "facing": 0
+            }
+          },
+          {
+            "from": 18.5,
+            "place": null
+          }
+        ],
+        "juno": [
+          {
+            "from": 0,
+            "place": null
+          },
+          {
+            "from": 8,
+            "place": "school",
+            "spot": {
+              "x": 1.5,
+              "z": -6.1,
+              "facing": 180
+            }
+          },
+          {
+            "from": 11,
+            "place": "school",
+            "spot": {
+              "x": 7,
+              "z": 5.4,
+              "facing": 0
+            },
+            "wander": [
+              {
+                "x": 9,
+                "z": 5.2
+              }
+            ]
+          },
+          {
+            "from": 12.5,
+            "place": "school",
+            "spot": {
+              "x": 1.5,
+              "z": -6.1,
+              "facing": 180
+            }
+          },
+          {
+            "from": 15.5,
+            "place": null
+          }
+        ]
+      },
+      "moments": [
+        {
+          "id": "bell",
+          "hour": 8,
+          "place": "school",
+          "do": [
+            {
+              "toast": "The bell rings. Mr Hale's class is about to start."
+            }
+          ]
+        },
+        {
+          "id": "lesson",
+          "hour": 9.5,
+          "place": "school",
+          "do": [
+            {
+              "talk": "hale-first-day",
+              "with": "hale"
+            }
+          ]
+        },
+        {
+          "id": "notebook",
+          "hour": 13,
+          "place": "school",
+          "if": {
+            "flag": "first-lesson"
+          },
+          "do": [
+            {
+              "camera": "look",
+              "at": "hale",
+              "seconds": 4
+            },
+            {
+              "toast": "Mr Hale is writing something in a notebook, watching you. When you look up, he closes it."
+            },
+            {
+              "setFlag": "hale-notebook"
+            }
+          ]
+        }
+      ],
+      "end": {
+        "line": "You didn't know it yet, but Mr Hale had written your name in his notebook. Twice.",
+        "remember": "Your first day at Sunhill Primary. Juno Calder won the first gold star."
       }
     },
     {
-      "id": "first-school-day", "age": 5, "extraDays": 40, "hour": 7, "place": "home", "wake": "bed", "draft": true,
-      "title": "The first day at Sunhill Primary",
-      "_needs": "the Sunhill Primary place, Juno and Mr Hale"
-    },
-    {
-      "id": "the-tab", "age": 6, "extraDays": 20, "hour": 8, "place": "home", "wake": "bed",
+      "id": "the-tab",
+      "age": 6,
+      "extraDays": 20,
+      "hour": 8,
+      "place": "home",
+      "wake": "bed",
       "title": "The tab",
       "goals": [
-        { "id": "note", "text": "Take Mum's note to Mr Ambrose's shop", "done": { "flag": "delivered-note" } },
-        { "id": "back", "text": "Bring the shopping home", "done": { "flag": "delivered-note", "place": "home" } }
+        {
+          "id": "note",
+          "text": "Take Mum's note to Mr Ambrose's shop",
+          "done": {
+            "flag": "delivered-note"
+          }
+        },
+        {
+          "id": "back",
+          "text": "Bring the shopping home",
+          "done": {
+            "flag": "delivered-note",
+            "place": "home"
+          }
+        }
       ],
       "moments": [
-        { "id": "given-note", "hour": 7, "place": "home", "do": [
-          { "give": "mums-note" },
-          { "toast": "Mum gave you a folded note for Mr Ambrose. \"Straight there and straight back.\"" }
-        ] }
+        {
+          "id": "given-note",
+          "hour": 7,
+          "place": "home",
+          "do": [
+            {
+              "give": "mums-note"
+            },
+            {
+              "toast": "Mum gave you a folded note for Mr Ambrose. \"Straight there and straight back.\""
+            }
+          ]
+        }
       ],
       "end": {
         "line": "That week, Mum's dinner plate was always half empty. She said she wasn't hungry.",
         "remember": "The day you found out how much your family owed Mr Ambrose."
       }
     },
-    { "id": "the-baby", "age": 7, "extraDays": 60, "hour": 18, "place": "home", "wake": "bed", "draft": true, "title": "The baby", "_needs": "the hospital, the new sibling, Corin's gift" },
-    { "id": "pell-birthday", "age": 8, "extraDays": 30, "hour": 9, "place": "home", "wake": "bed", "draft": true, "title": "Mrs Pell's birthday", "_needs": "Mrs Pell's house inside" },
-    { "id": "nico-takes", "age": 9, "extraDays": 50, "hour": 8, "place": "home", "wake": "bed", "draft": true, "title": "Nico takes something" },
-    { "id": "the-box", "age": 10, "extraDays": 70, "hour": 9, "place": "home", "wake": "bed", "draft": true, "title": "The box", "_needs": "the letters as things you can hold" },
-    { "id": "scholarship", "age": 11, "extraDays": 80, "hour": 7, "place": "home", "wake": "bed", "draft": true, "title": "The scholarship", "_needs": "Sunhill Primary, the exam challenge" },
-    { "id": "two-celebrations", "age": 12, "extraDays": 100, "hour": 15, "place": "home", "wake": "bed", "draft": true, "title": "Two celebrations, and a fall", "_needs": "the High Street, DailyVa, the hospital" }
+    {
+      "id": "the-baby",
+      "age": 7,
+      "extraDays": 60,
+      "hour": 18,
+      "place": "home",
+      "wake": "bed",
+      "title": "The night the baby came",
+      "bedFrom": 21.6,
+      "goals": [
+        {
+          "id": "wait",
+          "text": "Wait up with Gran for news from the hospital",
+          "done": {
+            "flag": "baby-born"
+          }
+        }
+      ],
+      "schedules": {
+        "mum": [
+          {
+            "from": 0,
+            "place": null
+          }
+        ],
+        "sibling": [
+          {
+            "from": 0,
+            "place": null
+          }
+        ],
+        "gran": [
+          {
+            "from": 0,
+            "place": "home",
+            "spot": {
+              "x": 0.4,
+              "z": -3.4,
+              "facing": 0
+            },
+            "wander": [
+              {
+                "x": -1.6,
+                "z": -0.6
+              }
+            ]
+          }
+        ]
+      },
+      "moments": [
+        {
+          "id": "gone",
+          "hour": 18,
+          "place": "home",
+          "do": [
+            {
+              "chooseSibling": true
+            },
+            {
+              "toast": "Mum went to the hospital this morning. The baby is coming. Tonight it's just you and Gran."
+            }
+          ]
+        },
+        {
+          "id": "waiting",
+          "hour": 18.8,
+          "place": "home",
+          "do": [
+            {
+              "talk": "gran-waiting",
+              "with": "gran"
+            }
+          ]
+        },
+        {
+          "id": "knock",
+          "hour": 20,
+          "place": "home",
+          "do": [
+            {
+              "appear": "corin",
+              "x": 1.1,
+              "z": 4.2,
+              "facing": 180
+            },
+            {
+              "toast": "Someone knocks on the front door."
+            },
+            {
+              "camera": "look",
+              "at": "corin",
+              "seconds": 3
+            },
+            {
+              "talk": "corin-gift",
+              "with": "corin"
+            },
+            {
+              "leave": "corin"
+            }
+          ]
+        },
+        {
+          "id": "born-girl",
+          "hour": 21,
+          "place": "home",
+          "if": {
+            "flag": "sibling-girl"
+          },
+          "do": [
+            {
+              "talk": "gran-baby-born-girl",
+              "with": "gran"
+            }
+          ]
+        },
+        {
+          "id": "born-boy",
+          "hour": 21,
+          "place": "home",
+          "if": {
+            "flag": "sibling-boy"
+          },
+          "do": [
+            {
+              "talk": "gran-baby-born-boy",
+              "with": "gran"
+            }
+          ]
+        }
+      ],
+      "end": {
+        "line": "Long after midnight, Gran sat at the table with Corin's note in her hand. \"He has no right,\" she said, to no one.",
+        "remember": "The night {sibling} was born, and a man called Corin came to the door."
+      }
+    },
+    {
+      "id": "pell-birthday",
+      "age": 8,
+      "extraDays": 30,
+      "hour": 9,
+      "place": "home",
+      "wake": "bed",
+      "draft": true,
+      "title": "Mrs Pell's birthday",
+      "_needs": "Mrs Pell's house inside"
+    },
+    {
+      "id": "nico-takes",
+      "age": 9,
+      "extraDays": 50,
+      "hour": 8,
+      "place": "home",
+      "wake": "bed",
+      "draft": true,
+      "title": "Nico takes something"
+    },
+    {
+      "id": "the-box",
+      "age": 10,
+      "extraDays": 70,
+      "hour": 9,
+      "place": "home",
+      "wake": "bed",
+      "draft": true,
+      "title": "The box",
+      "_needs": "the letters as things you can hold"
+    },
+    {
+      "id": "scholarship",
+      "age": 11,
+      "extraDays": 80,
+      "hour": 7,
+      "place": "home",
+      "wake": "bed",
+      "draft": true,
+      "title": "The scholarship",
+      "_needs": "Sunhill Primary, the exam challenge"
+    },
+    {
+      "id": "two-celebrations",
+      "age": 12,
+      "extraDays": 100,
+      "hour": 15,
+      "place": "home",
+      "wake": "bed",
+      "draft": true,
+      "title": "Two celebrations, and a fall",
+      "_needs": "the High Street, DailyVa, the hospital"
+    }
   ]
 }

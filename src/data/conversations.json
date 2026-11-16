@@ -1114,6 +1114,713 @@
           ]
         }
       }
+    },
+    {
+      "id": "mum-school-morning",
+      "with": "mum",
+      "once": true,
+      "start": "a",
+      "when": {
+        "today": "first-school-day"
+      },
+      "nodes": {
+        "a": {
+          "lines": [
+            [
+              "mum",
+              "Look at you in your school clothes. Sunhill Primary is up past the High Street. Through the big road, then north."
+            ],
+            [
+              "mum",
+              "I can't walk you, I'm late for my shift. Nico will be there. Be brave."
+            ]
+          ],
+          "choices": [
+            {
+              "text": "I'm not scared.",
+              "effects": {
+                "traits": {
+                  "bold": 1
+                }
+              },
+              "next": "brave"
+            },
+            {
+              "text": "What if nobody likes me?",
+              "effects": {
+                "bond": 1
+              },
+              "next": "worry"
+            }
+          ]
+        },
+        "brave": {
+          "lines": [
+            [
+              "mum",
+              "No. You never are. That's what worries me."
+            ]
+          ]
+        },
+        "worry": {
+          "lines": [
+            [
+              "mum",
+              "Then they're not worth knowing. But they will. Go on."
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "nico-school",
+      "with": "nico",
+      "once": true,
+      "start": "a",
+      "when": {
+        "today": "first-school-day"
+      },
+      "nodes": {
+        "a": {
+          "lines": [
+            [
+              "nico",
+              "You came! Sit near me. The girl with the blue jumper already told me I was holding my pencil wrong."
+            ],
+            [
+              "nico",
+              "Her name's Juno. She lives by Kestrel Park. In a house with TWO doors."
+            ]
+          ],
+          "choices": [
+            {
+              "text": "Two doors? What for?",
+              "effects": {
+                "bond": 1,
+                "traits": {
+                  "curious": 1
+                }
+              },
+              "next": "doors"
+            },
+            {
+              "text": "She sounds annoying.",
+              "effects": {
+                "bond": 1,
+                "traits": {
+                  "cheeky": 1
+                }
+              },
+              "next": "annoying"
+            }
+          ]
+        },
+        "doors": {
+          "lines": [
+            [
+              "nico",
+              "I KNOW. One for coming in and one for going out, probably. Rich people."
+            ]
+          ]
+        },
+        "annoying": {
+          "lines": [
+            [
+              "nico",
+              "So annoying. But she knows all the answers, so we should sit behind her."
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "hale-first-day",
+      "with": "hale",
+      "once": true,
+      "start": "a",
+      "when": {
+        "today": "first-school-day"
+      },
+      "nodes": {
+        "a": {
+          "lines": [
+            [
+              "hale",
+              "Good morning, Class 1. I'm Mr Hale. First question of the year, and it's an easy one."
+            ],
+            [
+              "hale",
+              "How many days are there in a season?"
+            ],
+            [
+              "you",
+              "(You know this one. You start to put your hand up.)"
+            ],
+            [
+              "juno",
+              "Thirty! Thirty days in every season, and four seasons in a year."
+            ],
+            [
+              "hale",
+              "Very good, Juno. The first gold star of the year."
+            ]
+          ],
+          "effects": {
+            "setFlag": "first-lesson"
+          },
+          "choices": [
+            {
+              "text": "(Say nothing)",
+              "effects": {
+                "setFlag": "juno-friendly",
+                "traits": {
+                  "calm": 1
+                }
+              },
+              "next": "quiet"
+            },
+            {
+              "text": "I knew that too!",
+              "effects": {
+                "setFlag": "juno-bitter",
+                "bondWith": {
+                  "juno": -1
+                },
+                "traits": {
+                  "bold": 1
+                }
+              },
+              "next": "knew"
+            },
+            {
+              "text": "(Whisper to Nico) \"Show-off.\"",
+              "effects": {
+                "setFlag": "juno-cruel",
+                "bondWith": {
+                  "juno": -2,
+                  "nico": 1
+                },
+                "traits": {
+                  "cheeky": 1
+                }
+              },
+              "next": "whisper"
+            }
+          ]
+        },
+        "quiet": {
+          "lines": [
+            [
+              "hale",
+              "(Mr Hale looks at you for a moment, as if he saw your hand go up.)"
+            ]
+          ]
+        },
+        "knew": {
+          "lines": [
+            [
+              "juno",
+              "Knowing it isn't the same as saying it first."
+            ],
+            [
+              "hale",
+              "It isn't a race, you two. Not yet, anyway."
+            ]
+          ]
+        },
+        "whisper": {
+          "lines": [
+            [
+              "juno",
+              "(Juno heard. She turns around, slowly, and stares at you.)"
+            ],
+            [
+              "nico",
+              "(Nico is trying very hard not to laugh.)"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "hale-again",
+      "with": "hale",
+      "start": "a",
+      "nodes": {
+        "a": {
+          "lines": [
+            [
+              "hale",
+              "Questions are good. Keep asking them, {name}."
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "juno-playtime",
+      "with": "juno",
+      "once": true,
+      "start": "a",
+      "when": {
+        "flag": "first-lesson"
+      },
+      "nodes": {
+        "a": {
+          "lines": [
+            [
+              "juno",
+              "You're the one who lives on Willow Lane. In the little house with the orange roof."
+            ]
+          ],
+          "choices": [
+            {
+              "text": "How do you know where I live?",
+              "effects": {
+                "traits": {
+                  "curious": 1
+                }
+              },
+              "next": "know"
+            },
+            {
+              "text": "Your star is a bit wonky.",
+              "effects": {
+                "bondWith": {
+                  "juno": -1
+                },
+                "traits": {
+                  "cheeky": 1
+                }
+              },
+              "next": "wonky"
+            },
+            {
+              "text": "Well done for the gold star.",
+              "effects": {
+                "bondWith": {
+                  "juno": 1
+                },
+                "traits": {
+                  "kind": 1
+                }
+              },
+              "next": "well"
+            }
+          ]
+        },
+        "know": {
+          "lines": [
+            [
+              "juno",
+              "My mum drives past it. She says it's \"sweet\". She says that about things she wouldn't live in."
+            ]
+          ]
+        },
+        "wonky": {
+          "lines": [
+            [
+              "juno",
+              "It is NOT. ...It is not."
+            ],
+            [
+              "juno",
+              "(She straightens it anyway.)"
+            ]
+          ]
+        },
+        "well": {
+          "lines": [
+            [
+              "juno",
+              "...Thanks. Nobody at home will care, but thanks."
+            ]
+          ],
+          "effects": {
+            "setFlag": "juno-softened"
+          }
+        }
+      }
+    },
+    {
+      "id": "juno-again",
+      "with": "juno",
+      "start": "a",
+      "nodes": {
+        "a": {
+          "lines": [
+            [
+              "juno",
+              "Shouldn't you be practising your spelling?"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "gran-waiting",
+      "with": "gran",
+      "once": true,
+      "start": "a",
+      "when": {
+        "today": "the-baby"
+      },
+      "nodes": {
+        "a": {
+          "lines": [
+            [
+              "gran",
+              "Come and sit with your old Gran. Babies take their time. You took a whole night and half a morning."
+            ],
+            [
+              "gran",
+              "Your mother squeezed my hand so hard I couldn't sew for a week."
+            ]
+          ],
+          "choices": [
+            {
+              "text": "Will Mum be okay?",
+              "effects": {
+                "bond": 1
+              },
+              "next": "okay"
+            },
+            {
+              "text": "Sing the song about the river.",
+              "effects": {
+                "bond": 2,
+                "happiness": 3
+              },
+              "next": "sing"
+            },
+            {
+              "text": "I hope it's not a crybaby.",
+              "effects": {
+                "traits": {
+                  "cheeky": 1
+                }
+              },
+              "next": "cry"
+            }
+          ]
+        },
+        "okay": {
+          "lines": [
+            [
+              "gran",
+              "Your mother is the strongest person I know. Stronger than me, and don't you dare tell her I said so."
+            ]
+          ]
+        },
+        "sing": {
+          "lines": [
+            [
+              "gran",
+              "(Gran sings, low and slow, an old song about a river that forgot its way home.)"
+            ]
+          ],
+          "effects": {
+            "remember": "The night the baby came, Gran sang you the river song."
+          }
+        },
+        "cry": {
+          "lines": [
+            [
+              "gran",
+              "All babies are crybabies. You were the loudest on Willow Lane. Mrs Pell complained."
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "corin-gift",
+      "with": "corin",
+      "once": true,
+      "start": "a",
+      "when": {
+        "today": "the-baby"
+      },
+      "nodes": {
+        "a": {
+          "lines": [
+            [
+              "corin",
+              "...Hello. You must be {name}. You've grown so much."
+            ],
+            [
+              "corin",
+              "This is for the new one. Will you make sure they get it?"
+            ],
+            [
+              "you",
+              "(He holds out something small, wrapped in brown paper.)"
+            ],
+            [
+              "gran",
+              "YOU. Get away from my door. Get away from this child!"
+            ],
+            [
+              "corin",
+              "Ilsa, please. I only wanted to..."
+            ],
+            [
+              "gran",
+              "Go. Now. Before I call someone."
+            ]
+          ],
+          "effects": {
+            "setFlag": "corin-came"
+          },
+          "choices": [
+            {
+              "text": "(Hide it and open it later)",
+              "effects": {
+                "setFlag": [
+                  "opened-gift",
+                  "has-bird",
+                  "read-note"
+                ],
+                "give": "carved-bird",
+                "traits": {
+                  "curious": 1
+                }
+              },
+              "next": "open"
+            },
+            {
+              "text": "(Give it to Gran)",
+              "effects": {
+                "setFlag": "gave-gift-to-gran",
+                "bondWith": {
+                  "gran": 1
+                }
+              },
+              "next": "gran"
+            },
+            {
+              "text": "(Throw it in the bin)",
+              "effects": {
+                "setFlag": "threw-gift",
+                "traits": {
+                  "bold": 1
+                }
+              },
+              "next": "bin"
+            }
+          ]
+        },
+        "open": {
+          "lines": [
+            [
+              "you",
+              "(Inside: a little wooden bird, carved by hand. And a note.)"
+            ],
+            [
+              "you",
+              "\"For the new one. Your father would want you to know he thinks of you. C.\""
+            ],
+            [
+              "gran",
+              "What have you got there? ...Give me that note."
+            ]
+          ],
+          "effects": {
+            "remember": "A wooden bird and a note: \"Your father would want you to know he thinks of you.\""
+          }
+        },
+        "gran": {
+          "lines": [
+            [
+              "gran",
+              "(Gran tears the paper open. A little wooden bird, and a note. She reads it, and her face goes hard.)"
+            ]
+          ]
+        },
+        "bin": {
+          "lines": [
+            [
+              "you",
+              "(It lands in the bin with a soft knock.)"
+            ],
+            [
+              "gran",
+              "(Later, you see Gran take it back out, and read the note inside.)"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "gran-baby-born-girl",
+      "with": "gran",
+      "once": true,
+      "start": "a",
+      "when": {
+        "today": "the-baby",
+        "flag": [
+          "sibling-girl",
+          "corin-came"
+        ]
+      },
+      "nodes": {
+        "a": {
+          "lines": [
+            [
+              "gran",
+              "That was the hospital! Your mother is fine. She's laughing and crying at the same time."
+            ],
+            [
+              "gran",
+              "It's a girl! A little sister for you."
+            ],
+            [
+              "gran",
+              "And your mother says you get to choose the name. She was very firm about it."
+            ]
+          ],
+          "effects": {
+            "setFlag": "baby-born"
+          },
+          "choices": [
+            {
+              "text": "Mira",
+              "effects": {
+                "nameSibling": "Mira",
+                "remember": "The night your little sister Mira was born. You chose the name."
+              },
+              "next": "named"
+            },
+            {
+              "text": "Tali",
+              "effects": {
+                "nameSibling": "Tali",
+                "remember": "The night your little sister Tali was born. You chose the name."
+              },
+              "next": "named"
+            },
+            {
+              "text": "Sena",
+              "effects": {
+                "nameSibling": "Sena",
+                "remember": "The night your little sister Sena was born. You chose the name."
+              },
+              "next": "named"
+            }
+          ]
+        },
+        "named": {
+          "lines": [
+            [
+              "gran",
+              "{sibling}. Yes. That's a good name. A strong name."
+            ],
+            [
+              "gran",
+              "Now. Bed. You have a brand new job in the morning: being the big one."
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "gran-baby-born-boy",
+      "with": "gran",
+      "once": true,
+      "start": "a",
+      "when": {
+        "today": "the-baby",
+        "flag": [
+          "sibling-boy",
+          "corin-came"
+        ]
+      },
+      "nodes": {
+        "a": {
+          "lines": [
+            [
+              "gran",
+              "That was the hospital! Your mother is fine. She's laughing and crying at the same time."
+            ],
+            [
+              "gran",
+              "It's a boy! A little brother for you."
+            ],
+            [
+              "gran",
+              "And your mother says you get to choose the name. She was very firm about it."
+            ]
+          ],
+          "effects": {
+            "setFlag": "baby-born"
+          },
+          "choices": [
+            {
+              "text": "Rafi",
+              "effects": {
+                "nameSibling": "Rafi",
+                "remember": "The night your little brother Rafi was born. You chose the name."
+              },
+              "next": "named"
+            },
+            {
+              "text": "Oren",
+              "effects": {
+                "nameSibling": "Oren",
+                "remember": "The night your little brother Oren was born. You chose the name."
+              },
+              "next": "named"
+            },
+            {
+              "text": "Kai",
+              "effects": {
+                "nameSibling": "Kai",
+                "remember": "The night your little brother Kai was born. You chose the name."
+              },
+              "next": "named"
+            }
+          ]
+        },
+        "named": {
+          "lines": [
+            [
+              "gran",
+              "{sibling}. Yes. That's a good name. A strong name."
+            ],
+            [
+              "gran",
+              "Now. Bed. You have a brand new job in the morning: being the big one."
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "sibling-baby",
+      "with": "sibling",
+      "start": "a",
+      "when": {
+        "stage": [
+          "child",
+          "teen",
+          "adult",
+          "elder"
+        ]
+      },
+      "nodes": {
+        "a": {
+          "lines": [
+            [
+              "sibling",
+              "Ba! Ba-ba!"
+            ],
+            [
+              "you",
+              "({sibling} grabs your finger and won't let go.)"
+            ]
+          ]
+        }
+      }
     }
   ]
 }

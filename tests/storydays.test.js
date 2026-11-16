@@ -6,7 +6,8 @@ import conversations from '../src/data/conversations.json';
 import { state, newLife, giveItem } from '../src/core/state.js';
 import { createClock } from '../src/core/clock.js';
 import { nextBigDay, jumpLength, beginBigDay, todaysBigDay, endBigDay, goalStatus, dueMoments, daysUntilAge, markTalksAtStart } from '../src/story/storyDays.js';
-import { pickConversation, applyEffects } from '../src/story/conversation.js';
+import { pickConversation, applyEffects, fillText } from '../src/story/conversation.js';
+import { scheduleNow, setTodaySchedules } from '../src/core/schedule.js';
 
 // A five-year-old on the morning the game starts, like after the prologue
 function startAtFive() {
@@ -23,19 +24,19 @@ describe('big days', () => {
     expect(daysUntilAge(state.life.birth, state.clock, 6, 0, world)).toBe(118);
   });
 
-  it('finds the first day out as due today, and skips days still in draft', () => {
+  it('finds the first day out as due today, then the first school day', () => {
     const next = nextBigDay(storyData, world);
     expect(next.day.id).toBe('first-day-out');
     expect(next.days).toBe(0);
     beginBigDay(next.day);
-    expect(nextBigDay(storyData, world).day.id).toBe('the-tab'); // the school day is a draft for now
+    expect(nextBigDay(storyData, world).day.id).toBe('first-school-day');
   });
 
   it('stops a time jump at the next big day', () => {
     beginBigDay(storyData.days[0]);
     const jump = jumpLength(150, storyData, world);
-    expect(jump.bigDay.id).toBe('the-tab');
-    expect(jump.days).toBe(daysUntilAge(state.life.birth, state.clock, 6, 20, world));
+    expect(jump.bigDay.id).toBe('first-school-day');
+    expect(jump.days).toBe(daysUntilAge(state.life.birth, state.clock, 5, 40, world));
     expect(jump.days).toBeLessThanOrEqual(150);
   });
 
@@ -74,5 +75,33 @@ describe('things you carry, in conversations', () => {
     expect(pickConversation(ambrose, conversations.conversations).id).toBe('ambrose-tab');
     applyEffects({ take: 'mums-note' });
     expect(state.items).not.toContain('mums-note');
+  });
+});
+
+describe('the night the baby came', () => {
+  beforeEach(startAtFive);
+
+  it('Gran only gives the news after the knock at the door, and you choose the name', () => {
+    const gran = { id: 'gran', conversations: ['gran-waiting', 'gran-baby-born-girl', 'gran-baby-born-boy'] };
+    beginBigDay(storyData.days.find(d => d.id === 'the-baby'));
+    state.flags['sibling-girl'] = true;
+    expect(pickConversation(gran, conversations.conversations).id).toBe('gran-waiting');
+    state.flags['talked:gran-waiting'] = true;
+    expect(pickConversation(gran, conversations.conversations)).toBe(null); // not before Corin has been
+    state.flags['corin-came'] = true;
+    const news = pickConversation(gran, conversations.conversations);
+    expect(news.id).toBe('gran-baby-born-girl');
+    applyEffects(news.nodes.a.choices[1].effects);
+    expect(state.life.sibling.name).toBe('Tali');
+    expect(fillText('Hello, {sibling}!')).toBe('Hello, Tali!');
+  });
+
+  it('people can be somewhere else on a big day', () => {
+    const day = storyData.days.find(d => d.id === 'first-school-day');
+    const nico = { id: 'nico', schedule: [{ from: 0, place: 'lane' }] };
+    setTodaySchedules(day.schedules);
+    expect(scheduleNow(nico, 9 * 60).place).toBe('school');
+    setTodaySchedules(null);
+    expect(scheduleNow(nico, 9 * 60).place).toBe('lane');
   });
 });

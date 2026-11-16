@@ -16,8 +16,8 @@ import world from '../data/world.json';
 export function conditionsMet(cond, personId) {
   if (!cond) return true;
   const record = personId ? personRecord(personId) : null;
-  if (cond.flag && !state.flags[cond.flag]) return false;
-  if (cond.notFlag && state.flags[cond.notFlag]) return false;
+  if (cond.flag && ![].concat(cond.flag).every(f => state.flags[f])) return false;       // one flag, or a list of them all
+  if (cond.notFlag && [].concat(cond.notFlag).some(f => state.flags[f])) return false;
   if (cond.bondAtLeast !== undefined && (!record || record.bond < cond.bondAtLeast)) return false;
   if (cond.bondBelow !== undefined && (!record || record.bond >= cond.bondBelow)) return false;
   if (cond.moneyAtLeast !== undefined && state.money < cond.moneyAtLeast) return false;
@@ -55,7 +55,8 @@ export function applyEffects(effects, personId) {
     state.money = Math.max(0, state.money + effects.money);
     notes.push({ kind: 'money', amount: effects.money });
   }
-  if (effects.setFlag) state.flags[effects.setFlag] = true;
+  [].concat(effects.setFlag ?? []).forEach(flag => { state.flags[flag] = true; });
+  if (effects.nameSibling) state.life.sibling = { ...(state.life.sibling ?? {}), name: effects.nameSibling };
   Object.entries(effects.traits ?? {}).forEach(([id, v]) => addTrait(id, v));
   Object.entries(effects.skills ?? {}).forEach(([id, v]) => addSkill(id, v));
   if (effects.happiness) {
@@ -97,5 +98,6 @@ export function finishConversation(convo, personId) {
 export function fillText(text, names = {}) {
   return text
     .replace(/\{name\}/g, state.life?.name ?? 'you')
+    .replace(/\{sibling\}/g, state.life?.sibling?.name ?? 'the baby')
     .replace(/\{(\w+)\}/g, (match, key) => names[key] ?? match);
 }

@@ -7,18 +7,20 @@ import peopleData from '../data/people.json';
 import conversationsData from '../data/conversations.json';
 import focusData from '../data/focus.json';
 import eventsData from '../data/events.json';
-import { state, newLife, importState, personRecord } from './state.js';
+import storyData from '../data/storydays.json';
+import { state, newLife, importState, personRecord, giveItem, takeItem } from './state.js';
 import { saveGame, loadGame, deleteSave } from './save.js';
 import { tick, formatTime, seasonOf, ageOf, isBedtime, nextMorning, createClock, daysPerYear } from './clock.js';
 import { stageForAge, playerAge, playerStage, chapterOf, focusChoices, jumpTime, drainEnergy, applyLifeEffects, topTraits, remember } from './life.js';
-import { scheduleNow, isPresent } from './schedule.js';
+import { scheduleNow, isPresent, setTodaySchedules } from './schedule.js';
+import { nextBigDay, jumpLength, todaysBigDay, beginBigDay, endBigDay, goalStatus, dueMoments, markTalksAtStart } from '../story/storyDays.js';
 import { createInput } from './input.js';
 import { createUI } from '../ui/ui.js';
 import { QUALITY, loadQuality, saveQuality } from '../render/quality.js';
 import { createDaylight } from '../render/daylight.js';
 import Place from '../world/Place.js';
 import Person from '../people/Person.js';
-import { pickConversation, fillText } from '../story/conversation.js';
+import { pickConversation, conditionsMet, fillText } from '../story/conversation.js';
 import { runConversation } from '../story/talk.js';
 import { playPrologue } from '../story/prologue.js';
 import { speak, stopSpeaking, voiceFor } from '../audio/voice.js';
@@ -109,16 +111,27 @@ export default class Game {
     this.renderer.setSize(innerWidth, innerHeight);
   }
 
-  // Each person has their own voice pitch, worked out from their name
   // Each person's own Urlivani voice, from their body and their age right now (so it changes as they grow)
   voiceOf(name, isYou = false) {
     if (isYou && state.life) {
       return voiceFor({ body: state.life.look.body, stage: playerStage(world), seed: `you:${state.life.name}` });
     }
-    const person = peopleData.people.find(p => p.name === name);
+    const person = peopleData.people.map(p => this.personView(p)).find(p => p.name === name);
     if (!person) return voiceFor({ seed: name });
     const stage = stageForAge(ageOf(person.born, this.clockNow(), world));
     return voiceFor({ body: person.look.body, stage, seed: person.id });
+  }
+
+  // A person as they are in this life: your little brother or sister gets the name you chose for them
+  personView(p) {
+    const sibling = state.life?.sibling;
+    if (!p.sibling || !sibling) return p;
+    return { ...p, name: sibling.name ?? p.name, look: { ...p.look, body: sibling.body ?? p.look.body } };
+  }
+
+  nameOf(id) {
+    const p = peopleData.people.find(person => person.id === id);
+    return p ? this.personView(p).name : id;
   }
 
   // The date and time the world is at: the life being played, or the title screen's street
@@ -175,6 +188,9 @@ export default class Game {
     state.needs = { energy: 100, health: 100, happiness: 80 };
     knownNeighbours.forEach(id => { personRecord(id).met = true; });
     remember(fillText(start.remember, { currency: world.currency.plural }), world);
+    // The first memory is the first big day: the first day out alone
+    const first = nextBigDay(storyData, world);
+    if (first && first.days <= 0) this.startBigDay(first.day);
 
     const season = seasonOf(state.clock, world);
     await this.enterPlace('home', 'bed', 'Your first memory', `Age ${playerAge(world)} · ${season.name}, Year ${state.clock.year}`);
@@ -237,6 +253,7 @@ export default class Game {
   async continueLife(saved) {
     this.ui.closeScreen();
     importState(saved.state);
+    setTodaySchedules(todaysBigDay(storyData)?.schedules);
     await this.enterPlace(state.place, state.player ? null : this.bedEntry(), state.life.name, this.dateText());
   }
 
@@ -257,7 +274,8 @@ export default class Game {
   }
 
   // Puts a person from people.json into the current place, at a position
-  spawnPerson(p, x, z, facing) {
+  spawnPerson(data, x, z, facing) {
+    const p = this.personView(data);
     const clock = this.clockNow();
     const person = new Person(this.scene, this.place.space, {
       id: p.id, name: p.name, look: p.look, stage: stageForAge(ageOf(p.born, clock, world)), x, z, facing
@@ -413,7 +431,90 @@ export default class Game {
     }
 
     this.updateHud();
+    this.updateStory(dt);
     if (performance.now() - this.lastSave > AUTOSAVE_MS) this.save();
+  }
+
+  // ---------- Big days ----------
+
+  startBigDay(day) {
+    beginBigDay(day);
+    markTalksAtStart(peopleData.people.map(p => p.id));
+    setTodaySchedules(day.schedules);
+    this.storyTimer = 0;
+  }
+
+  // A few times a second on a big day: tick off goals, and play any moment that's due
+  updateStory(dt) {
+    const day = todaysBigDay(storyData);
+    if (!day) {
+      this.ui.goals.hide();
+      return;
+    }
+    this.storyTimer = (this.storyTimer ?? 0) - dt;
+    if (this.storyTimer > 0 || this.runningMoment) return;
+    this.storyTimer = 0.4;
+    const context = { place: this.place.id, hour: state.clock.minutes / 60 };
+    this.ui.goals.show(day.title, goalStatus(day, context));
+    const due = dueMoments(day, context);
+    if (!due.length) return;
+    this.runningMoment = true;
+    (async () => {
+      for (const moment of due) await this.runActions(moment.do);
+    })().catch(e => console.error('A big day moment failed', e)).finally(() => { this.runningMoment = false; });
+  }
+
+  // Carries out a moment's actions, in order (see src/story/storyDays.js for the list)
+  async runActions(actions = []) {
+    const names = { currency: world.currency.plural };
+    const find = id => this.people.find(p => p.id === id && !p.leaving);
+    for (const a of actions) {
+      if (!this.place || state.dead) return;
+      if (a.chooseSibling && !state.life.sibling?.body) {
+        const body = Math.random() < 0.5 ? 'girl' : 'boy';
+        state.life.sibling = { ...(state.life.sibling ?? {}), body };
+        state.flags[`sibling-${body}`] = true;
+      }
+      if (a.appear && !find(a.appear)) {
+        const data = peopleData.people.find(p => p.id === a.appear);
+        if (data) {
+          const person = this.spawnPerson(data, a.x, a.z, deg(a.facing));
+          person.staged = true;
+          person.plan = { place: this.place.id, spot: { x: a.x, z: a.z, facing: a.facing ?? 0 } };
+          if (a.walkTo) person.walkTo(a.walkTo);
+        }
+      }
+      if (a.leave) {
+        const person = find(a.leave);
+        if (person) {
+          if (person.talking) await new Promise(r => { const t = setInterval(() => { if (!person.talking) { clearInterval(t); r(); } }, 200); });
+          person.staged = false;
+          person.leaving = true;
+          person.walkTo(a.walkTo ?? this.place.routeToEdge(person.pos));
+        }
+      }
+      if (a.setFlag) [].concat(a.setFlag).forEach(f => { state.flags[f] = true; });
+      if (a.remember) remember(fillText(a.remember, names), world);
+      if (a.give) giveItem(a.give);
+      if (a.take) takeItem(a.take);
+      if (a.camera === 'look' && a.at) this.lookAt = { id: a.at, until: performance.now() + (a.seconds ?? 3) * 1000 };
+      if (a.toast) {
+        this.ui.toast(fillText(a.toast, names));
+        play('event');
+      }
+      if (a.say) await this.ui.dialogue.say(this.nameOf(a.say[0]), fillText(a.say[1], names), a.say[0] === 'you');
+      if (a.talk) {
+        const person = find(a.with);
+        const convo = conversationsData.conversations.find(c => c.id === a.talk);
+        if (!person || !convo || (convo.once && state.flags[`talked:${convo.id}`])) continue;
+        // Wait for whatever else is going on (another conversation, a door) to finish first
+        while (this.mode !== 'play') {
+          if (state.dead || this.mode === 'title') return;
+          await new Promise(r => setTimeout(r, 200));
+        }
+        if (conditionsMet(convo.when, person.id)) await this.talkTo(person, convo);
+      }
+    }
   }
 
   // A footstep sound each time a foot lands: soft on the ground, a tap on floors indoors
@@ -463,6 +564,15 @@ export default class Game {
 
   useThing(thing) {
     if (thing.kind === 'sleep') {
+      // Some nights you can't sleep yet: something is still going to happen
+      const day = todaysBigDay(storyData);
+      if (day?.bedFrom && state.clock.minutes < day.bedFrom * 60) {
+        if (this.toastCooldown <= 0) {
+          this.ui.toast('You can\'t sleep. Not yet. Not tonight.');
+          this.toastCooldown = 4;
+        }
+        return;
+      }
       if (state.clock.minutes >= 18 * 60) this.sleep(false);
       else {
         play('error');
@@ -504,6 +614,9 @@ export default class Game {
         const start = route.shift() ?? plan.spot;
         const person = this.spawnPerson(p, start.x, start.z, 0);
         person.walkTo([...route, plan.spot]);
+      } else if (here?.staged) {
+        // Brought in by a big day's moment: they stay until the moment sends them off
+        continue;
       } else if (!present && here && !here.leaving && !here.talking) {
         // Leaving: walk to the edge, then vanish
         here.leaving = true;
@@ -560,9 +673,9 @@ export default class Game {
     }
   }
 
-  async talkTo(person) {
-    const convo = pickConversation(person.data, conversationsData.conversations);
-    if (!convo) return;
+  // convo: a particular conversation (a big day's moment); otherwise whatever they want to talk about
+  async talkTo(person, convo = pickConversation(person.data, conversationsData.conversations)) {
+    if (!convo || this.mode === 'talk') return;
     this.mode = 'talk';
     this.ui.hidePrompt();
     this.input.showPad(false);
@@ -570,7 +683,7 @@ export default class Game {
     person.talking = true;
     this.player.faceToward(person.pos.x, person.pos.z);
 
-    const nameOf = id => peopleData.people.find(p => p.id === id)?.name ?? id;
+    const nameOf = id => this.nameOf(id);
     const notes = await runConversation(this.ui, convo, { personId: person.id, nameOf, names: { currency: world.currency.plural } });
 
     person.talking = false;
@@ -608,7 +721,7 @@ export default class Game {
       .filter(p => state.people[p.id]?.met)
       .map(p => {
         const age = ageOf(p.born, clock, world);
-        return { name: p.name, bond: state.people[p.id].bond, detail: `Age ${age}` };
+        return { name: this.personView(p).name, bond: state.people[p.id].bond, detail: `Age ${age}` };
       })
       .sort((a, b) => b.bond - a.bond);
     const traits = Object.entries(state.traits).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).map(([id]) => world.traits[id] ?? id);
@@ -638,7 +751,22 @@ export default class Game {
     this.input.showPad(false);
     if (tooLate) this.ui.toast("It's late. You can't keep your eyes open.");
     play('sleep');
+    this.ui.goals.hide();
     await this.ui.fadeOut();
+
+    // The end of a big day: the line that closes it (often a cliffhanger), on a black screen
+    const ending = endBigDay(storyData);
+    setTodaySchedules(null);
+    this.lookAt = null;
+    if (ending) {
+      if (ending.remember) remember(fillText(ending.remember, { currency: world.currency.plural }), world);
+      if (ending.line) {
+        this.ui.cinema.open(null);
+        this.ui.cinema.dark(true);
+        await this.ui.cinema.caption(fillText(ending.line, { currency: world.currency.plural }));
+        this.ui.cinema.close();
+      }
+    }
 
     // Some stories need the very next day to be played (a promise made for tomorrow)
     if (state.flags.playTomorrow) {
@@ -649,15 +777,17 @@ export default class Game {
       return;
     }
 
+    // Time jumps forward, but never past the next big day
+    const { days: jumpDays, bigDay } = jumpLength(chapterOf(world).jumpDays, storyData, world);
     const choices = focusChoices(focusData, world);
-    const nextSpan = this.spanText(chapterOf(world).jumpDays, 'will pass');
+    const nextSpan = this.spanText(jumpDays, 'will pass');
     const focus = await this.ui.chooseFocus({
       heading: 'Time passes',
       sub: `${nextSpan} before the next day you live. What will you focus on?`,
       choices
     });
     const stageBefore = playerStage(world);
-    const result = jumpTime({ world, focusData, eventsData, peopleData, focusId: focus.id });
+    const result = jumpTime({ world, focusData, eventsData, peopleData, focusId: focus.id, days: jumpDays });
     const lines = result.lines.map(line => fillText(line, { currency: world.currency.plural }));
     play(result.died ? 'end' : result.stageAfter !== stageBefore ? 'grow' : 'event');
 
@@ -672,12 +802,19 @@ export default class Game {
       sub: this.ageText(),
       lines: lines.length ? lines : ['Life went on, quietly.']
     });
-    await this.wake();
+    await this.wake(bigDay);
   }
 
-  async wake() {
+  // Morning at home. On a big day, the day starts at its own hour, with its title on the card.
+  async wake(bigDay = null) {
     const season = seasonOf(state.clock, world);
-    await this.enterPlace('home', this.bedEntry(), `Day ${season.dayOfSeason} of ${season.name}`, `Year ${state.clock.year} · Age ${playerAge(world)}`);
+    let title = `Day ${season.dayOfSeason} of ${season.name}`;
+    if (bigDay) {
+      this.startBigDay(bigDay);
+      if (bigDay.hour !== undefined) state.clock.minutes = bigDay.hour * 60;
+      title = bigDay.title;
+    }
+    await this.enterPlace(bigDay?.place ?? 'home', bigDay?.wake ?? this.bedEntry(), title, `Year ${state.clock.year} · Age ${playerAge(world)}`);
     play('morning');
     this.save();
   }
@@ -745,8 +882,14 @@ export default class Game {
 
   // Glides after the player from above and behind; a little closer for small people and indoors
   followCamera(dt) {
-    const p = this.player.pos;
-    this.camTarget.lerp(new THREE.Vector3(p.x, 0, p.z), Math.min(1, dt * 4));
+    let p = this.player.pos;
+    // A big day's moment can turn the camera to someone for a few seconds
+    if (this.lookAt) {
+      const other = performance.now() < this.lookAt.until && this.people.find(person => person.id === this.lookAt.id);
+      if (other) p = { x: (p.x + other.pos.x * 2) / 3, z: (p.z + other.pos.z * 2) / 3 };
+      else this.lookAt = null;
+    }
+    this.camTarget.lerp(new THREE.Vector3(p.x, 0, p.z), Math.min(1, dt * (this.lookAt ? 2 : 4)));
     const size = { baby: 0.72, child: 0.86, teen: 0.95, adult: 1, elder: 1 }[this.player.stage];
     const indoors = this.place.insideHouse(p.x, p.z) ? 0.94 : 1;
     const portrait = Math.max(1, Math.sqrt(0.9 / this.camera.aspect)); // tall phone screens see less from side to side, so step back

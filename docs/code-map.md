@@ -31,6 +31,10 @@ npm run build    (packs the game into dist/ for the web and, later, the phone ap
 | `people/Person.js` | One person: position, facing, walking, stepping aside for others. The player is one too. |
 | `story/conversation.js` | Conversation rules: which conversation someone wants to have, which choices show, what they change. Tested. |
 | `story/talk.js` | Plays a conversation on screen. |
+| `story/storyDays.js` | Big days (the first day out, the night the baby came...): time jumps stop at them, goals, moments, closing lines. Data in `data/storydays.json`. Tested. |
+| `story/prologue.js` | The prologue: the years you don't remember, as short scenes. Data in `data/prologue.json`. |
+| `audio/voice.js` | People speak Urlivani, the made-up language: each person's own voice, with feeling. |
+| `world/propsTown.js` | Props for the town: school desks, hospital beds, the supermarket, the park's pond and swings. |
 | `film/` | Film mode (`?film`): the game plays a whole life by itself for the YouTube series. `autopilot.js` plays (walks with `nav.js`, talks, chooses with `personality.js`), `camera.js` frames it, `film.js` keeps the life log; `vclock.js` lets the recorder move time frame by frame. Never shown to normal players. |
 | `ui/ui.js`, `ui/ui.css` | The interface: corner readouts, prompts, messages, conversations, title, new life, pause menu, fades. |
 

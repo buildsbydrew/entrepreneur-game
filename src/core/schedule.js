@@ -3,11 +3,24 @@
 // No drawing happens here, so it can be tested on its own.
 import { ageOf } from './clock.js';
 
+// On a big day, some people are somewhere else than usual (at school, at the hospital...):
+// { personId: schedule } for today only. Set when a big day begins, cleared when it ends.
+let todaySchedules = {};
+export function setTodaySchedules(schedules) {
+  todaySchedules = schedules ?? {};
+}
+
+// The schedule someone is following today
+export function scheduleOf(person) {
+  return todaySchedules[person.id] ?? person.schedule;
+}
+
 // The part of the schedule that applies at this time of day
 export function scheduleNow(person, minutes) {
   const hour = minutes / 60;
-  let current = person.schedule[0];
-  for (const entry of person.schedule) {
+  const schedule = scheduleOf(person);
+  let current = schedule[0];
+  for (const entry of schedule) {
     if (hour >= entry.from) current = entry;
   }
   return current;
