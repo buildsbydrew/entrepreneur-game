@@ -1,0 +1,58 @@
+{
+ "id": "ep01",
+ "aspect": "9:16",
+ "width": 1080,
+ "height": 1920,
+ "fps": 30,
+ "frames": 1224,
+ "seconds": 40.8,
+ "url": "http://127.0.0.1:64965/?film&step&name=Ada&body=girl&skin=3&personality=kind&seed=1&quality=high",
+ "gpu": "ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+ "recordedAt": "2026-11-15T23:05:52.873Z",
+ "windows": [
+  {
+   "sim": 19.033333333333356,
+   "footage": 0
+  },
+  {
+   "sim": 101.53333333333,
+   "footage": 4.1
+  },
+  {
+   "sim": 120.53333333332725,
+   "footage": 11.9
+  },
+  {
+   "sim": 146.09999999999675,
+   "footage": 17.2
+  },
+  {
+   "sim": 571.3999999999328,
+   "footage": 22.5
+  },
+  {
+   "sim": 1142.3666666669367,
+   "footage": 25.1
+  },
+  {
+   "sim": 1679.9999999990182,
+   "footage": 27.7
+  },
+  {
+   "sim": 2217.9999999986094,
+   "footage": 30.3
+  },
+  {
+   "sim": 2494.233333333229,
+   "footage": 32.9
+  }
+ ],
+ "options": {
+  "name": "Ada",
+  "body": "girl",
+  "skin": "3",
+  "personality": "kind",
+  "seed": "1",
+  "quality": "high"
+ }
+}

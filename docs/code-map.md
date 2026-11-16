@@ -31,6 +31,7 @@ npm run build    (packs the game into dist/ for the web and, later, the phone ap
 | `people/Person.js` | One person: position, facing, walking, stepping aside for others. The player is one too. |
 | `story/conversation.js` | Conversation rules: which conversation someone wants to have, which choices show, what they change. Tested. |
 | `story/talk.js` | Plays a conversation on screen. |
+| `film/` | Film mode (`?film`): the game plays a whole life by itself for the YouTube series. `autopilot.js` plays (walks with `nav.js`, talks, chooses with `personality.js`), `camera.js` frames it, `film.js` keeps the life log; `vclock.js` lets the recorder move time frame by frame. Never shown to normal players. |
 | `ui/ui.js`, `ui/ui.css` | The interface: corner readouts, prompts, messages, conversations, title, new life, pause menu, fades. |
 
 ## `src/data/` (change the game without touching code)
@@ -45,6 +46,7 @@ npm run build    (packs the game into dist/ for the web and, later, the phone ap
 ## Elsewhere
 
 - `tests/` — the automatic checks (`npm test`).
+- `video/` — records autopiloted lives and edits them into YouTube videos with Remotion. See `video/README.md`.
 - `docs/life-design.md` — what the game is and what has been decided.
 - `prototypes/3d-market/` — the first 3D test scene.
 - `legacy-2d/` — the old 2D market game, kept for reference. It runs on its own with Live Server.

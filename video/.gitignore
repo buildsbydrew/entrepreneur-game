@@ -1,0 +1,8 @@
+node_modules/
+episodes/*/footage-*.mp4
+episodes/*/out/
+out/
+public/episode/
+.game-build/
+episodes/*/*.log
+episodes/*/footage-*

@@ -1,0 +1,20 @@
+{
+  "name": "urlivaven-video",
+  "private": true,
+  "type": "module",
+  "description": "Records autopiloted lives from the game and edits them into YouTube videos (I let AI live a whole life in my game).",
+  "scripts": {
+    "record": "node record.mjs",
+    "plan": "node plan.mjs",
+    "studio": "remotion studio src/index.ts",
+    "render": "node render.mjs"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.543",
+    "@remotion/google-fonts": "^4.0.543",
+    "playwright-core": "^1.65.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "remotion": "^4.0.543"
+  }
+}

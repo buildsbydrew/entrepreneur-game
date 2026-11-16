@@ -189,3 +189,13 @@ body.is-touch .focus-list .choice small { margin-left: 0; }
 .caption-next { margin-top: 8px; color: rgba(255, 244, 220, .65); font-size: 13px; text-shadow: 0 1px 3px #000; }
 .caption-choices { display: flex; flex-direction: column; gap: 8px; align-items: center; margin-top: 12px; }
 .caption-choices .choice { width: min(480px, 100%); }
+
+/* ---------- Film mode (?film): the game plays itself for the videos ---------- */
+body.film .dev, body.film .touch-pad, body.film .prompt, body.film .cinema .skip,
+body.film .hud .icon-btn, body.film .dialogue .next, body.film .caption-next { display: none !important; }
+body.film { cursor: none; }
+/* Vertical videos: lift the boxes clear of the buttons that phones' video apps put along the bottom */
+body.film.tall .dialogue { bottom: 27vh; width: calc(100% - 80px); }
+body.film.tall .dialogue .text { font-size: 24px; }
+body.film.tall .cinema .caption-box { bottom: calc(27vh + 18px); }
+body.film.tall .toasts { top: 14vh; }

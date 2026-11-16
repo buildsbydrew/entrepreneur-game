@@ -1,0 +1,60 @@
+I let AI live a whole life in my game — Episode 1: Ada (kind)
+================================================================
+
+TITLE OPTIONS
+1. I Let AI Live a Whole Life in My Game
+2. I Gave an AI One Life to Live. It Chose Kindness.
+3. An AI Lived 78 Years in My Game. Here's Everything It Chose.
+4. I Told an AI to Be Kind for a Whole Lifetime
+5. From First Steps to Last Breath: An AI Plays My Life Sim
+
+(Recommended: 1 for the series name, or 3 if you want the number to do the work.)
+
+
+DESCRIPTION
+I built a life simulator called Urlivaven, then handed the controls to an AI and told it one thing:
+be kind. It was born, took its first steps, walked down Willow Lane alone for the first time, swept
+the yard for its first five livs, bought its best friend a fizzy sweet, and kept choosing family,
+over and over, for 78 years.
+
+Nobody touched the controls. Every walk, every conversation and every choice was made by the AI,
+following its personality. The little robot on screen shows what it picked and why.
+
+Next life: a new personality. Tell me in the comments which one you want to see.
+
+0:00 Meet Ada
+0:08 Before the first memory
+1:21 Age 5: the first day out alone
+3:08 Age 6: the yard-sweeping deal
+4:18 Age 7: a prize on the shelf
+4:41 Ages 8 to 12: the years fly by
+5:23 Ages 13 to 19: the teenage years
+6:17 Ages 20 to 59: a life of her own
+7:18 Ages 60 to 76: the grey years
+8:15 The end of a life
+
+Urlivaven is a game I'm building, set in the made-up city of Urlivaven in the country of Urlivana,
+where the money is called livs. Music made in code for this video.
+
+#gamedev #indiegame #lifesim
+
+
+TAGS
+I let AI live a whole life, AI plays a game, AI life simulator, life simulator, life sim game,
+indie game, indie game dev, Urlivaven, Drew's Builds, AI personality, kind AI, AI makes choices,
+game development, building a game, 3D life sim, AI plays my game, whole life simulation,
+one life, devlog
+
+
+THUMBNAIL IDEAS
+1. "Born → 78": Ada as a tiny child on the left and as a grey-haired elder on the right, the same
+   street behind both, a big orange arrow between them. Text: "78 YEARS. 0 HUMAN INPUT."
+   The little robot face from the video peeks in from a corner.
+
+2. The choice: a close crop of one of the game's choice boxes ("Of course, Mrs Pell." highlighted),
+   with the robot face's cursor hovering over it. Text: "IT ALWAYS PICKED KIND". Bright cream box on
+   a dark background so it pops in a feed.
+
+3. The life story card: Ada's end screen ("Remembered as kind and curious") on paper, slightly
+   tilted, with the robot face holding it like a report card. Text: "AN AI'S WHOLE LIFE".
+   Warm sunset sky behind.
