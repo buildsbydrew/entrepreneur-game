@@ -12,6 +12,7 @@
 // - The man in the green coat: seen from below, the frame slightly tilted, with a little handheld sway.
 // Inside a house the camera stays inside the walls. Works for 16:9 and 9:16.
 import * as THREE from 'three';
+import { STAGES } from '../people/body.js';
 
 const SIZE = { baby: 0.72, child: 0.86, teen: 0.95, adult: 1, elder: 1 };
 const UNSETTLING = new Set(['corin']); // people whose shots are low, tilted and a little shaky
@@ -30,11 +31,22 @@ export function createFilmCamera(game) {
   let talkSide = 0;       // which side of the conversation line the camera stays on (+1 or -1)
   let talkWith = null;
   let lastLine = null;    // { isYou, at, felt }
+  let closeUps = 0;       // true close-ups used in this conversation (kept for the big lines)
   let focus = 10;
   let closeness = 0;
   const portrait = () => Math.max(1, Math.sqrt(0.9 / cam.aspect));
 
   const headOf = p => v3(p.pos.x, (p.lift ?? 0) + p.headHeight() - 0.12, p.pos.z);
+  const headR = p => STAGES[p.stage]?.head ?? 0.27;
+  // Where someone's eyes are (the camera sits about here, so we look them in the eye)
+  const eyeOf = p => v3(p.pos.x, (p.lift ?? 0) + p.headHeight() - headR(p) * 1.05, p.pos.z);
+  // The lens that frames a head of radius r at this distance: "mcu" head and shoulders, "close" the face
+  const lensFor = (dist, r, size) => {
+    const half = r * (size === 'close' ? 2.1 : 3.1) * (cam.aspect < 1 ? 1.5 : 1);
+    return THREE.MathUtils.clamp(THREE.MathUtils.radToDeg(2 * Math.atan(half / dist)), 16, 50);
+  };
+  // Eyes on the upper third: aim a little below them
+  const aimBelowEyes = (eye, dist, fov) => eye.clone().setY(eye.y - Math.tan(THREE.MathUtils.degToRad(fov / 2)) * dist * 0.33);
   const FELT = { happy: 1, sad: 1, worried: 1, scared: 1, angry: 1, surprised: 1 };
 
   function newShot(type, extra = {}) {
@@ -68,8 +80,8 @@ export function createFilmCamera(game) {
     const dist = 4.6 * s * portrait();
     const head = headOf(pl);
     return {
-      pos: contain(v3(pl.pos.x + Math.sin(f) * dist, head.y + 0.9 * s, pl.pos.z + Math.cos(f) * dist), pl.pos),
-      look: v3(pl.pos.x, head.y - 0.25 * s, pl.pos.z), fov: 35, roll: 0, rate: 1.5
+      pos: contain(v3(pl.pos.x + Math.sin(f) * dist, eyeOf(pl).y + 0.35 * s, pl.pos.z + Math.cos(f) * dist), pl.pos),
+      look: v3(pl.pos.x, head.y - 0.35 * s, pl.pos.z), fov: 35, roll: 0, rate: 1.5
     };
   }
 
@@ -97,7 +109,7 @@ export function createFilmCamera(game) {
     const alone = pl.stage === 'child' && !game.people.some(p => Math.hypot(p.pos.x - pl.pos.x, p.pos.z - pl.pos.z) < 5);
     const dist = 5.2 * s * portrait();
     const head = headOf(pl);
-    const pos = v3(pl.pos.x, head.y + (alone ? 2.6 : 0.6) * s, pl.pos.z)
+    const pos = v3(pl.pos.x, eyeOf(pl).y + (alone ? 1.6 : 0.3) * s, pl.pos.z)
       .addScaledVector(side, dist).addScaledVector(dir, -1.2 * s);
     const look = v3(pl.pos.x, head.y - 0.3 * s, pl.pos.z).addScaledVector(dir, 1.3 * s); // room ahead
     return { pos: contain(pos, pl.pos), look, fov: 38, roll: 0, rate: 3 };
@@ -111,46 +123,47 @@ export function createFilmCamera(game) {
     return { pos: v3(centre.x + span * 0.15, span * 0.42, centre.z + span * 0.55), look: centre, fov: 40, roll: 0, rate: 0.6 };
   }
 
-  // Two people talking: a = the one the shot is on, b = the other
+  // Two people talking: a = the one the shot is on, b = the other.
+  //   two: both of them; ots: over b's shoulder onto a; mcu: a's head and shoulders; close: a's face
   function conversation(type, a, b) {
-    const ha = headOf(a);
-    const hb = headOf(b);
-    if (type === 'ots' && hb.y - ha.y > 0.3) type = 'close';
+    const ea = eyeOf(a);
+    const eb = eyeOf(b);
     const axis = v3(a.pos.x - b.pos.x, 0, a.pos.z - b.pos.z);
     const apart = Math.max(0.6, axis.length());
     axis.normalize();
     // The side of the line the camera keeps to (flipped with the axis, so it never crosses the line)
     const side = v3(-axis.z, 0, axis.x).multiplyScalar(talkSide * (a === game.player ? 1 : -1));
     const s = SIZE[a.stage] ?? 1;
+    const r = headR(a);
     let pos;
     let look;
-    let fov = 32;
+    let fov;
     if (type === 'two') {
-      const mid = ha.clone().add(hb).multiplyScalar(0.5);
-      pos = mid.clone().addScaledVector(side, (2.3 + apart * 0.9) * portrait()).setY(mid.y + 0.9);
-      look = mid.clone().setY(mid.y - 0.25);
+      const mid = ea.clone().add(eb).multiplyScalar(0.5);
+      pos = mid.clone().addScaledVector(side, (2.9 + apart) * portrait()).setY(mid.y + 0.6);
+      look = mid.clone().setY(mid.y - 0.35);
       fov = 36;
     } else if (type === 'ots') {
-      // Over the shoulder of the listener (b), onto the speaker (a)
-      // a tall listener and a small speaker: step further back and drop toward the speaker's eye level
-      const drop = Math.max(0, hb.y - ha.y);
-      pos = hb.clone().addScaledVector(axis, -(0.95 + drop * 1.6)).addScaledVector(side, (0.5 + drop * 0.4) * portrait()).setY(Math.min(hb.y + 0.2, ha.y + 0.35));
-      look = ha.clone().addScaledVector(side, -0.15).setY(ha.y - 0.28);
+      // Behind the listener and out to the side, so their shoulder is only a soft edge of the frame;
+      // at the speaker's eye level, so a child is seen at a child's height
+      const taller = Math.max(0, eb.y - ea.y);
+      pos = eb.clone().addScaledVector(axis, -(0.7 + taller * 0.6)).addScaledVector(side, b.radius + 0.32 + taller * 0.7).setY(ea.y + 0.04);
+      const dist = pos.distanceTo(ea);
+      fov = lensFor(dist, r, 'mcu');
+      look = aimBelowEyes(ea, dist, fov).addScaledVector(side, -0.04);
     } else {
-      // Close-up on a's face, from b's side of the line, slowly pushing in
-      const push = Math.min(1, (t - shot.start) / 5) * 0.25;
-      // between the two of them and off to the side, so the listener never blocks the view
-      const along = Math.max(1.25 * s * portrait() - push, Math.min((1.9 - push) * s * portrait(), apart - 0.45));
-      pos = ha.clone().addScaledVector(axis, -along).addScaledVector(side, 0.55 + Math.max(0, 1.2 - along) * 0.6).setY(ha.y + 0.08);
-      look = ha.clone().setY(ha.y - 0.3 * s);
-      fov = 30;
+      // A medium close-up (or a close-up for a big line), from the listener's side, at eye level
+      const close = type === 'close';
+      const push = close ? Math.min(1, (t - shot.start) / 5) * 0.2 : 0;
+      const dist = (close ? 1.7 - push : 2.5) * s * portrait();
+      const along = Math.min(dist, Math.max(0.9, apart - 0.3));
+      pos = ea.clone().addScaledVector(axis, -along).addScaledVector(side, Math.sqrt(Math.max(0.25, dist * dist - along * along))).setY(ea.y + 0.03);
+      const d = pos.distanceTo(ea);
+      fov = lensFor(d, r, close ? 'close' : 'mcu');
+      look = aimBelowEyes(ea, d, fov);
     }
-    let roll = 0;
-    if (UNSETTLING.has(a.id) && type !== 'two') {
-      // From below, and slightly tilted
-      pos.y = Math.max(0.5, ha.y - 0.9);
-      roll = 0.07;
-    }
+    // The man in the green coat: a slight tilt (seen from a child's height, he already looms)
+    const roll = UNSETTLING.has(a.id) && type !== 'two' ? 0.05 : 0;
     return { pos: contain(pos, game.player.pos), look, fov, roll, rate: 0 };
   }
 
@@ -180,9 +193,18 @@ export function createFilmCamera(game) {
   function beginTalk(partner) {
     const pl = game.player;
     talkWith = partner;
+    closeUps = 0;
     // Keep to the side of the line that faces the camera's usual south, so both faces show
     const axis = v3(pl.pos.x - partner.pos.x, 0, pl.pos.z - partner.pos.z).normalize();
     talkSide = -axis.x >= 0 ? 1 : -1;
+    // ...unless that side is a wall close by (Mum at the stove): then the side with more room
+    const mid = v3((pl.pos.x + partner.pos.x) / 2, 1, (pl.pos.z + partner.pos.z) / 2);
+    const room = ts => {
+      const sideways = v3(-axis.z, 0, axis.x).multiplyScalar(ts); // the two-shot's side, as conversation() works it out
+      const raw = mid.clone().addScaledVector(sideways, 3.5);
+      return raw.distanceTo(contain(raw.clone(), pl.pos));
+    };
+    if (room(talkSide) > room(-talkSide) + 0.5) talkSide = -talkSide;
     lastLine = null;
     const acrossWall = game.place.insideHouse(pl.pos.x, pl.pos.z) !== game.place.insideHouse(partner.pos.x, partner.pos.z);
     if (acrossWall) newShot('ots', { a: partner, b: pl, door: true });
@@ -199,11 +221,12 @@ export function createFilmCamera(game) {
     const b = a === game.player ? partner : game.player;
     const felt = Boolean(FELT[a.mood]) || UNSETTLING.has(a.id);
     let type;
+    const big = felt && closeUps < 2 && (UNSETTLING.has(a.id) || ['angry', 'sad', 'scared', 'surprised'].includes(a.mood));
     if (!lastLine) type = shot?.door ? 'ots' : 'two';
-    else if (felt) type = 'close';
-    else type = lastLine.isYou !== isYou ? 'ots' : (roll() < 0.35 ? 'close' : 'ots');
+    else if (big) { type = 'close'; closeUps++; }
+    else type = lastLine.isYou !== isYou ? 'ots' : 'mcu';
     if (lastLine?.felt && lastLine.isYou !== isYou) {
-      newShot('close', { a: b, b: a, reactionUntil: t + 0.9, then: { type, a, b } });
+      newShot('mcu', { a: b, b: a, reactionUntil: t + 0.9, then: { type, a, b } });
     } else if (type !== 'two' || shot?.type !== 'two') newShot(type, { a, b });
     lastLine = { isYou, at: t, felt };
   }
@@ -230,9 +253,10 @@ export function createFilmCamera(game) {
     else want = conversation(shot.type, shot.a ?? partner, shot.b ?? pl);
 
     // If someone else stands between the camera and what it's looking at, rise above them
-    const subjectId = (shot.a ?? pl).id;
-    const others = game.people.filter(p => p.id !== subjectId).map(p => p.group);
-    if (pl.id !== subjectId) others.push(pl.group);
+    // (The people the shot is about never count: the listener's shoulder belongs in an over-the-shoulder shot.)
+    const inShot = new Set([(shot.a ?? pl).id, shot.b?.id, ...(partner && shot.type === 'two' ? [partner.id, pl.id] : [])]);
+    const others = game.people.filter(p => !inShot.has(p.id)).map(p => p.group);
+    if (!inShot.has(pl.id)) others.push(pl.group);
     if (others.length) {
       const dir = want.look.clone().sub(want.pos);
       const far = dir.length();
@@ -288,7 +312,7 @@ export function createFilmCamera(game) {
     if (cur.roll) cam.rotateZ(cur.roll);
     game.camTarget.set(cur.look.x, 0, cur.look.z);
     focus = cam.position.distanceTo(cur.look);
-    closeness = shot.type === 'close' || shot.type === 'ots' ? 1 : shot.type === 'two' || shot.type === 'medium' ? 0.5 : 0;
+    closeness = shot.type === 'close' || shot.type === 'ots' || shot.type === 'mcu' ? 1 : shot.type === 'two' || shot.type === 'medium' ? 0.5 : 0;
   }
 
   // A fresh day or place: start again with an establishing shot

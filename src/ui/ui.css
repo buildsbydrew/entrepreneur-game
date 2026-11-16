@@ -203,7 +203,6 @@ body.film { cursor: none; }
 body.film.tall .dialogue { bottom: 27vh; width: calc(100% - 80px); }
 body.film.tall .dialogue .text { font-size: 24px; }
 body.film.tall .cinema .caption-box { bottom: calc(27vh + 18px); }
-body.film.tall .toasts { top: 14vh; }
 
 /* Film look: thin letterbox bars on the 16:9 episodes, with the subtitles sitting just above them */
 body.film:not(.tall) #app::before, body.film:not(.tall) #app::after { content: ''; position: fixed; left: 0; right: 0; height: 5.5vh;
@@ -211,5 +210,10 @@ body.film:not(.tall) #app::before, body.film:not(.tall) #app::after { content: '
 body.film:not(.tall) #app::before { top: 0; }
 body.film:not(.tall) #app::after { bottom: 0; }
 body.film:not(.tall) .dialogue { bottom: calc(5.5vh + 12px); }
-body.film:not(.tall) .toasts { top: calc(5.5vh + 16px); }
 body.film #world canvas { transition: filter 1.2s; }
+
+/* Film mode: the game's little messages become a quiet narration line in the lower third */
+body.film .toasts { top: auto; bottom: 25vh; width: min(70vw, 900px); align-items: center; }
+body.film .toast { background: none; box-shadow: none; border: none; color: #fff4dc; font-style: italic; font-weight: 600;
+  font-size: 22px; text-align: center; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85), 0 0 2px rgba(0, 0, 0, 0.9); padding: 2px 8px; }
+body.film.tall .toasts { bottom: 40vh; width: 86vw; top: auto; }
