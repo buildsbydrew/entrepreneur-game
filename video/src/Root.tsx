@@ -1,8 +1,9 @@
 // The videos: the full episode (16:9) and the Short (9:16). Each reads its edit plan, made by
 // plan.mjs (episode) or short.mjs (Short), from public/episode/<id>/.
 import React from 'react';
-import { Composition, staticFile } from 'remotion';
+import { Composition, Still, staticFile } from 'remotion';
 import { Episode } from './Episode';
+import { Thumbnail } from './Thumbnail';
 import { Short } from './Short';
 
 const loadPlan = async (file: string) => {
@@ -25,6 +26,13 @@ export const Root: React.FC = () => (
         const plan = await loadPlan(`episode/${props.id}/plan.json`);
         return { durationInFrames: plan.frames, props: { ...props, plan } };
       }}
+    />
+    <Still
+      id="Thumbnail"
+      component={Thumbnail}
+      width={1280}
+      height={720}
+      defaultProps={{ image: 'thumb/remy1.jpg', big: 'WHO IS HE?', small: 'An AI lives a whole life in my game', tag: 'EPISODE 1' }}
     />
     <Composition
       id="Short"
