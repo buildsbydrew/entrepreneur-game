@@ -105,3 +105,13 @@ describe('the night the baby came', () => {
     expect(scheduleNow(nico, 9 * 60).place).toBe('lane');
   });
 });
+
+describe('people who are not born yet', () => {
+  it('your little brother or sister is not at home before the night they are born', async () => {
+    const { isPresent } = await import('../src/core/schedule.js');
+    const people = (await import('../src/data/people.json')).default;
+    const sibling = people.people.find(p => p.id === 'sibling');
+    expect(isPresent(sibling, 'home', { year: 6, day: 72, minutes: 600 }, world)).toBe(false);
+    expect(isPresent(sibling, 'home', { year: 9, day: 11, minutes: 600 }, world)).toBe(true);
+  });
+});

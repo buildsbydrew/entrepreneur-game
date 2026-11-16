@@ -833,7 +833,10 @@ export default class Game {
     const perYear = world.calendar.daysPerSeason * world.calendar.seasons.length;
     const seasons = Math.round(days / world.calendar.daysPerSeason);
     const singular = verb === 'pass' ? 'passes' : verb;
-    if (days < world.calendar.daysPerSeason) return `${NUMBER_WORDS[Math.max(1, Math.round(days / 7))] ?? 'A few'} weeks ${verb}`;
+    if (days < world.calendar.daysPerSeason) {
+      const weeks = Math.max(1, Math.round(days / 7));
+      return weeks === 1 ? `A week ${singular}` : `${NUMBER_WORDS[weeks] ?? 'A few'} weeks ${verb}`;
+    }
     if (days < perYear) return seasons <= 1 ? `A season ${singular}` : `${NUMBER_WORDS[seasons] ?? seasons} seasons ${verb}`;
     const years = days / perYear;
     const whole = Math.floor(years);

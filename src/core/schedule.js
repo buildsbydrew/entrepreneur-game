@@ -26,8 +26,15 @@ export function scheduleNow(person, minutes) {
   return current;
 }
 
+// Has this person been born by this date? (Your little brother or sister arrives when you're 7.)
+export function bornYet(person, clock) {
+  const b = person.born;
+  return !b || clock.year > b.year || (clock.year === b.year && clock.day >= b.day);
+}
+
 // Is this person in this place right now? People only appear once they're old enough to be out and about.
 export function isPresent(person, placeId, clock, world) {
+  if (!bornYet(person, clock)) return false;
   if (person.appearsFromAge !== undefined && ageOf(person.born, clock, world) < person.appearsFromAge) return false;
   return scheduleNow(person, clock.minutes).place === placeId;
 }
